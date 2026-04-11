@@ -66,22 +66,57 @@ class DoslyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: themeController,
-      builder: (context, _) => MaterialApp(
+      builder: (context, _) => MaterialApp.router(
         title: 'dosly',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: themeController.value,
-        home: const ThemePreviewScreen(),
+        routerConfig: appRouter,
       ),
     );
   }
 }
 ```
 
-The `ListenableBuilder` at the root of `DoslyApp` rebuilds `MaterialApp` whenever the controller's value changes, which flips `themeMode` and causes Flutter to re-theme the tree. No Riverpod, no `InheritedWidget`, no `setState`.
+The `ListenableBuilder` at the root of `DoslyApp` rebuilds `MaterialApp.router` whenever the controller's value changes, which flips `themeMode` and causes Flutter to re-theme the tree. No Riverpod, no `InheritedWidget`, no `setState`. Routing is delegated to `appRouter` (see [Routing](#routing) below).
 
 The controller is **in-memory only** — it resets to `ThemeMode.system` on every app restart. Persistence will arrive with the future Settings feature, which will use drift; it is not bolted onto `ThemeController`.
+
+## Routing
+
+dosly uses **`go_router`** as its routing foundation. The router is declared as a top-level singleton in `lib/core/routing/app_router.dart` and consumed by `DoslyApp` via `MaterialApp.router(routerConfig: appRouter)`.
+
+```dart
+// lib/core/routing/app_router.dart
+final GoRouter appRouter = GoRouter(
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const HomeScreen(),
+    ),
+    GoRoute(
+      path: '/theme-preview',
+      builder: (context, state) => const ThemePreviewScreen(),
+    ),
+  ],
+);
+```
+
+The route table is currently flat and minimal:
+
+| Path | Screen | Notes |
+|---|---|---|
+| `/` | `HomeScreen` | App entry — placeholder until the real main screen ships |
+| `/theme-preview` | `ThemePreviewScreen` | Dev-only, reachable via a button on `HomeScreen`. Scheduled for removal post-MVP along with `lib/features/theme_preview/`. |
+
+A few conventions to note:
+
+- **`lib/core/routing/` is the composition root for routes.** It is the only place in the app allowed to import from multiple feature folders simultaneously — this is the documented exception to the "feature A never imports feature B" rule, because the router by definition has to know about every screen.
+- **`appRouter` mirrors the `themeController` pattern** — a top-level `final` declared next to its module, not a Riverpod provider. Riverpod will arrive with the first real feature; the router was deliberately kept on plain primitives to match the existing app-wide state style.
+- **Navigation is `context.go(...)` / `context.push(...)`** from `package:go_router/go_router.dart`, not `Navigator.of(context)`.
+
+This section will grow as the route table grows. For now there is no `ShellRoute`, no nested navigation, no redirect logic, and no deep-link handling — just two flat routes.
 
 ## Entry point
 

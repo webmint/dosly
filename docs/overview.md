@@ -17,7 +17,12 @@
 
 ## Current status
 
-One feature has shipped: **[`001-m3-theme`](features/theme.md)** — Material 3 theme tokens, Roboto typography, `ThemeData` for light and dark, and a preview screen. No medication logic exists yet.
+Two features have shipped:
+
+- **[`001-m3-theme`](features/theme.md)** — Material 3 theme tokens, Roboto typography, `ThemeData` for light and dark, and a preview screen.
+- **`002-main-screen`** — A placeholder `HomeScreen` and the adoption of `go_router` as the project's routing foundation. The `ThemePreviewScreen` is now reached via a dev button on `HomeScreen` and is scheduled for removal post-MVP. See [`architecture.md` § Routing](architecture.md#routing).
+
+No medication logic exists yet.
 
 ## Getting started
 
