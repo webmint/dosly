@@ -1,0 +1,107 @@
+{
+  "version": "1.28.0",
+  "description": "Manifest for AIDevTeamForge update system",
+
+  "templateOwned": {
+    "description": "Files 100% owned by the template — safe to overwrite on update",
+    "patterns": [
+      ".claude/commands/breakdown.md",
+      ".claude/commands/constitute.md",
+      ".claude/commands/execute-task.md",
+      ".claude/commands/plan.md",
+      ".claude/commands/setup-wizard.md",
+      ".claude/commands/specify.md",
+      ".claude/commands/onboard.md",
+      ".claude/commands/verify.md",
+      ".claude/commands/fix.md",
+      ".claude/commands/refactor.md",
+      ".claude/commands/report-bug.md",
+      ".claude/commands/refresh-docs.md",
+      ".claude/commands/research.md",
+      ".claude/commands/summarize.md",
+      ".claude/commands/security.md",
+      ".claude/commands/review.md",
+      ".claude/commands/audit.md",
+      ".claude/commands/finalize.md",
+      ".claude/commands/_recovery.md",
+      ".claude/commands/_agent-assignment.md",
+      ".claude/commands/_context-maintenance.md",
+      ".claude/commands/_multi-task-continuation.md",
+      ".claude/commands/_tech-writer-onboarding.md",
+      ".claude/template-manifest.json",
+      "scripts/**"
+    ]
+  },
+
+  "templateDerived": {
+    "description": "Template files whose changes should propagate to generated files in target projects. Only updates files that already exist in the target (i.e., agents the project chose to install). Placeholder variables are substituted using .claude/project-config.json.",
+    "mappings": [
+      {
+        "source": ".claude/templates/agents",
+        "target": ".claude/agents",
+        "strip_suffix": ".template",
+        "description": "Agent templates → generated agents. Three-way merge preserves all project customizations."
+      },
+      {
+        "source": ".claude/templates/CLAUDE.template.md",
+        "target": "CLAUDE.md",
+        "description": "CLAUDE.md template → project CLAUDE.md. Three-way merge preserves project overview, architecture, custom sections."
+      }
+    ]
+  },
+
+  "projectOwned": {
+    "description": "Files generated/customized per-project — NEVER overwrite",
+    "patterns": [
+      "constitution.md",
+      ".claude/project-config.json",
+      ".claude/memory/**",
+      ".claude/settings.json",
+      ".claude/settings.local.json",
+      ".claude/session-state.md",
+      ".claude/wip.md",
+      "specs/**",
+      "bugs/**",
+      "docs/**",
+      ".claude/agents/.baseline/**",
+      ".claude/.baseline/**",
+      "DEVELOPMENT-STATUS.md"
+    ]
+  },
+
+  "mergeFiles": {
+    "description": "Files with both template and project content — smart merge required",
+    "files": {
+      ".mcp.json": {
+        "strategy": "union_keys",
+        "description": "Union of mcpServers keys — add new template servers, keep existing project servers",
+        "mergeKey": "mcpServers"
+      },
+      ".gitignore": {
+        "strategy": "union_lines",
+        "description": "Add new template lines, keep existing project lines"
+      }
+    }
+  },
+
+  "templateRepoOnly": {
+    "description": "Files that exist only in the template repo — NOT copied to target projects during install or update",
+    "patterns": [
+      ".claude/commands/release.md",
+      "install.sh",
+      "update.sh",
+      "AI-ISSUES-AUDIT.md",
+      "COMPETITIVE-ANALYSIS.md",
+      "QUALITY-AUDIT.md"
+    ]
+  },
+
+  "copyIfMissing": {
+    "description": "Files to copy only if they don't exist in the target project",
+    "patterns": [
+      "specs/.gitkeep",
+      "bugs/.gitkeep",
+      "research/.gitkeep"
+    ]
+  }
+}

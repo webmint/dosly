@@ -1,0 +1,3133 @@
+<!DOCTYPE html>
+<html lang="uk" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dosly — M3 UI Templates</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<style>
+/* ================================================================
+   MATERIAL 3 — GREEN SEED COLOR SYSTEM
+   Seed: #4CAF50 · Generated with M3 Theme Builder
+   ================================================================ */
+:root {
+  /* Primary */
+  --md-primary:               #2E7D32;
+  --md-on-primary:            #FFFFFF;
+  --md-primary-container:     #B7F0B1;
+  --md-on-primary-container:  #002204;
+  /* Secondary */
+  --md-secondary:             #52634F;
+  --md-on-secondary:          #FFFFFF;
+  --md-secondary-container:   #D5E8CF;
+  --md-on-secondary-container:#101F0F;
+  /* Tertiary */
+  --md-tertiary:              #38656A;
+  --md-on-tertiary:           #FFFFFF;
+  --md-tertiary-container:    #BCEBF0;
+  --md-on-tertiary-container: #002023;
+  /* Error */
+  --md-error:                 #BA1A1A;
+  --md-on-error:              #FFFFFF;
+  --md-error-container:       #FFDAD6;
+  --md-on-error-container:    #410002;
+  /* Neutrals */
+  --md-background:            #F6FBF3;
+  --md-on-background:         #191C18;
+  --md-surface:               #F6FBF3;
+  --md-on-surface:            #191C18;
+  --md-surface-variant:       #DCE5D8;
+  --md-on-surface-variant:    #404942;
+  --md-outline:               #70796E;
+  --md-outline-variant:       #C0C9BB;
+  /* Surface containers */
+  --md-surface-lowest:        #FFFFFF;
+  --md-surface-low:           #F0F5ED;
+  --md-surface-container:     #EAF0E7;
+  --md-surface-high:          #E4EAE1;
+  --md-surface-highest:       #DFE4DC;
+  /* Inverse */
+  --md-inverse-surface:       #2E312D;
+  --md-inverse-on-surface:    #EFF2EC;
+  --md-inverse-primary:       #8BD988;
+  /* Scrim */
+  --md-scrim:                 #000000;
+  /* Content area */
+  --md-content-bg:            #FAF8F4;
+  /* Shadows */
+  --md-shadow-1: 0 1px 2px rgba(0,0,0,.20), 0 1px 3px 1px rgba(0,0,0,.10);
+  --md-shadow-2: 0 1px 2px rgba(0,0,0,.20), 0 2px 6px 2px rgba(0,0,0,.10);
+  --md-shadow-3: 0 4px 8px 3px rgba(0,0,0,.10), 0 1px 3px rgba(0,0,0,.20);
+  /* Shapes */
+  --shape-xs:    4px;
+  --shape-sm:    8px;
+  --shape-md:    12px;
+  --shape-lg:    16px;
+  --shape-xl:    28px;
+  --shape-full:  100px;
+  /* Nav */
+  --nav-h:       80px;
+  --appbar-h:    64px;
+  --statusbar-h: 44px;
+}
+
+/* ── DARK THEME ─────────────────────────────────────────── */
+[data-theme="dark"] {
+  --md-primary:               #8BD988;
+  --md-on-primary:            #003A02;
+  --md-primary-container:     #0A5210;
+  --md-on-primary-container:  #A6F5A2;
+  --md-secondary:             #B9CCAF;
+  --md-on-secondary:          #253422;
+  --md-secondary-container:   #3B4B37;
+  --md-on-secondary-container:#D5E8CF;
+  --md-tertiary:              #A0CFD5;
+  --md-on-tertiary:           #00363B;
+  --md-tertiary-container:    #1F4D52;
+  --md-on-tertiary-container: #BCEBF0;
+  --md-error:                 #FFB4AB;
+  --md-on-error:              #690005;
+  --md-error-container:       #93000A;
+  --md-on-error-container:    #FFDAD6;
+  --md-background:            #101410;
+  --md-on-background:         #DFE4DC;
+  --md-surface:               #101410;
+  --md-on-surface:            #DFE4DC;
+  --md-surface-variant:       #404942;
+  --md-on-surface-variant:    #BFC9BB;
+  --md-outline:               #8A9388;
+  --md-outline-variant:       #404942;
+  --md-surface-lowest:        #0B0F0B;
+  --md-surface-low:           #191C18;
+  --md-surface-container:     #1D211C;
+  --md-surface-high:          #272B26;
+  --md-surface-highest:       #323631;
+  --md-inverse-surface:       #DFE4DC;
+  --md-inverse-on-surface:    #2E312D;
+  --md-content-bg:            #191C18;
+  --md-inverse-primary:       #1B6B1D;
+  --md-shadow-1: 0 1px 2px rgba(0,0,0,.55), 0 1px 3px 1px rgba(0,0,0,.35);
+  --md-shadow-2: 0 1px 2px rgba(0,0,0,.55), 0 2px 6px 2px rgba(0,0,0,.35);
+  --md-shadow-3: 0 4px 8px 3px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.55);
+}
+
+/* ── BASE ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-family: 'Roboto', sans-serif; }
+body {
+  background: #0D0D0D;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 24px 48px;
+  gap: 24px;
+}
+
+/* ── PAGE HEADER ──────────────────────────────────────────── */
+.pg-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #fff;
+  width: 100%;
+  max-width: 640px;
+  flex-wrap: wrap;
+}
+.pg-title {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  color: #fff;
+}
+.pg-sub {
+  font-size: 12px;
+  color: rgba(255,255,255,.4);
+  font-weight: 400;
+}
+.pg-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.ctrl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.7);
+  font: 500 12px 'Roboto';
+  cursor: pointer;
+  transition: all .18s;
+}
+.ctrl:hover { background: rgba(255,255,255,.12); color:#fff; }
+.ctrl.active { background: #2E7D32; border-color: #2E7D32; color: #fff; }
+[data-theme="dark"] .ctrl.active { background: #1A5E1D; border-color: #8BD988; color: #8BD988; }
+.ctrl .mi { font-size: 15px; }
+.sep { width: 1px; height: 22px; background: rgba(255,255,255,.12); align-self: center; }
+
+/* ── PHONE WRAP ─────────────────────────────────────────────── */
+.phone-wrap { position: relative; }
+
+/* Side buttons */
+.side-pwr {
+  position: absolute; right: -11px; top: 168px;
+  width: 3px; height: 56px; background: #2a2a2a; border-radius: 0 3px 3px 0;
+}
+.side-vol1 {
+  position: absolute; left: -11px; top: 148px;
+  width: 3px; height: 40px; background: #2a2a2a; border-radius: 3px 0 0 3px;
+}
+.side-vol2 {
+  position: absolute; left: -11px; top: 200px;
+  width: 3px; height: 40px; background: #2a2a2a; border-radius: 3px 0 0 3px;
+}
+
+/* ── PHONE FRAME ─────────────────────────────────────────────── */
+.phone {
+  width: 390px;
+  height: 844px;
+  background: var(--md-surface-container);
+  border-radius: 50px;
+  overflow: hidden;
+  position: relative;
+  box-shadow:
+    0 0 0 9px #1A1A1A,
+    0 0 0 11px #2E2E2E,
+    0 40px 100px rgba(0,0,0,.85),
+    0 0 0 12px #252525;
+  transition: background .25s;
+}
+
+/* Dynamic island / camera */
+.phone::before {
+  content: '';
+  position: absolute;
+  top: 12px; left: 50%;
+  transform: translateX(-50%);
+  width: 108px; height: 32px;
+  background: #000;
+  border-radius: 20px;
+  z-index: 100;
+}
+
+/* ── STATUS BAR ─────────────────────────────────────────────── */
+.status-bar {
+  height: var(--statusbar-h);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 26px 6px;
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+}
+.sb-time {
+  font: 600 13px/1 'Roboto';
+  color: var(--md-on-surface);
+  letter-spacing: .2px;
+}
+.sb-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sb-icons svg { fill: var(--md-on-surface); }
+
+/* ── SCREEN SYSTEM ──────────────────────────────────────────── */
+.screen {
+  display: none;
+  flex-direction: column;
+  height: calc(844px - var(--statusbar-h));
+  background: var(--md-surface-container);
+  transition: background .25s;
+  position: relative;
+}
+.screen.active { display: flex; }
+
+/* ── TOP APP BAR ─────────────────────────────────────────────── */
+.app-bar {
+  height: var(--appbar-h);
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  background: var(--md-surface-container);
+  flex-shrink: 0;
+  transition: background .25s;
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+.app-bar.scrolled {
+  background: var(--md-surface-container);
+  box-shadow: var(--md-shadow-1);
+}
+.ab-title {
+  font: 500 22px/28px 'Roboto';
+  color: var(--md-on-surface);
+  padding: 0 8px;
+  flex: 1;
+  letter-spacing: -.1px;
+}
+.icon-btn {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background .15s;
+  flex-shrink: 0;
+  color: var(--md-on-surface-variant);
+}
+.icon-btn:hover { background: rgba(128,128,128,.1); }
+.icon-btn .mi { font-size: 22px; color: var(--md-on-surface-variant); }
+
+/* ── SCROLLABLE CONTENT ─────────────────────────────────────── */
+.s-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  background: var(--md-content-bg);
+}
+.s-content::-webkit-scrollbar { display: none; }
+
+/* ── BOTTOM NAV ─────────────────────────────────────────────── */
+.bot-nav {
+  height: var(--nav-h);
+  background: var(--md-surface-container);
+  display: flex;
+  align-items: flex-start;
+  padding-top: 12px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--md-outline-variant);
+  transition: background .25s;
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.nav-pill {
+  width: 64px; height: 32px;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s;
+}
+.nav-item.active .nav-pill { background: var(--md-secondary-container); }
+.nav-svg { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+.nav-svg svg { width: 24px; height: 24px; fill: none; stroke: var(--md-on-surface-variant); transition: stroke .2s; }
+.nav-item.active .nav-svg svg { stroke: var(--md-on-secondary-container); }
+.nav-lbl {
+  font: 500 10px/14px 'Roboto';
+  color: var(--md-on-surface-variant);
+  transition: color .2s;
+  white-space: nowrap;
+}
+.nav-item.active .nav-lbl { color: var(--md-on-surface); font-weight: 700; }
+
+/* ── Med icon tile ───────────────────────────────────────── */
+.med-iconify {
+  width: 48px; height: 48px;
+  border-radius: var(--shape-md);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.med-iconify.primary  { background: var(--md-primary-container); }
+.med-iconify.tertiary { background: var(--md-tertiary-container); }
+.med-iconify.neutral  { background: var(--md-surface-variant); }
+.med-iconify svg { width: 26px; height: 26px; display: block; }
+.med-iconify svg      { stroke: var(--md-on-primary-container); fill: none; }
+.med-iconify.tertiary svg { stroke: var(--md-on-tertiary-container); fill: none; }
+.med-iconify.neutral  svg { stroke: var(--md-on-surface-variant); fill: none; }
+
+
+.fab-wrap {
+  position: absolute;
+  right: 16px;
+  bottom: calc(var(--nav-h) + 16px);
+}
+.fab {
+  width: 56px; height: 56px;
+  border-radius: var(--shape-lg);
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--md-shadow-3);
+  cursor: pointer;
+  transition: box-shadow .2s;
+}
+.fab:hover { box-shadow: var(--md-shadow-3), 0 0 0 8px rgba(0,0,0,.05); }
+.fab .mi { font-size: 24px; }
+
+/* =================================================================
+   SCREEN 1 — HOME
+================================================================= */
+
+/* Countdown card */
+.cd-card {
+  margin: 4px 16px 12px;
+  background: var(--md-primary-container);
+  border-radius: var(--shape-lg);
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px;
+}
+.cd-icon { font-size: 30px; color: var(--md-on-primary-container); }
+.cd-body {}
+.cd-label { font: 400 12px/16px 'Roboto'; color: var(--md-on-primary-container); opacity: .8; }
+.cd-time  { font: 500 16px/24px 'Roboto'; color: var(--md-on-primary-container); margin-top: 2px; }
+
+/* Date row */
+.date-row {
+  padding: 20px 16px 8px;
+  font: 500 18px/24px 'Roboto';
+  color: var(--md-on-surface);
+}
+
+/* Time slot group */
+.slot-group {
+  margin: 0 16px 8px;
+  border-radius: var(--shape-lg);
+  overflow: hidden;
+}
+.slot-group.current {
+  border-left: 3px solid var(--md-primary);
+  margin-left: 14px;
+}
+.slot-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px 10px;
+  background: var(--md-surface-low);
+  cursor: pointer;
+  transition: background .15s;
+}
+.slot-group.current .slot-head { background: var(--md-surface-container); }
+.slot-head:hover { background: var(--md-surface-high); }
+
+.slot-time { font: 500 14px/20px 'Roboto'; color: var(--md-on-surface); }
+.slot-badge {
+  font: 500 11px/1 'Roboto';
+  padding: 3px 9px;
+  border-radius: var(--shape-full);
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+}
+.slot-badge.past {
+  background: var(--md-surface-variant);
+  color: var(--md-on-surface-variant);
+}
+.slot-badge.future {
+  background: var(--md-surface-variant);
+  color: var(--md-on-surface-variant);
+}
+.slot-badge.upcoming {
+  background: var(--md-surface-variant);
+  color: var(--md-on-surface-variant);
+}
+.slot-sub {
+  flex: 1;
+  font: 400 12px/16px 'Roboto';
+  color: var(--md-on-surface-variant);
+}
+.slot-chevron {
+  font-size: 18px !important;
+  color: var(--md-on-surface-variant);
+  transition: transform .2s;
+}
+.slot-group.collapsed .slot-chevron { transform: rotate(-90deg); }
+.slot-body {
+  background: color-mix(in srgb, var(--md-content-bg) 85%, var(--md-surface-container));
+  overflow: hidden;
+}
+.slot-group.current .slot-body { background: color-mix(in srgb, var(--md-content-bg) 60%, var(--md-surface-container)); }
+.slot-group.collapsed .slot-body { display: none; }
+
+/* Medication checkbox tile */
+.med-tile {
+  display: flex; align-items: center;
+  padding: 10px 12px 10px 12px;
+  gap: 12px;
+  border-top: 1px solid var(--md-outline-variant);
+  transition: background .15s;
+}
+.med-tile:hover { background: rgba(0,0,0,.03); }
+[data-theme="dark"] .med-tile:hover { background: rgba(255,255,255,.03); }
+
+/* M3 Checkbox */
+.m3-cb {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; cursor: pointer;
+}
+.cb-box {
+  width: 18px; height: 18px;
+  border: 2px solid var(--md-outline);
+  border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .18s;
+  position: relative;
+}
+.m3-cb.on .cb-box {
+  background: var(--md-primary);
+  border-color: var(--md-primary);
+}
+.m3-cb.on .cb-box::after {
+  content: '';
+  position: absolute;
+  width: 10px; height: 6px;
+  border-left: 2px solid var(--md-on-primary);
+  border-bottom: 2px solid var(--md-on-primary);
+  transform: rotate(-45deg) translate(0px, -1px);
+}
+
+.med-info { flex: 1; min-width: 0; }
+.med-name {
+  font: 400 16px/24px 'Roboto';
+  color: var(--md-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color .15s;
+}
+.med-tile.done .med-name, .med-tile.done .mlt-name {
+  text-decoration: line-through;
+  color: var(--md-on-surface-variant);
+}
+.med-dose {
+  font: 400 12px/16px 'Roboto';
+  color: var(--md-on-surface-variant);
+  margin-top: 2px;
+}
+.med-stock {
+  font: 400 14px/20px 'Roboto';
+  color: var(--md-on-surface-variant);
+  margin-top: 1px;
+}
+.med-stock strong { color: var(--md-error); font-weight: 600; }
+.med-badges { display: flex; gap: 6px; margin-top: 5px; }
+
+.badge {
+  font: 500 11px/1 'Roboto';
+  padding: 3px 9px;
+  border-radius: var(--shape-full);
+}
+.badge.course  { background: var(--md-tertiary-container);   color: var(--md-on-tertiary-container); }
+.badge.perm    { background: var(--md-secondary-container);  color: var(--md-on-secondary-container); }
+.badge.warn    { background: #FFF3E0; color: #E65100; }
+[data-theme="dark"] .badge.warn { background: #4E2600; color: #FFCC80; }
+
+
+/* ── Disabled checkbox state ─────────────────────────────── */
+.m3-cb.disabled {
+  pointer-events: none;
+  opacity: .38;
+}
+.med-tile.future-slot { opacity: .55; }
+
+
+
+
+
+/* ── Time Picker ────────────────────────────────────────── */
+let tpActiveField = 'h';
+let tpHours = '08';
+let tpMins  = '00';
+let tpEditingChip = null;
+
+function tpOpen(chipEl) {
+  tpEditingChip = chipEl;
+  if (chipEl) {
+    const text = chipEl.querySelector ? chipEl.textContent.trim() : '08:00';
+    const parts = text.match(/(\d{2}):(\d{2})/);
+    tpHours = parts ? parts[1] : '08';
+    tpMins  = parts ? parts[2] : '00';
+  } else {
+    tpHours = '08'; tpMins = '00';
+  }
+  tpSelectField('h');
+  document.getElementById('tp-h').textContent = tpHours;
+  document.getElementById('tp-m').textContent = tpMins;
+  document.getElementById('tp-overlay').classList.add('open');
+}
+
+function tpSelectField(field) {
+  tpActiveField = field;
+  document.getElementById('tp-h').classList.toggle('active', field === 'h');
+  document.getElementById('tp-m').classList.toggle('active', field === 'm');
+}
+
+function tpKey(digit) {
+  if (tpActiveField === 'h') {
+    const next = (tpHours + digit).slice(-2);
+    const val = parseInt(next);
+    if (val <= 23) { tpHours = next.padStart(2,'0'); }
+    else { tpHours = ('0' + digit).slice(-2); }
+    document.getElementById('tp-h').textContent = tpHours;
+    if (parseInt(tpHours) >= 3) tpSelectField('m');
+  } else {
+    const next = (tpMins + digit).slice(-2);
+    const val = parseInt(next);
+    if (val <= 59) { tpMins = next.padStart(2,'0'); }
+    else { tpMins = ('0' + digit).slice(-2); }
+    document.getElementById('tp-m').textContent = tpMins;
+  }
+}
+
+function tpBackspace() {
+  if (tpActiveField === 'h') {
+    tpHours = '0' + tpHours[0];
+    document.getElementById('tp-h').textContent = tpHours;
+  } else {
+    tpMins = '0' + tpMins[0];
+    document.getElementById('tp-m').textContent = tpMins;
+  }
+}
+
+function tpConfirm() {
+  const time = tpHours + ':' + tpMins;
+  if (tpEditingChip) {
+    // Edit existing — update text node
+    const textNodes = Array.from(tpEditingChip.childNodes).filter(n => n.nodeType === 3);
+    if (textNodes.length) textNodes[0].textContent = time;
+  } else {
+    // Add new chip
+    const chips = document.querySelector('.time-chips');
+    const addBtn = chips.querySelector('.t-chip.add');
+    const chip = document.createElement('div');
+    chip.className = 't-chip close-mi';
+    chip.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' + time + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" onclick="tpDeleteChip(this)" style="cursor:pointer"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+    chips.insertBefore(chip, addBtn);
+  }
+  tpClose();
+}
+
+function tpCancel() { tpClose(); }
+function tpClose() {
+  document.getElementById('tp-overlay').classList.remove('open');
+  tpEditingChip = null;
+}
+function tpOverlayClick(e) {
+  if (e.target === document.getElementById('tp-overlay')) tpClose();
+}
+function tpDeleteChip(svgEl) {
+  svgEl.closest('.t-chip').remove();
+}
+
+/* ── Unit dropdown ───────────────────────────────────────── */
+/* ── Quantity stepper ────────────────────────────────────── */
+.qty-stepper {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  border: 1px solid var(--md-outline);
+  border-radius: var(--shape-xs);
+  position: relative;
+  margin-top: 8px;
+}
+.qty-stepper .fpd-label {
+  position: absolute;
+  top: -8px; left: 10px;
+  font: 400 12px/16px 'Roboto';
+  color: var(--md-on-surface-variant);
+  background: var(--md-surface);
+  padding: 0 4px;
+  pointer-events: none;
+  transition: background .25s;
+}
+.qty-btn {
+  width: 48px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: var(--md-on-surface);
+  flex-shrink: 0;
+  transition: background .15s;
+}
+.qty-btn:hover { background: rgba(128,128,128,.08); }
+.qty-btn:active { background: rgba(128,128,128,.16); }
+.qty-btn svg { pointer-events: none; }
+.qty-value {
+  flex: 1;
+  text-align: center;
+  font: 400 18px/24px 'Roboto';
+  color: var(--md-on-surface);
+  user-select: none;
+}
+.qty-unit {
+  font: 400 12px/16px 'Roboto';
+  color: var(--md-on-surface-variant);
+  padding-right: 12px;
+  flex-shrink: 0;
+}
+
+/* Mark all row */
+.mark-all-row {
+  padding: 10px 16px 12px;
+  display: flex; justify-content: flex-end;
+  background: inherit;
+}
+.btn-tonal {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--shape-full);
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  border: none;
+  font: 500 14px/20px 'Roboto';
+  cursor: pointer;
+  transition: box-shadow .2s;
+}
+.btn-tonal:hover { box-shadow: var(--md-shadow-1); }
+.btn-tonal .mi { font-size: 18px; }
+
+/* =================================================================
+   SCREEN 2 — MEDICATIONS LIST
+================================================================= */
+
+/* Filter chips */
+.chip-row {
+  display: flex; gap: 8px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.chip-row::-webkit-scrollbar { display: none; }
+.f-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 16px;
+  border-radius: var(--shape-full);
+  border: 1px solid transparent;
+  font: 400 14px/20px 'Roboto';
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s;
+  background: var(--md-secondary-container);
+}
+.f-chip.sel {
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  font-weight: 500;
+  border-color: transparent;
+}
+.f-chip .mi { font-size: 16px; }
+.chip-check { display: none; }
+
+/* Section header */
+.sec-head {
+  padding: 12px 16px 4px;
+  font: 500 14px/20px 'Roboto';
+  color: var(--md-on-surface-variant);
+  letter-spacing: .1px;
+}
+
+/* Med list tile */
+.mlt {
+  display: flex; align-items: center;
+  padding: 12px 16px;
+  gap: 16px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.mlt:hover { background: rgba(0,0,0,.04); }
+[data-theme="dark"] .mlt:hover { background: rgba(255,255,255,.04); }
+.mlt-icon {
+  width: 48px; height: 48px;
+  border-radius: var(--shape-md);
+  background: var(--md-primary-container);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.mlt-icon.tertiary { background: var(--md-tertiary-container); }
+.mlt-icon.neutral  { background: var(--md-surface-variant); }
+.mlt-body { flex: 1; min-width: 0; }
+.mlt-name {
+  font: 400 16px/24px 'Roboto';
+  color: var(--md-on-surface);
+}
+.mlt-sub {
+  font: 400 12px/16px 'Roboto';
+  color: var(--md-on-surface-variant);
+  margin-top: 2px;
+}
+.mlt-chips { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.s-chip {
+  font: 500 11px/1 'Roboto';
+  padding: 3px 10px;
+  border-radius: var(--shape-full);
+}
+.s-chip.green   { background: var(--md-primary-container);   color: var(--md-on-primary-container); }
+.s-chip.teal    { background: var(--md-tertiary-container);  color: var(--md-on-tertiary-container); }
+.s-chip.grey    { background: var(--md-surface-variant);     color: var(--md-on-surface-variant); }
+.s-chip.neutral { background: var(--md-surface-high);        color: var(--md-on-surface-variant); }
+.mlt-trail { color: var(--md-on-surface-variant); display:flex; align-items:center; flex-shrink:0; cursor:pointer; padding: 4px; }
+
+/* Divider */
+.divider { height: 1px; background: var(--md-outline-variant); margin: 0 16px; }
+.divider.hidden { display: none; }
+
+/* =================================================================
+   SCREEN 3 — ADD / EDIT MEDICATION
+================================================================= */
+.form-sec { padding: 8px 16px; }
+
+/* ── Med form picker ──────────────────────────────────── */
+.form-picker-display {
+  display: flex; align-items: center; gap: 12px;
+  height: 56px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--md-outline);
+  border-radius: var(--shape-xs);
+  cursor: pointer;
+  transition: border-color .15s;
+  margin-bottom: 2px;
+  position: relative;
+}
+.form-picker-display:hover { border-color: var(--md-on-surface); }
+.form-picker-display .fpd-label {
+  position: absolute;
+  top: -8px; left: 10px;
+  font: 400 12px/16px 'Roboto';
+  color: var(--md-on-surface-variant);
+  background: var(--md-surface);
+  padding: 0 4px;
+  pointer-events: none;
+  transition: background .25s;
+}
+.fpd-icon-wrap {
+  width: 32px; height: 32px;
+  border-radius: var(--shape-sm);
+  background: var(--md-secondary-container);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background .2s;
+}
+.fpd-icon-wrap svg { width: 20px; height: 20px; stroke: var(--md-on-secondary-container); fill: none; }
+.fpd-text { flex: 1; }
+.fpd-name { font: 400 16px/24px 'Roboto'; color: var(--md-on-surface); }
+.fpd-sub  { font: 400 11px/14px 'Roboto'; color: var(--md-on-surface-variant); }
+.fpd-caret { font-size: 20px !important; color: var(--md-on-surface-variant); transition: transform .2s; }
+.form-picker-display.open .fpd-caret { transform: rotate(180deg); }
+
+.form-picker-grid-card {
+  background: var(--md-primary-container);
+  border-radius: 0 0 var(--shape-lg) var(--shape-lg);
+  margin-bottom: 16px;
+  overflow: hidden;
+  max-height: 0;
+  padding: 0 12px;
+  transition: max-height .28s ease, padding .28s ease;
+}
+.form-picker-grid-card.visible {
+  max-height: 320px;
+  padding: 12px 12px 14px;
+}
+.fpg-title {
+  font: 700 12px/16px 'Roboto';
+  color: var(--md-primary);
+  letter-spacing: .3px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+.fpg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+.fpg-opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--shape-md);
+  background: var(--md-surface-lowest);
+  cursor: pointer;
+  transition: background .15s;
+  border: 2px solid transparent;
+  overflow: hidden;
+}
+[data-theme="dark"] .fpg-opt { background: var(--md-surface-high); }
+.fpg-opt:hover { background: var(--md-surface-high); }
+[data-theme="dark"] .fpg-opt:hover { background: var(--md-surface-highest); }
+.fpg-opt.sel {
+  background: var(--md-primary);
+  border-color: var(--md-primary);
+}
+.fpg-opt svg { width: 22px; height: 22px; flex-shrink: 0; stroke: var(--md-on-surface-variant); fill: none; }
+.fpg-opt.sel svg { stroke: var(--md-on-primary); fill: none; }
+.fpg-opt .fpg-lbl {
+  font: 500 13px/18px 'Roboto';
+  color: var(--md-on-surface);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fpg-opt.sel .fpg-lbl { color: var(--md-on-primary); }
+.fs-title {
+  font: 500 14px/20px 'Roboto';
+  color: var(--md-on-surface-variant);
+  margin-bottom: 12px;
+  padding-top: 4px;
+  letter-spacing: .1px;
+}
+
+/* M3 Outlined Text Field */
+.tf {
+  position: relative;
+  margin-bottom: 16px;
+}
+.tf label {
+  position: absolute;
+  top: -8px; left: 12px;
+  font: 400 12px/16px 'Roboto';
+  color: var(--md-primary);
+  background: var(--md-surface);
+  padding: 0 4px;
+  z-index: 1;
+  pointer-events: none;
+  transition: color .15s, background .25s;
+}
+.tf .fi {
+  width: 100%; height: 56px;
+  border: 2px solid var(--md-primary);
+  border-radius: var(--shape-xs);
+  background: transparent;
+  font: 400 16px/24px 'Roboto';
+  color: var(--md-on-surface);
+  padding: 14px 12px;
+  outline: none;
+  font-family: 'Roboto';
+  transition: border-color .15s;
+}
+.tf.idle label { color: var(--md-on-surface-variant); }
+.tf.idle .fi   { border-color: var(--md-outline); }
+.tf.idle .fi:focus-within { border-color: var(--md-primary); }
+.tf .trail-icon {
+  position: absolute;
+  right: 12px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--md-on-surface-variant);
+  font-size: 20px !important;
+  pointer-events: none;
+}
+
+/* Row of fields */
+.f-row { display: flex; gap: 12px; }
+.f-row .tf { flex: 1; }
+
+/* Segmented button */
+.seg-btn {
+  display: flex;
+  height: 40px;
+  border: 1px solid var(--md-outline);
+  border-radius: var(--shape-full);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.seg-opt {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font: 500 14px/20px 'Roboto';
+  color: var(--md-on-surface);
+  cursor: pointer;
+  transition: all .15s;
+  border-right: 1px solid var(--md-outline);
+}
+.seg-opt:last-child { border-right: none; }
+.seg-opt.sel { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.seg-opt .mi { font-size: 18px; }
+.seg-opt svg { flex-shrink: 0; }
+
+/* Time chips */
+.time-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.t-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--shape-full);
+  background: var(--md-surface-high);
+  font: 500 14px/20px 'Roboto';
+  color: var(--md-on-surface);
+  cursor: pointer;
+  transition: background .15s;
+}
+.t-chip .mi { font-size: 16px; color: var(--md-on-surface-variant); }
+.t-chip.close-mi .mi:last-child { font-size: 14px; }
+.t-chip.add {
+  background: transparent;
+  border: 1px dashed var(--md-outline);
+  color: var(--md-primary);
+}
+.t-chip.add .mi { color: var(--md-primary); }
+
+/* Course card */
+.course-card {
+  background: var(--md-surface-low);
+  border-radius: var(--shape-lg);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.cc-head {
+  font: 500 14px/20px 'Roboto';
+  color: var(--md-on-surface);
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 14px;
+}
+.cc-head svg { flex-shrink: 0; stroke: var(--md-tertiary); }
+
+/* Course info chip */
+.info-chip {
+  background: var(--md-tertiary-container);
+  border-radius: var(--shape-sm);
+  padding: 10px 12px;
+  display: flex; align-items: center; gap: 8px;
+  margin-top: -4px;
+}
+.info-chip .mi { font-size: 18px; color: var(--md-on-tertiary-container); }
+.info-chip span { font: 400 12px/16px 'Roboto'; color: var(--md-on-tertiary-container); }
+
+/* Filled button */
+.btn-filled {
+  width: 100%; height: 48px;
+  border-radius: var(--shape-full);
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  border: none;
+  font: 500 14px/20px 'Roboto';
+  letter-spacing: .1px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: var(--md-shadow-1);
+  transition: box-shadow .2s;
+}
+.btn-filled:hover { box-shadow: var(--md-shadow-2); }
+.btn-filled .mi { font-size: 18px; }
+
+/* =================================================================
+   SCREEN 4 — HISTORY
+================================================================= */
+
+/* ── Week adherence card ─────────────────────────────────── */
+.adh-card {
+  margin: 4px 16px 12px;
+  background: var(--md-primary-container);
+  border-radius: var(--shape-lg);
+  padding: 14px 16px;
+}
+.adh-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.adh-label { font: 400 12px/16px 'Roboto'; color: var(--md-on-primary-container); opacity: .8; }
+.adh-pct   { font: 700 22px/28px 'Roboto'; color: var(--md-on-primary-container); }
+.adh-bar-bg {
+  height: 6px; border-radius: 3px;
+  background: rgba(0,0,0,.12);
+  overflow: hidden;
+}
+.adh-bar-fill {
+  height: 100%; border-radius: 3px;
+  background: var(--md-primary);
+  width: 86%;
+}
+[data-theme="dark"] .adh-bar-bg { background: rgba(255,255,255,.15); }
+
+/* ── Mini calendar week strip ────────────────────────────── */
+.week-strip {
+  display: flex; align-items: flex-start;
+  padding: 4px 12px 8px;
+  gap: 0;
+}
+.wday {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 5px; cursor: pointer;
+}
+.wday-lbl {
+  font: 500 11px/14px 'Roboto';
+  color: var(--md-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+.wday-dot-wrap {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.wday.today .wday-dot-wrap  { background: var(--md-primary); }
+.wday.sel .wday-dot-wrap    { background: var(--md-secondary-container); }
+.wday-num {
+  font: 400 14px/20px 'Roboto';
+  color: var(--md-on-surface);
+}
+.wday.today .wday-num  { color: var(--md-on-primary); font-weight: 700; }
+.wday.sel   .wday-num  { color: var(--md-on-secondary-container); font-weight: 500; }
+
+/* Status dots under day number */
+.wday-dots {
+  display: flex; gap: 2px; align-items: center; height: 6px;
+}
+.wd {
+  width: 5px; height: 5px; border-radius: 50%;
+}
+.wd.taken   { background: var(--md-primary); }
+.wd.skipped { background: var(--md-error); }
+.wd.empty   { background: var(--md-outline-variant); }
+
+/* ── History day group ───────────────────────────────────── */
+.hist-date-head {
+  padding: 12px 16px 6px;
+  font: 500 13px/18px 'Roboto';
+  color: var(--md-on-surface-variant);
+  letter-spacing: .1px;
+  display: flex; align-items: center; gap: 8px;
+}
+.hist-date-chip {
+  font: 500 11px/1 'Roboto';
+  padding: 3px 10px;
+  border-radius: var(--shape-full);
+  background: var(--md-surface-variant);
+  color: var(--md-on-surface-variant);
+}
+.hist-date-chip.full { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+
+/* ── History log tile ────────────────────────────────────── */
+.hlt {
+  display: flex; align-items: center;
+  padding: 10px 16px;
+  gap: 12px;
+}
+.hlt-icon-wrap {
+  width: 40px; height: 40px;
+  border-radius: var(--shape-md);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  background: var(--md-surface-container);
+}
+.hlt-icon-wrap.taken   { background: var(--md-primary-container); }
+.hlt-icon-wrap.skipped { background: var(--md-error-container); }
+.hlt-icon-wrap.pending { background: var(--md-surface-variant); }
+.hlt-icon-wrap svg { width: 20px; height: 20px; fill: none; }
+.hlt-icon-wrap.taken   svg { stroke: var(--md-on-primary-container); }
+.hlt-icon-wrap.skipped svg { stroke: var(--md-on-error-container); }
+.hlt-icon-wrap.pending svg { stroke: var(--md-on-surface-variant); }
+
+.hlt-body { flex: 1; min-width: 0; }
+.hlt-name {
+  font: 400 15px/20px 'Roboto';
+  color: var(--md-on-surface);
+}
+.hlt-meta {
+  font: 400 12px/16px 'Roboto';
+  color: var(--md-on-surface-variant);
+  margin-top: 2px;
+  display: flex; align-items: center; gap: 6px;
+}
+.hlt-course-badge {
+  font: 500 10px/1 'Roboto';
+  padding: 2px 7px;
+  border-radius: var(--shape-full);
+  background: var(--md-tertiary-container);
+  color: var(--md-on-tertiary-container);
+}
+
+.hlt-status {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+  flex-shrink: 0;
+}
+.hlt-time {
+  font: 400 12px/16px 'Roboto';
+  color: var(--md-on-surface-variant);
+}
+.hlt-badge {
+  font: 500 11px/1 'Roboto';
+  padding: 3px 9px;
+  border-radius: var(--shape-full);
+}
+.hlt-badge.taken   { background: var(--md-primary-container);   color: var(--md-on-primary-container); }
+.hlt-badge.skipped { background: var(--md-error-container);     color: var(--md-on-error-container); }
+.hlt-badge.pending { background: var(--md-surface-variant);     color: var(--md-on-surface-variant); }
+
+
+
+/* ── _OLD_Search bar ──────────────────────────────────────────── */
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font: 400 16px/24px 'Roboto';
+  color: var(--md-on-surface);
+  outline: none;
+  font-family: 'Roboto';
+}
+.search-input::placeholder { color: var(--md-on-surface-variant); }
+/* ── In-AppBar search ────────────────────────────────────── */
+.app-bar-search { overflow: hidden; position: relative; }
+.appbar-search-wrap {
+  position: absolute;
+  left: 0; right: 0; top: 0; bottom: 0;
+  display: flex; align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 16px;
+  background: var(--md-surface-container);
+  transform: translateX(100%);
+  transition: transform .22s ease;
+  pointer-events: none;
+}
+.appbar-search-wrap.active {
+  transform: translateX(0);
+  pointer-events: all;
+}
+.appbar-search-wrap svg:first-child { flex-shrink: 0; stroke: var(--md-on-surface-variant); }
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font: 400 16px/24px 'Roboto';
+  color: var(--md-on-surface);
+  outline: none;
+  font-family: 'Roboto';
+}
+.search-input::placeholder { color: var(--md-on-surface-variant); }
+.search-clear {
+  display: flex;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  align-items: center; justify-content: center;
+}
+
+.mlt.hidden { display: none; }
+.sec-empty { padding: 8px 16px 12px; font: 400 13px/18px 'Roboto'; color: var(--md-on-surface-variant); display: none; }
+.sec-empty.visible { display: block; }
+
+
+/* Section divider */
+.s-div { height: 1px; background: var(--md-outline-variant); margin: 4px 0 8px; }
+
+/* Stock CSS */
+.stock-card {
+  background: var(--md-surface-low);
+  border-radius: var(--shape-lg);
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--md-outline-variant);
+}
+.sc-head {
+  font: 500 14px/20px "Roboto";
+  color: var(--md-on-surface);
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.sc-head svg { flex-shrink: 0; stroke: var(--md-secondary); }
+.sc-note {
+  font: 400 12px/16px "Roboto";
+  color: var(--md-on-surface-variant);
+  margin-top: -4px;
+  margin-bottom: 12px;
+}
+
+
+/* ── Auth screens ────────────────────────────────────────── */
+.auth-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px;
+  background: var(--md-surface);
+  height: 100%;
+}
+.auth-logo {
+  margin-top: 64px;
+  margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: center;
+  width: 72px; height: 72px;
+  background: var(--md-primary-container);
+  border-radius: var(--shape-xl);
+}
+.auth-logo svg { stroke: var(--md-on-primary-container); }
+.auth-app-name {
+  font: 500 28px/36px 'Roboto';
+  color: var(--md-on-surface);
+  letter-spacing: -.3px;
+  margin-bottom: 8px;
+}
+.auth-tagline {
+  font: 400 14px/20px 'Roboto';
+  color: var(--md-on-surface-variant);
+  text-align: center;
+  margin-bottom: 48px;
+}
+.auth-fields { width: 100%; display: flex; flex-direction: column; gap: 16px; }
+.auth-divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 8px 0;
+  width: 100%;
+}
+.auth-divider-line { flex: 1; height: 1px; background: var(--md-outline-variant); }
+.auth-divider-text {
+  font: 400 12px/16px 'Roboto';
+  color: var(--md-on-surface-variant);
+}
+.btn-google {
+  width: 100%; height: 48px;
+  border-radius: var(--shape-full);
+  background: var(--md-surface-lowest);
+  border: 1px solid var(--md-outline-variant);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font: 500 14px/20px 'Roboto';
+  color: var(--md-on-surface);
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-google:hover { background: var(--md-surface-high); }
+.auth-footer {
+  margin-top: auto;
+  padding-bottom: 32px;
+  text-align: center;
+  font: 400 14px/20px 'Roboto';
+  color: var(--md-on-surface-variant);
+  width: 100%;
+}
+.auth-link {
+  color: var(--md-primary);
+  cursor: pointer;
+  font-weight: 500;
+}
+.auth-error {
+  font: 400 12px/16px 'Roboto';
+  color: var(--md-error);
+  padding: 4px 0;
+  display: none;
+}
+.auth-back-btn {
+  align-self: flex-start;
+  margin-top: 16px;
+  margin-left: -8px;
+}
+.auth-title {
+  font: 500 24px/32px 'Roboto';
+  color: var(--md-on-surface);
+  align-self: flex-start;
+  margin-top: 16px;
+  margin-bottom: 24px;
+  letter-spacing: -.2px;
+}
+.auth-sub {
+  font: 400 14px/20px 'Roboto';
+  color: var(--md-on-surface-variant);
+  align-self: flex-start;
+  margin-top: -16px;
+  margin-bottom: 24px;
+}
+.auth-success-icon {
+  width: 64px; height: 64px;
+  background: var(--md-primary-container);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 48px auto 16px;
+}
+.auth-success-icon svg { stroke: var(--md-on-primary-container); }
+
+/* ── Settings ────────────────────────────────────────────── */
+.settings-group {
+  margin: 0 16px 8px;
+}
+.settings-group-title {
+  font: 500 12px/16px 'Roboto';
+  color: var(--md-primary);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  padding: 16px 4px 6px;
+}
+.settings-tile {
+  display: flex;
+  align-items: center;
+  padding: 14px 4px;
+  gap: 16px;
+  border-bottom: 1px solid var(--md-outline-variant);
+  cursor: pointer;
+  transition: background .15s;
+  border-radius: var(--shape-sm);
+}
+.settings-tile:last-child { border-bottom: none; }
+.settings-tile:hover { background: rgba(0,0,0,.03); }
+[data-theme="dark"] .settings-tile:hover { background: rgba(255,255,255,.03); }
+.settings-tile-body { flex: 1; min-width: 0; }
+.settings-tile-title {
+  font: 400 16px/24px 'Roboto';
+  color: var(--md-on-surface);
+}
+.settings-tile-sub {
+  font: 400 12px/16px 'Roboto';
+  color: var(--md-on-surface-variant);
+  margin-top: 2px;
+}
+.settings-tile-trail {
+  color: var(--md-on-surface-variant);
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+}
+/* M3 Toggle */
+.m3-toggle {
+  width: 52px; height: 32px;
+  border-radius: 16px;
+  background: var(--md-surface-variant);
+  position: relative;
+  cursor: pointer;
+  transition: background .2s;
+  flex-shrink: 0;
+  border: 2px solid var(--md-outline);
+}
+.m3-toggle.on {
+  background: var(--md-primary);
+  border-color: var(--md-primary);
+}
+.m3-toggle-thumb {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--md-outline);
+  transition: transform .2s, background .2s;
+}
+.m3-toggle.on .m3-toggle-thumb {
+  transform: translateX(20px);
+  background: var(--md-on-primary);
+}
+/* Settings value chip */
+.settings-val {
+  font: 400 14px/20px 'Roboto';
+  color: var(--md-on-surface-variant);
+  background: var(--md-surface-high);
+  padding: 4px 12px;
+  border-radius: var(--shape-full);
+}
+/* Danger tile */
+.settings-tile.danger .settings-tile-title { color: var(--md-error); }
+.settings-tile.danger .settings-tile-trail svg { stroke: var(--md-error); }
+
+/* Spacer */
+.sp { height: 24px; }
+
+</style>
+</head>
+<body>
+
+<!-- ══ PAGE HEADER ══════════════════════════════════════════════════ -->
+<div class="pg-header">
+  <div>
+    <div class="pg-title">Dosly — UI Templates</div>
+    <div class="pg-sub">Material 3 · Green seed · Flutter Android</div>
+  </div>
+  <div class="pg-controls">
+    <button class="ctrl" id="c-auth" onclick="goToAuth('s-welcome')">🔐 Вхід</button>
+    <button class="ctrl active" id="c-home" onclick="goTo('home')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Сьогодні
+    </button>
+    <button class="ctrl" id="c-meds" onclick="goTo('meds')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg> Ліки
+    </button>
+    <button class="ctrl" id="c-add" onclick="openAdd()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg> Додати
+    </button>
+    <button class="ctrl" id="c-hist" onclick="goTo('hist')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg> Історія
+    </button>
+    <button class="ctrl" id="c-sett" onclick="goTo('sett')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg> Налаштування
+    </button>
+    <div class="sep"></div>
+    <button class="ctrl" id="c-theme" onclick="toggleTheme()">
+      <span class="mi material-icons-round" id="ti">dark_mode</span>
+      <span id="tl">Темна</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══ PHONE ═══════════════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="side-pwr"></div>
+  <div class="side-vol1"></div>
+  <div class="side-vol2"></div>
+
+  <div class="phone">
+
+    <!-- STATUS BAR -->
+    <div class="status-bar">
+      <span class="sb-time">9:41</span>
+      <div class="sb-icons">
+        <!-- Signal bars -->
+        <svg width="16" height="12" viewBox="0 0 16 12">
+          <rect x="0" y="8" width="3" height="4" rx="1"/>
+          <rect x="4.5" y="5" width="3" height="7" rx="1"/>
+          <rect x="9" y="2" width="3" height="10" rx="1"/>
+          <rect x="13.5" y="0" width="2.5" height="12" rx="1" opacity=".3"/>
+        </svg>
+        <!-- Wifi -->
+        <svg width="16" height="12" viewBox="0 0 24 18">
+          <path d="M12 4C8.5 4 5.4 5.4 3.1 7.6L1 5.5C3.9 2.7 7.8 1 12 1s8.1 1.7 11 4.5L20.9 7.6C18.6 5.4 15.5 4 12 4z"/>
+          <path d="M12 10c-2.2 0-4.2.9-5.7 2.3L4.2 10.2C6.3 8.3 9 7 12 7s5.7 1.3 7.8 3.2l-2.1 2.1C16.2 10.9 14.2 10 12 10z"/>
+          <path d="M12 16c-1.1 0-2 .4-2.8 1l2.8 2.8 2.8-2.8c-.8-.6-1.7-1-2.8-1z"/>
+        </svg>
+        <!-- Battery -->
+        <svg width="24" height="12" viewBox="0 0 25 12">
+          <rect x="0" y="1" width="21" height="10" rx="2.5" stroke="currentFill" stroke-width="1.5" fill="none"/>
+          <rect x="21.5" y="4" width="2.5" height="4" rx="1.2"/>
+          <rect x="1.5" y="2.5" width="15" height="7" rx="1.5"/>
+        </svg>
+      </div>
+    </div>
+
+
+
+    <!-- ╔══════════════════════════════════════╗ -->
+    <!-- ║  SCREEN: WELCOME / SIGN IN           ║ -->
+    <!-- ╚══════════════════════════════════════╝ -->
+    <div class="screen active" id="s-welcome">
+      <div class="auth-screen">
+        <div class="auth-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="36" height="36"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+        <div class="auth-app-name">Dosly</div>
+        <div class="auth-tagline">Ваш особистий трекер ліків</div>
+
+        <div class="auth-fields">
+          <div class="tf idle">
+            <label>Email</label>
+            <input class="fi" type="email" placeholder="your@email.com">
+          </div>
+          <div class="tf idle">
+            <label>Пароль</label>
+            <input class="fi" type="password" placeholder="••••••••">
+            <span class="trail-icon" style="display:inline-flex;align-items:center;cursor:pointer">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </span>
+          </div>
+          <div style="text-align:right;margin-top:-8px">
+            <span class="auth-link" onclick="goToAuth('s-forgot')" style="font-size:13px">Забули пароль?</span>
+          </div>
+          <button class="btn-filled" onclick="goTo('home')" style="margin-top:4px">Увійти</button>
+        </div>
+
+        <div class="auth-divider" style="margin-top:20px">
+          <div class="auth-divider-line"></div>
+          <span class="auth-divider-text">або</span>
+          <div class="auth-divider-line"></div>
+        </div>
+
+        <div style="width:100%;margin-bottom:8px">
+          <div class="btn-google" onclick="goTo('home')"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Продовжити з Google</div>
+        </div>
+
+        <div class="auth-footer">
+          Немає акаунту? <span class="auth-link" onclick="goToAuth('s-register')">Зареєструватись</span>
+        </div>
+      </div>
+    </div><!-- /s-welcome -->
+
+    <!-- ╔══════════════════════════════════════╗ -->
+    <!-- ║  SCREEN: REGISTER                    ║ -->
+    <!-- ╚══════════════════════════════════════╝ -->
+    <div class="screen" id="s-register">
+      <div class="auth-screen">
+        <div class="auth-back-btn">
+          <div class="icon-btn" onclick="goToAuth('s-welcome')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+          </div>
+        </div>
+        <div class="auth-title">Створити акаунт</div>
+
+        <div class="auth-fields">
+          <div class="tf idle">
+            <label>Ім'я</label>
+            <input class="fi" type="text" placeholder="Іван">
+          </div>
+          <div class="tf idle">
+            <label>Email</label>
+            <input class="fi" type="email" placeholder="your@email.com">
+          </div>
+          <div class="tf idle">
+            <label>Пароль</label>
+            <input class="fi" type="password" placeholder="Мін. 8 символів">
+          </div>
+          <div class="tf idle">
+            <label>Підтвердити пароль</label>
+            <input class="fi" type="password" placeholder="••••••••">
+          </div>
+          <button class="btn-filled" onclick="goTo('home')" style="margin-top:4px">Зареєструватись</button>
+        </div>
+
+        <div class="auth-divider" style="margin-top:20px">
+          <div class="auth-divider-line"></div>
+          <span class="auth-divider-text">або</span>
+          <div class="auth-divider-line"></div>
+        </div>
+
+        <div style="width:100%;margin-bottom:8px">
+          <div class="btn-google" onclick="goTo('home')"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Продовжити з Google</div>
+        </div>
+
+        <div class="auth-footer">
+          Вже є акаунт? <span class="auth-link" onclick="goToAuth('s-welcome')">Увійти</span>
+        </div>
+      </div>
+    </div><!-- /s-register -->
+
+    <!-- ╔══════════════════════════════════════╗ -->
+    <!-- ║  SCREEN: FORGOT PASSWORD             ║ -->
+    <!-- ╚══════════════════════════════════════╝ -->
+    <div class="screen" id="s-forgot">
+      <div class="auth-screen">
+        <div class="auth-back-btn">
+          <div class="icon-btn" onclick="goToAuth('s-welcome')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+          </div>
+        </div>
+        <div class="auth-title">Скинути пароль</div>
+        <div class="auth-sub">Надішлемо посилання на вашу пошту</div>
+
+        <div class="auth-fields">
+          <div class="tf idle">
+            <label>Email</label>
+            <input class="fi" type="email" placeholder="your@email.com">
+          </div>
+          <button class="btn-filled" onclick="goToAuth('s-forgot-sent')" style="margin-top:4px">Надіслати</button>
+        </div>
+
+        <div class="auth-footer">
+          <span class="auth-link" onclick="goToAuth('s-welcome')">Повернутись до входу</span>
+        </div>
+      </div>
+    </div><!-- /s-forgot -->
+
+    <!-- ╔══════════════════════════════════════╗ -->
+    <!-- ║  SCREEN: FORGOT — EMAIL SENT         ║ -->
+    <!-- ╚══════════════════════════════════════╝ -->
+    <div class="screen" id="s-forgot-sent">
+      <div class="auth-screen" style="text-align:center">
+        <div class="auth-success-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div class="auth-app-name" style="font-size:22px;margin-top:0">Перевірте пошту</div>
+        <div class="auth-tagline" style="margin-bottom:32px">Ми надіслали посилання для скидання паролю на <strong>your@email.com</strong></div>
+
+        <button class="btn-filled" style="width:100%" onclick="goToAuth('s-welcome')">Повернутись до входу</button>
+
+        <div class="auth-footer">
+          Не отримали? <span class="auth-link">Надіслати ще раз</span>
+        </div>
+      </div>
+    </div><!-- /s-forgot-sent -->
+
+    <!-- ╔══════════════════════════════════════╗ -->
+    <!-- ║  SCREEN 1 — TODAY / HOME             ║ -->
+    <!-- ╚══════════════════════════════════════╝ -->
+    <div class="screen" id="s-home">
+
+      <div class="app-bar">
+        <span class="ab-title">Dosly</span>
+        <div class="icon-btn" onclick="goTo('sett')"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></div>
+      </div>
+
+      <div class="s-content">
+        <div class="date-row">П'ятниця, 28 березня 2026</div>
+
+        <!-- Countdown -->
+        <div class="cd-card">
+          <span class="cd-icon" style="display:inline-flex;align-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+          <div class="cd-body">
+            <div class="cd-label">Наступний прийом</div>
+            <div class="cd-time">через 2 год 15 хв · 14:00</div>
+          </div>
+        </div>
+
+        <!-- ── SLOT 08:00 (past, collapsed) ────────────────── -->
+        <div class="slot-group collapsed" id="sg0">
+          <div class="slot-head" onclick="toggleSlot('sg0')">
+            <span class="slot-time">08:00</span>
+            <span class="slot-badge past">✓ 3/3</span>
+            <span class="slot-sub">3 прийоми</span>
+            <span class="slot-chevron" style="display:inline-flex;align-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+          </div>
+          <!--
+            DEV NOTE — PAST SLOT (08:00, поточний час ~11:45)
+            Логіка блокування для минулих слотів:
+            - Якщо (поточний час - час слоту) > GRACE_PERIOD_MINUTES → checkbox disabled
+            - GRACE_PERIOD_MINUTES за замовчуванням = 60, змінюється в Settings → "Час для відмітки"
+            - Grace period вийшов (>60 хв від 08:00) → ВСІ checkboxes disabled
+            - Відмічені: зафіксовано як taken, не можна скасувати
+            - Невідмічені: автоматично логуються як skipped при закритті вікна
+          -->
+          <div class="slot-body">
+            <div class="med-tile done">
+              <div class="med-iconify primary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+              <div class="mlt-body">
+                <div class="mlt-name">Омепразол</div>
+                <div class="mlt-sub">20 мг · 1 капс</div>
+                <div class="mlt-chips"><span class="s-chip neutral">постійний</span></div>
+              </div>
+              <!-- taken → disabled, can't uncheck after grace period -->
+              <div class="m3-cb on disabled"><div class="cb-box"></div></div>
+            </div>
+            <div class="med-tile done">
+              <div class="med-iconify primary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6.292a7 7 0 1 0 4 0V2"/><path d="M5 15h14"/><path d="M8.5 2h7"/></svg></div>
+              <div class="mlt-body">
+                <div class="mlt-name">Вітамін D3</div>
+                <div class="mlt-sub">2000 МО · 1 капс</div>
+                <div class="mlt-chips"><span class="s-chip neutral">постійний</span></div>
+              </div>
+              <div class="m3-cb on disabled"><div class="cb-box"></div></div>
+            </div>
+            <div class="med-tile done">
+              <div class="med-iconify tertiary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+              <div class="mlt-body">
+                <div class="mlt-name">Амоксицилін</div>
+                <div class="mlt-sub">500 мг · 1 капс</div>
+                <div class="mlt-chips"><span class="s-chip teal">День 3 / 7</span></div>
+              </div>
+              <div class="m3-cb on disabled"><div class="cb-box"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SLOT 14:00 (current, expanded) ──────────────── -->
+        <div class="slot-group collapsed" id="sg1" style="margin-top:6px">
+          <div class="slot-head" onclick="toggleSlot('sg1')">
+            <span class="slot-time">14:00</span>
+            <!-- DEV NOTE — SLOT BADGE LOGIC:
+                 "Зараз"    → поточний час >= scheduledTime AND <= scheduledTime + INTAKE_WINDOW_MINUTES
+                 "Майбутнє" → поточний час < scheduledTime
+                 "✓ N/N"    → минулий слот, grace period вийшов
+                 INTAKE_WINDOW_MINUTES за замовч. = 60, змінюється в Settings → "Вікно прийому"
+                 У цьому темплейті час ~11:45, тому 14:00 ще не настав → "Майбутнє" -->
+            <span class="slot-badge upcoming">Майбутнє</span>
+            <span class="slot-sub">4 прийоми</span>
+            <span class="slot-chevron" style="display:inline-flex;align-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+          </div>
+          <!--
+            DEV NOTE — PAST SLOT (08:00, поточний час ~11:45)
+            Логіка блокування для минулих слотів:
+            - Якщо (поточний час - час слоту) > GRACE_PERIOD_MINUTES → checkbox disabled
+            - GRACE_PERIOD_MINUTES за замовчуванням = 60, змінюється в Settings → "Час для відмітки"
+            - Grace period вийшов (>60 хв від 08:00) → ВСІ checkboxes disabled
+            - Відмічені: зафіксовано як taken, не можна скасувати
+            - Невідмічені: автоматично логуються як skipped при закритті вікна
+          -->
+          <div class="slot-body">
+            <div class="med-tile done">
+              <div class="med-iconify primary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+              <div class="mlt-body">
+                <div class="mlt-name">Омепразол</div>
+                <div class="mlt-sub">20 мг · 1 капс</div>
+                <div class="mlt-chips"><span class="s-chip neutral">постійний</span></div>
+              </div>
+              <!-- taken → disabled, can't uncheck after grace period -->
+              <div class="m3-cb on disabled"><div class="cb-box"></div></div>
+            </div>
+            <div class="med-tile">
+              <div class="med-iconify tertiary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></svg></div>
+              <div class="mlt-body">
+                <div class="mlt-name">Мексиприм</div>
+                <div class="mlt-sub">125 мг · 1 табл</div>
+                <div class="mlt-chips"><span class="s-chip teal">День 7 / 30</span></div>
+              </div>
+              <div class="m3-cb" onclick="toggleCb(this)"><div class="cb-box"></div></div>
+            </div>
+            <div class="med-tile">
+              <div class="med-iconify primary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5"/><circle cx="17" cy="17" r="5"/><path d="M12 17h10"/><path d="m3.46 10.54 7.08-7.08"/></svg></div>
+              <div class="mlt-body">
+                <div class="mlt-name">Магній B6</div>
+                <div class="mlt-sub">48 мг · 2 табл · <strong style="color:var(--md-error)">5 з 60 шт</strong></div>
+                <div class="mlt-chips"><span class="s-chip neutral">постійний</span></div>
+              </div>
+              <div class="m3-cb" onclick="toggleCb(this)"><div class="cb-box"></div></div>
+            </div>
+            <div class="med-tile">
+              <div class="med-iconify tertiary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+              <div class="mlt-body">
+                <div class="mlt-name">Амоксицилін</div>
+                <div class="mlt-sub">500 мг · 1 капс</div>
+                <div class="mlt-chips"><span class="s-chip teal">День 3 / 7</span></div>
+              </div>
+              <div class="m3-cb" onclick="toggleCb(this)"><div class="cb-box"></div></div>
+            </div>
+            <!-- mark all -->
+            <div class="mark-all-row">
+              <button class="btn-tonal" onclick="markAllInSlot('sg1')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                Відзначити всі
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SLOT 20:00 (future, expanded) ───────────────── -->
+        <div class="slot-group collapsed" id="sg2" style="margin-top:6px">
+          <div class="slot-head" onclick="toggleSlot('sg2')">
+            <span class="slot-time">20:00</span>
+            <span class="slot-badge future">0 / 3</span>
+            <span class="slot-sub">3 прийоми</span>
+            <span class="slot-chevron" style="display:inline-flex;align-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+          </div>
+          <!--
+            DEV NOTE — FUTURE SLOT (20:00, поточний час ~11:45)
+            Логіка для майбутніх слотів:
+            - Всі checkboxes disabled — відмічати наперед заборонено за замовчуванням
+            - Це можна змінити в Settings → "Дозволити відмічати наперед" (toggle)
+            - Якщо дозволено → checkbox активний, час запису = момент кліку (не запланований час)
+          -->
+          <div class="slot-body">
+            <div class="med-tile future-slot">
+              <div class="med-iconify primary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+              <div class="mlt-body">
+                <div class="mlt-name">Омепразол</div>
+                <div class="mlt-sub">20 мг · 1 капс</div>
+                <div class="mlt-chips"><span class="s-chip neutral">постійний</span></div>
+              </div>
+              <div class="m3-cb disabled"><div class="cb-box"></div></div>
+            </div>
+            <div class="med-tile future-slot">
+              <div class="med-iconify tertiary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></svg></div>
+              <div class="mlt-body">
+                <div class="mlt-name">Мексиприм</div>
+                <div class="mlt-sub">125 мг · 1 табл</div>
+                <div class="mlt-chips"><span class="s-chip teal">День 7 / 30</span></div>
+              </div>
+              <div class="m3-cb disabled"><div class="cb-box"></div></div>
+            </div>
+            <div class="med-tile future-slot">
+              <div class="med-iconify tertiary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+              <div class="mlt-body">
+                <div class="mlt-name">Амоксицилін</div>
+                <div class="mlt-sub">500 мг · 1 капс</div>
+                <div class="mlt-chips"><span class="s-chip teal">День 3 / 7</span></div>
+              </div>
+              <div class="m3-cb disabled"><div class="cb-box"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="sp"></div>
+      </div><!-- /s-content -->
+
+      <div class="bot-nav">
+        <div class="nav-item active">
+          <div class="nav-pill"><div class="nav-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div></div>
+          <span class="nav-lbl">Сьогодні</span>
+        </div>
+        <div class="nav-item" onclick="goTo('meds')">
+          <div class="nav-pill"><div class="nav-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div></div>
+          <span class="nav-lbl">Ліки</span>
+        </div>
+        <div class="nav-item" onclick="goTo('hist')">
+          <div class="nav-pill"><div class="nav-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg></div></div>
+          <span class="nav-lbl">Історія</span>
+        </div>
+
+      </div>
+
+    </div><!-- /s-home -->
+
+
+    <!-- ╔══════════════════════════════════════╗ -->
+    <!-- ║  SCREEN 2 — MEDICATIONS LIST         ║ -->
+    <!-- ╚══════════════════════════════════════╝ -->
+    <div class="screen" id="s-meds">
+
+      <div class="app-bar app-bar-search" id="meds-appbar">
+        <span class="ab-title" id="meds-title">Мої ліки</span>
+        <div class="icon-btn" id="search-toggle" onclick="toggleSearch()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+        <div class="appbar-search-wrap" id="appbar-search-wrap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="search-input" id="search-input" type="text" placeholder="Пошук ліків..." oninput="filterMeds()">
+          <svg class="search-clear" id="search-clear" onclick="clearSearch()" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="chip-row">
+        <button class="f-chip sel" data-filter="all">Всі</button>
+        <button class="f-chip" data-filter="active">Активні</button>
+        <button class="f-chip" data-filter="archive">Архів</button>
+      </div>
+
+      <div class="s-content" style="position:relative">
+
+
+        <div class="sec-head">Постійні</div>
+        <div class="sec-empty" id="empty-perm">Нічого не знайдено</div>
+
+        <div class="mlt" data-med="omeprazol" data-type="active">
+          <div class="med-iconify primary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+          <div class="mlt-body">
+            <div class="mlt-name">Омепразол</div>
+            <div class="mlt-sub">20 мг · 08:00, 20:00 · <strong>18 з 30 шт</strong></div>
+            <div class="mlt-chips"><span class="s-chip green">Активний</span><span class="s-chip neutral">постійний</span></div>
+          </div>
+          <span class="mlt-trail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+        <div class="divider"></div>
+        <div class="mlt" data-med="vitamin_d3" data-type="active">
+          <div class="med-iconify primary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6.292a7 7 0 1 0 4 0V2"/><path d="M5 15h14"/><path d="M8.5 2h7"/></svg></div>
+          <div class="mlt-body">
+            <div class="mlt-name">Вітамін D3</div>
+            <div class="mlt-sub">2000 МО · 14:00</div>
+            <div class="mlt-chips"><span class="s-chip green">Активний</span><span class="s-chip neutral">постійний</span></div>
+          </div>
+          <span class="mlt-trail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+        <div class="divider"></div>
+        <div class="mlt" data-med="magniy_b6" data-type="active">
+          <div class="med-iconify primary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5"/><circle cx="17" cy="17" r="5"/><path d="M12 17h10"/><path d="m3.46 10.54 7.08-7.08"/></svg></div>
+          <div class="mlt-body">
+            <div class="mlt-name">Магній B6</div>
+            <div class="mlt-sub">48 мг · 14:00 · <strong style="color:var(--md-error)">5 з 60 шт</strong></div>
+            <div class="mlt-chips"><span class="s-chip green">Активний</span><span class="s-chip neutral">постійний</span></div>
+          </div>
+          <span class="mlt-trail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+
+        <div class="sec-head" style="margin-top:8px">Курсові</div>
+        <div class="sec-empty" id="empty-course">Нічого не знайдено</div>
+
+        <div class="mlt" data-med="mexiprim" data-type="active">
+          <div class="med-iconify tertiary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></svg></div>
+          <div class="mlt-body">
+            <div class="mlt-name">Мексиприм</div>
+            <div class="mlt-sub">125 мг · 14:00, 20:00</div>
+            <div class="mlt-chips"><span class="s-chip teal">День 7/30</span><span class="s-chip green">Активний</span></div>
+          </div>
+          <span class="mlt-trail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+        <div class="divider"></div>
+        <div class="mlt" data-med="amoxicillin" data-type="active">
+          <div class="med-iconify tertiary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+          <div class="mlt-body">
+            <div class="mlt-name">Амоксицилін</div>
+            <div class="mlt-sub">500 мг · 08:00, 14:00, 20:00 · <strong>12 з 14 шт</strong></div>
+            <div class="mlt-chips"><span class="s-chip teal">День 3/7</span><span class="s-chip green">Активний</span></div>
+          </div>
+          <span class="mlt-trail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+        <div class="divider"></div>
+        <div class="mlt" data-med="fluoxetine" data-type="archive" style="opacity:0.65">
+          <div class="med-iconify neutral"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5"/><circle cx="17" cy="17" r="5"/><path d="M12 17h10"/><path d="m3.46 10.54 7.08-7.08"/></svg></div>
+          <div class="mlt-body">
+            <div class="mlt-name">Флуоксетин</div>
+            <div class="mlt-sub">20 мг · 09:00 · <strong>43 з 60 шт</strong></div>
+            <div class="mlt-chips"><span class="s-chip grey">Архів</span><span class="s-chip teal">День 15/60</span></div>
+          </div>
+          <span class="mlt-trail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+        <div class="divider"></div>
+        <div class="mlt" data-med="ibuprofen" data-type="archive" style="opacity:0.65">
+          <div class="med-iconify neutral"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg></div>
+          <div class="mlt-body">
+            <div class="mlt-name">Ібупрофен</div>
+            <div class="mlt-sub">400 мг · 08:00, 20:00</div>
+            <div class="mlt-chips"><span class="s-chip grey">Архів</span><span class="s-chip teal">День 3/5</span></div>
+          </div>
+          <span class="mlt-trail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+        <div class="divider"></div>
+        <div class="mlt" data-med="azithromycin" data-type="archive" style="opacity:0.5">
+          <div class="med-iconify neutral"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+          <div class="mlt-body">
+            <div class="mlt-name">Азитроміцин</div>
+            <div class="mlt-sub">500 мг · 09:00</div>
+            <div class="mlt-chips"><span class="s-chip grey">Архів</span><span class="s-chip teal">День 5/5</span></div>
+          </div>
+          <span class="mlt-trail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+        <div class="divider"></div>
+        <div class="mlt" data-med="metronidazol" data-type="archive" style="opacity:0.5">
+          <div class="med-iconify neutral"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5"/><circle cx="17" cy="17" r="5"/><path d="M12 17h10"/><path d="m3.46 10.54 7.08-7.08"/></svg></div>
+          <div class="mlt-body">
+            <div class="mlt-name">Метронідазол</div>
+            <div class="mlt-sub">250 мг · 08:00, 20:00</div>
+            <div class="mlt-chips"><span class="s-chip grey">Архів</span><span class="s-chip teal">День 7/7</span></div>
+          </div>
+          <span class="mlt-trail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+
+        <div style="height:88px"></div>
+      </div><!-- /s-content -->
+
+      <!-- FAB -->
+      <div class="fab-wrap">
+        <div class="fab" onclick="openAdd()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        </div>
+      </div>
+
+      <div class="bot-nav">
+        <div class="nav-item" onclick="goTo('home')">
+          <div class="nav-pill"><div class="nav-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div></div>
+          <span class="nav-lbl">Сьогодні</span>
+        </div>
+        <div class="nav-item active">
+          <div class="nav-pill"><div class="nav-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div></div>
+          <span class="nav-lbl">Ліки</span>
+        </div>
+        <div class="nav-item" onclick="goTo('hist')">
+          <div class="nav-pill"><div class="nav-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg></div></div>
+          <span class="nav-lbl">Історія</span>
+        </div>
+
+      </div>
+
+    </div><!-- /s-meds -->
+
+
+    <!-- ╔══════════════════════════════════════╗ -->
+    <!-- ║  SCREEN 3 — ADD / EDIT MEDICATION    ║ -->
+    <!-- ╚══════════════════════════════════════╝ -->
+    <div class="screen" id="s-add">
+
+      <div class="app-bar">
+        <div class="icon-btn" onclick="goTo('meds')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        </div>
+        <span class="ab-title">Додати ліки</span>
+      </div>
+
+      <div class="s-content">
+
+        <!-- Базова інформація -->
+        <div class="form-sec">
+          <div class="tf">
+            <label>Назва ліків</label>
+            <input class="fi" type="text" value="Амоксицилін">
+          </div>
+        </div>
+
+        <!-- ── Форма препарату ──────────────────────────────── -->
+        <div class="form-sec" style="padding-top:0">
+
+          <!-- Display row -->
+          <div class="form-picker-display open" id="fpd" onclick="togglePicker()">
+            <span class="fpd-label">Форма препарату</span>
+            <div class="fpd-icon-wrap" id="fpd-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+            </div>
+            <div class="fpd-text">
+              <div class="fpd-name" id="fpd-name">Оберіть форму</div>
+              <div class="fpd-sub" id="fpd-sub"></div>
+            </div>
+            <span class="fpd-caret" style="display:inline-flex;align-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+          </div>
+
+          <!-- Grid card -->
+          <div class="form-picker-grid-card visible" id="fpg-card">
+            <div class="fpg-title">Типові форми</div>
+            <div class="fpg-grid">
+
+              <!-- Таблетка -->
+              <div class="fpg-opt" data-name="Таблетка" data-form-key="tablet" data-sub="Пресована форма" onclick="selectForm(this)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5"/><circle cx="17" cy="17" r="5"/><path d="M12 17h10"/><path d="m3.46 10.54 7.08-7.08"/></svg>
+                <span class="fpg-lbl">Таблетка</span>
+              </div>
+
+              <!-- Капсула (selected) -->
+              <div class="fpg-opt" data-name="Капсули" data-form-key="capsule" data-sub="Тверда желатинова оболонка" onclick="selectForm(this)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+                <span class="fpg-lbl">Капсули</span>
+              </div>
+
+              <!-- Сироп -->
+              <div class="fpg-opt" data-name="Сироп" data-form-key="syrup" data-sub="Рідка лікарська форма" onclick="selectForm(this)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6.292a7 7 0 1 0 4 0V2"/><path d="M5 15h14"/><path d="M8.5 2h7"/></svg>
+                <span class="fpg-lbl">Сироп</span>
+              </div>
+
+              <!-- Краплі -->
+              <div class="fpg-opt" data-name="Краплі" data-form-key="drops" data-sub="Рідка крапельна форма" onclick="selectForm(this)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>
+                <span class="fpg-lbl">Краплі</span>
+              </div>
+
+              <!-- Ін'єкція -->
+              <div class="fpg-opt" data-name="Ін'єкція" data-form-key="injection" data-sub="Внутрішньом'язова/в/в" onclick="selectForm(this)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></svg>
+                <span class="fpg-lbl">Ін'єкція</span>
+              </div>
+
+              <!-- Інгалятор -->
+              <div class="fpg-opt" data-name="Інгалятор" data-form-key="inhaler" data-sub="Аерозольна форма" onclick="selectForm(this)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>
+                <span class="fpg-lbl">Інгалятор</span>
+              </div>
+
+              <!-- Крем/Мазь -->
+              <div class="fpg-opt" data-name="Крем / Мазь" data-form-key="cream" data-sub="Зовнішня форма" onclick="selectForm(this)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10.01h.01"/><path d="M10 14.01h.01"/><path d="M14 10.01h.01"/><path d="M14 14.01h.01"/><path d="M18 6v12"/><path d="M6 6v12"/><rect x="2" y="6" width="20" height="12" rx="2"/></svg>
+                <span class="fpg-lbl">Крем / Мазь</span>
+              </div>
+
+              <!-- Саше/Порошок -->
+              <div class="fpg-opt" data-name="Саше / Порошок" data-form-key="sachet" data-sub="Розчинний порошок" onclick="selectForm(this)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>
+                <span class="fpg-lbl">Саше</span>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Доза + Кількість -->
+        <!--
+          DEV NOTE — DOSE FIELD:
+          Для таблеток: крок 0.5 (0.5, 1, 1.5, 2...)
+          Для капсул: крок 1 (1, 2, 3...)
+          Для рідин/крапель/сиропу: текстове поле (мл, краплі)
+          Логіка залежить від обраної форми препарату (form picker вище)
+        -->
+        <div class="form-sec" id="dose-row" style="padding-top:0;display:none">
+          <div class="f-row">
+            <div class="tf" style="flex:1.3">
+              <label>Доза</label>
+              <input class="fi" type="text" value="500">
+            </div>
+            <div class="tf idle unit-wrap" style="flex:1">
+              <label>Одиниця</label>
+              <select class="fi" id="dose-unit-select" style="cursor:pointer;appearance:none;-webkit-appearance:none">
+                <option value="мл">мл</option>
+              </select>
+              <span class="trail-icon" style="display:inline-flex;align-items:center;pointer-events:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Кількість прийому (показується для: Таблетка, Капсули) -->
+        <!--
+          DEV NOTE — QUANTITY STEPPER:
+          Таблетка → step=0.5, min=0.5 (0.5 / 1 / 1.5 / 2...)
+          Капсули  → step=1,   min=1   (1 / 2 / 3...)
+          У Flutter: Row з IconButton(−) + Text + IconButton(+), значення зберігається як double
+        -->
+        <div class="form-sec" id="qty-row" style="padding-top:0">
+          <div class="qty-stepper">
+            <span class="fpd-label">Кількість на прийом</span>
+            <button class="qty-btn" onclick="stepQty(-1)" type="button">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+            </button>
+            <span class="qty-value" id="qty-val">1</span>
+            <span class="qty-unit" id="qty-unit">табл</span>
+            <button class="qty-btn" onclick="stepQty(1)" type="button">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+        </div>
+
+
+        <!-- Склад (stock) — тільки для Таблетка / Капсули -->
+        <div class="form-sec" id="stock-row" style="padding-top:0;display:none">
+          <div class="stock-card">
+            <div class="sc-head">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/><path d="M3 9l2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
+              Залишок у пачці
+            </div>
+            <div class="sc-note">Для капсул, таблеток та подібних форм. Автоматично зменшується після кожного прийому.</div>
+            <div class="f-row">
+              <div class="tf idle" style="flex:1">
+                <label>Залишок</label>
+                <input class="fi" type="text" value="18">
+              </div>
+              <div class="tf idle" style="flex:1">
+                <label>Всього в пачці</label>
+                <input class="fi" type="text" value="30">
+              </div>
+            </div>
+            <div class="tf idle">
+              <label>Попередити коли лишиться</label>
+              <input class="fi" type="text" value="5">
+              <span class="trail-icon" style="display:inline-flex;align-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="s-div"></div>
+
+        <!-- Час прийому -->
+        <!--
+          DEV: Кожен час — окремий чіп з можливістю видалення.
+          Кнопка "+ Час" відкриває TimePicker:
+          → У Flutter: showTimePicker() → повертає TimeOfDay
+          → Реалізація: inline барабан (CupertinoPicker або кастомний колесо-барабан)
+            з годинами (0–23) і хвилинами (00, 05, 10... або кожну хвилину)
+          → Після вибору — новий чіп додається в список
+          → Клік × на чіпі → видаляє час
+          → У темплейті bottom sheet з нумпадом лише для демонстрації взаємодії
+        -->
+        <div class="form-sec">
+          <div class="fs-title">Час прийому</div>
+          <div class="time-chips">
+            <div class="t-chip close-mi">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>08:00
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" onclick="tpDeleteChip(this)" style="cursor:pointer"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </div>
+            <div class="t-chip close-mi">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>14:00
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" onclick="tpDeleteChip(this)" style="cursor:pointer"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </div>
+            <div class="t-chip close-mi">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>20:00
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" onclick="tpDeleteChip(this)" style="cursor:pointer"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </div>
+            <div class="t-chip add" onclick="tpOpen(null)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Час
+            </div>
+          </div>
+        </div>
+
+        <div class="s-div"></div>
+
+        <!-- Тип прийому -->
+        <div class="form-sec">
+          <div class="fs-title">Тип прийому</div>
+          <div class="seg-btn">
+            <div class="seg-opt" onclick="selectType('perm')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c-2-2.5-4-4-6-4a4 4 0 0 0 0 8c2 0 4-1.5 6-4z"/><path d="M12 12c2 2.5 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.5-6 4z"/></svg>Постійний
+            </div>
+            <div class="seg-opt sel" onclick="selectType('course')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Курс
+            </div>
+          </div>
+
+          <!-- Курсові параметри -->
+          <div class="course-card">
+            <div class="cc-head">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              Параметри курсу
+            </div>
+            <div class="f-row">
+              <div class="tf idle">
+                <label>Тривалість (дні)</label>
+                <input class="fi" type="text" value="7">
+              </div>
+              <div class="tf idle">
+                <label>Пауза (дні)</label>
+                <input class="fi" type="text" value="0">
+              </div>
+            </div>
+            <div class="tf idle">
+              <label>Дата початку</label>
+              <!-- DEV: тут буде DatePicker (showDatePicker у Flutter) -->
+              <input class="fi" type="text" value="26 берез. 2026" readonly style="cursor:pointer">
+              <span class="trail-icon" style="display:inline-flex;align-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+            </div>
+            <div class="info-chip">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+              <span>Курс: 26 бер — 1 квіт 2026 (7 днів)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Зберегти -->
+        <div class="form-sec">
+          <button class="btn-filled">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
+            Зберегти
+          </button>
+        </div>
+        <div class="sp"></div>
+
+      </div><!-- /s-content -->
+    </div><!-- /s-add -->
+
+    <!-- ╔══════════════════════════════════════╗ -->
+    <!-- ║  SCREEN 4 — HISTORY                  ║ -->
+    <!-- ╚══════════════════════════════════════╝ -->
+    <div class="screen" id="s-hist">
+
+      <div class="app-bar">
+        <span class="ab-title">Історія</span>
+      </div>
+
+      <div class="s-content">
+
+        <!-- Adherence card -->
+        <div class="adh-card">
+          <div class="adh-top">
+            <div>
+              <div class="adh-label">Дотримання за тиждень</div>
+              <div class="adh-pct">86%</div>
+            </div>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--md-on-primary-container)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <div class="adh-bar-bg"><div class="adh-bar-fill"></div></div>
+        </div>
+
+        <!-- Week strip -->
+        <div class="week-strip">
+          <div class="wday" onclick="selectDay(this)">
+            <span class="wday-lbl">Пн</span>
+            <div class="wday-dot-wrap"><span class="wday-num">24</span></div>
+            <div class="wday-dots">
+              <div class="wd taken"></div><div class="wd taken"></div><div class="wd taken"></div>
+            </div>
+          </div>
+          <div class="wday" onclick="selectDay(this)">
+            <span class="wday-lbl">Вт</span>
+            <div class="wday-dot-wrap"><span class="wday-num">25</span></div>
+            <div class="wday-dots">
+              <div class="wd taken"></div><div class="wd skipped"></div><div class="wd taken"></div>
+            </div>
+          </div>
+          <div class="wday" onclick="selectDay(this)">
+            <span class="wday-lbl">Ср</span>
+            <div class="wday-dot-wrap"><span class="wday-num">26</span></div>
+            <div class="wday-dots">
+              <div class="wd taken"></div><div class="wd taken"></div><div class="wd taken"></div>
+            </div>
+          </div>
+          <div class="wday sel" id="wd-sel" onclick="selectDay(this)">
+            <span class="wday-lbl">Чт</span>
+            <div class="wday-dot-wrap"><span class="wday-num">27</span></div>
+            <div class="wday-dots">
+              <div class="wd taken"></div><div class="wd taken"></div><div class="wd skipped"></div>
+            </div>
+          </div>
+          <div class="wday today" onclick="selectDay(this)">
+            <span class="wday-lbl">Пт</span>
+            <div class="wday-dot-wrap"><span class="wday-num">28</span></div>
+            <div class="wday-dots">
+              <div class="wd taken"></div><div class="wd empty"></div><div class="wd empty"></div>
+            </div>
+          </div>
+          <div class="wday" onclick="selectDay(this)">
+            <span class="wday-lbl">Сб</span>
+            <div class="wday-dot-wrap"><span class="wday-num">29</span></div>
+            <div class="wday-dots">
+              <div class="wd empty"></div><div class="wd empty"></div><div class="wd empty"></div>
+            </div>
+          </div>
+          <div class="wday" onclick="selectDay(this)">
+            <span class="wday-lbl">Нд</span>
+            <div class="wday-dot-wrap"><span class="wday-num">30</span></div>
+            <div class="wday-dots">
+              <div class="wd empty"></div><div class="wd empty"></div><div class="wd empty"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:1px;background:var(--md-outline-variant);margin:0 16px 4px"></div>
+
+        <!-- ── 27 берез — обраний день ─────────────────────── -->
+        <div class="hist-date-head">
+          Четвер, 27 березня
+          <span class="hist-date-chip">5 / 6</span>
+        </div>
+
+        <!-- 08:00 group -->
+        <div class="hlt">
+          <div class="hlt-icon-wrap taken">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+          </div>
+          <div class="hlt-body">
+            <div class="hlt-name">Омепразол</div>
+            <div class="hlt-meta">20 мг · 08:00</div>
+          </div>
+          <div class="hlt-status">
+            <span class="hlt-time">08:03</span>
+            <span class="hlt-badge taken">Прийнято</span>
+          </div>
+        </div>
+        <div class="divider"></div>
+
+        <div class="hlt">
+          <div class="hlt-icon-wrap taken">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5"/><circle cx="17" cy="17" r="5"/><path d="M12 17h10"/><path d="m3.46 10.54 7.08-7.08"/></svg>
+          </div>
+          <div class="hlt-body">
+            <div class="hlt-name">Вітамін D3</div>
+            <div class="hlt-meta">2000 МО · 08:00</div>
+          </div>
+          <div class="hlt-status">
+            <span class="hlt-time">08:03</span>
+            <span class="hlt-badge taken">Прийнято</span>
+          </div>
+        </div>
+
+        <!-- 14:00 group -->
+        <div class="hist-date-head" style="padding-top:8px">
+          <span style="color:var(--md-on-surface-variant);font-size:12px">14:00</span>
+        </div>
+        <div class="hlt">
+          <div class="hlt-icon-wrap taken">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+          </div>
+          <div class="hlt-body">
+            <div class="hlt-name">Омепразол</div>
+            <div class="hlt-meta">20 мг · 14:00</div>
+          </div>
+          <div class="hlt-status">
+            <span class="hlt-time">14:11</span>
+            <span class="hlt-badge taken">Прийнято</span>
+          </div>
+        </div>
+        <div class="divider"></div>
+
+        <div class="hlt">
+          <div class="hlt-icon-wrap taken">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></svg>
+          </div>
+          <div class="hlt-body">
+            <div class="hlt-name">Мексиприм</div>
+            <div class="hlt-meta">
+              125 мг · 14:00
+              <span class="hlt-course-badge">День 6/30</span>
+            </div>
+          </div>
+          <div class="hlt-status">
+            <span class="hlt-time">14:11</span>
+            <span class="hlt-badge taken">Прийнято</span>
+          </div>
+        </div>
+        <div class="divider"></div>
+
+        <div class="hlt">
+          <div class="hlt-icon-wrap skipped">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+          </div>
+          <div class="hlt-body">
+            <div class="hlt-name">Амоксицилін</div>
+            <div class="hlt-meta">
+              500 мг · 14:00
+              <span class="hlt-course-badge">День 2/7</span>
+            </div>
+          </div>
+          <div class="hlt-status">
+            <span class="hlt-time">14:00</span>
+            <span class="hlt-badge skipped">Пропущено</span>
+          </div>
+        </div>
+
+        <!-- 20:00 group -->
+        <div class="hist-date-head" style="padding-top:8px">
+          <span style="color:var(--md-on-surface-variant);font-size:12px">20:00</span>
+        </div>
+        <div class="hlt">
+          <div class="hlt-icon-wrap taken">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+          </div>
+          <div class="hlt-body">
+            <div class="hlt-name">Омепразол</div>
+            <div class="hlt-meta">20 мг · 20:00</div>
+          </div>
+          <div class="hlt-status">
+            <span class="hlt-time">20:05</span>
+            <span class="hlt-badge taken">Прийнято</span>
+          </div>
+        </div>
+        <div class="divider"></div>
+
+        <div class="hlt">
+          <div class="hlt-icon-wrap taken">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></svg>
+          </div>
+          <div class="hlt-body">
+            <div class="hlt-name">Мексиприм</div>
+            <div class="hlt-meta">
+              125 мг · 20:00
+              <span class="hlt-course-badge">День 6/30</span>
+            </div>
+          </div>
+          <div class="hlt-status">
+            <span class="hlt-time">20:18</span>
+            <span class="hlt-badge taken">Прийнято</span>
+          </div>
+        </div>
+
+        <div class="sp"></div>
+      </div><!-- /s-content -->
+
+      <div class="bot-nav">
+        <div class="nav-item" onclick="goTo('home')">
+          <div class="nav-pill"><div class="nav-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div></div>
+          <span class="nav-lbl">Сьогодні</span>
+        </div>
+        <div class="nav-item" onclick="goTo('meds')">
+          <div class="nav-pill"><div class="nav-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div></div>
+          <span class="nav-lbl">Ліки</span>
+        </div>
+        <div class="nav-item active">
+          <div class="nav-pill"><div class="nav-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg></div></div>
+          <span class="nav-lbl">Історія</span>
+        </div>
+
+      </div>
+
+    </div><!-- /s-hist -->
+
+
+
+    <!-- ╔══════════════════════════════════════╗ -->
+    <!-- ║  SCREEN 5 — SETTINGS                 ║ -->
+    <!-- ╚══════════════════════════════════════╝ -->
+    <div class="screen" id="s-sett">
+
+      <div class="app-bar">
+        <div class="icon-btn" onclick="goTo('home')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        </div>
+        <span class="ab-title">Налаштування</span>
+      </div>
+
+      <div class="s-content">
+
+        <!-- Нагадування -->
+        <div class="settings-group">
+          <div class="settings-group-title">Нагадування</div>
+
+          <div class="settings-tile">
+            <div class="settings-tile-body">
+              <div class="settings-tile-title">Нагадування</div>
+              <div class="settings-tile-sub">Сповіщення про час прийому</div>
+            </div>
+            <div class="m3-toggle on" onclick="this.classList.toggle('on')">
+              <div class="m3-toggle-thumb"></div>
+            </div>
+          </div>
+
+          <div class="settings-tile">
+            <div class="settings-tile-body">
+              <div class="settings-tile-title">За скільки хвилин</div>
+              <div class="settings-tile-sub">До запланованого часу прийому</div>
+            </div>
+            <div class="settings-tile-trail">
+              <span class="settings-val">15 хв</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Прийом ліків -->
+        <div class="settings-group">
+          <div class="settings-group-title">Прийом ліків</div>
+
+          <div class="settings-tile">
+            <div class="settings-tile-body">
+              <div class="settings-tile-title">Вікно прийому</div>
+              <div class="settings-tile-sub">Скільки діє статус "Зараз" після настання часу</div>
+            </div>
+            <div class="settings-tile-trail">
+              <span class="settings-val">60 хв</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <div class="settings-tile">
+            <div class="settings-tile-body">
+              <div class="settings-tile-title">Час для відмітки</div>
+              <div class="settings-tile-sub">Grace period — скільки можна відмічати минулий прийом</div>
+            </div>
+            <div class="settings-tile-trail">
+              <span class="settings-val">60 хв</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <div class="settings-tile">
+            <div class="settings-tile-body">
+              <div class="settings-tile-title">Відмічати наперед</div>
+              <div class="settings-tile-sub">Дозволити відмічати майбутні прийоми</div>
+            </div>
+            <div class="m3-toggle" onclick="this.classList.toggle('on')">
+              <div class="m3-toggle-thumb"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Зовнішній вигляд -->
+        <div class="settings-group">
+          <div class="settings-group-title">Зовнішній вигляд</div>
+
+          <div class="settings-tile">
+            <div class="settings-tile-body">
+              <div class="settings-tile-title">Тема</div>
+            </div>
+            <div class="settings-tile-trail">
+              <span class="settings-val">Системна</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Дані -->
+        <div class="settings-group">
+          <div class="settings-group-title">Дані</div>
+
+          <div class="settings-tile">
+            <div class="settings-tile-body">
+              <div class="settings-tile-title">Резервна копія</div>
+              <div class="settings-tile-sub">Зберегти дані в файл</div>
+            </div>
+            <div class="settings-tile-trail"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>
+          </div>
+
+          <div class="settings-tile">
+            <div class="settings-tile-body">
+              <div class="settings-tile-title">Відновити</div>
+              <div class="settings-tile-sub">Завантажити з резервної копії</div>
+            </div>
+            <div class="settings-tile-trail"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>
+          </div>
+
+          <div class="settings-tile danger">
+            <div class="settings-tile-body">
+              <div class="settings-tile-title">Очистити всі дані</div>
+              <div class="settings-tile-sub">Видалити всі ліки та історію</div>
+            </div>
+            <div class="settings-tile-trail">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Про додаток -->
+        <div class="settings-group">
+          <div class="settings-group-title">Про додаток</div>
+          <div class="settings-tile">
+            <div class="settings-tile-body">
+              <div class="settings-tile-title">Версія</div>
+            </div>
+            <div class="settings-tile-trail">
+              <span style="font:400 14px/20px 'Roboto';color:var(--md-on-surface-variant)">1.0.0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sp"></div>
+      </div>
+
+      <div class="bot-nav">
+        <div class="nav-item" onclick="goTo('home')">
+          <div class="nav-pill"><div class="nav-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div></div>
+          <span class="nav-lbl">Сьогодні</span>
+        </div>
+        <div class="nav-item" onclick="goTo('meds')">
+          <div class="nav-pill"><div class="nav-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div></div>
+          <span class="nav-lbl">Ліки</span>
+        </div>
+        <div class="nav-item" onclick="goTo('hist')">
+          <div class="nav-pill"><div class="nav-svg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg></div></div>
+          <span class="nav-lbl">Історія</span>
+        </div>
+      </div>
+
+    </div><!-- /s-sett -->
+
+</div><!-- /phone-wrap -->
+
+
+<script>
+/* ── Navigation ─────────────────────────────────────────── */
+const screens = { home:'s-home', meds:'s-meds', add:'s-add', hist:'s-hist', sett:'s-sett' };
+const authScreens = ['s-welcome','s-register','s-forgot','s-forgot-sent'];
+const ctrlIds  = { home:'c-home', meds:'c-meds', add:'c-add', hist:'c-hist', sett:'c-sett' };
+
+function goToAuth(id) {
+  // hide all screens
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // deactivate all nav controls
+  Object.keys(ctrlIds).forEach(k => {
+    const b = document.getElementById(ctrlIds[k]);
+    if (b) b.classList.remove('active');
+  });
+}
+
+function goTo(name) {
+  // hide auth screens
+  authScreens.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  Object.keys(screens).forEach(k => {
+    document.getElementById(screens[k]).classList.toggle('active', k === name);
+    const btn = document.getElementById(ctrlIds[k]);
+    if (btn) btn.classList.toggle('active', k === name);
+  });
+}
+
+/* ── Slot toggle ────────────────────────────────────────── */
+function toggleSlot(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+/* ── Checkbox toggle ────────────────────────────────────── */
+function toggleCb(el) {
+  el.classList.toggle('on');
+  const tile = el.closest('.med-tile');
+  if (tile) tile.classList.toggle('done', el.classList.contains('on'));
+}
+
+/* ── Theme toggle ───────────────────────────────────────── */
+function toggleTheme() {
+  const html = document.documentElement;
+  const dark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', dark ? 'light' : 'dark');
+  document.getElementById('ti').textContent = dark ? 'dark_mode'  : 'light_mode';
+  document.getElementById('tl').textContent = dark ? 'Темна' : 'Світла';
+}
+
+/* ── Filter chips ───────────────────────────────────────── */
+document.querySelectorAll('.chip-row .f-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    chip.closest('.chip-row').querySelectorAll('.f-chip').forEach(c => c.classList.remove('sel'));
+    chip.classList.add('sel');
+    applyChipFilter();
+  });
+});
+
+function applyChipFilter() {
+  const sel = document.querySelector('#s-meds .chip-row .f-chip.sel');
+  const filter = sel ? sel.dataset.filter : 'all';
+
+  document.querySelectorAll('#s-meds .mlt[data-type]').forEach(t => {
+    let hide = false;
+    if (filter !== 'all') hide = t.dataset.type !== filter;
+    t.classList.toggle('hidden', hide);
+    const next = t.nextElementSibling;
+    if (next && next.classList.contains('divider')) next.classList.toggle('hidden', hide);
+  });
+
+  // update section empty messages
+  document.querySelectorAll('#s-meds .sec-head').forEach(head => {
+    let next = head.nextElementSibling;
+    let hasVisible = false;
+    let emptyEl = null;
+    while (next && !next.classList.contains('sec-head')) {
+      if (next.classList.contains('sec-empty')) emptyEl = next;
+      if (next.classList.contains('mlt') && !next.classList.contains('hidden')) hasVisible = true;
+      next = next.nextElementSibling;
+    }
+    if (emptyEl) emptyEl.classList.toggle('visible', !hasVisible);
+  });
+}
+
+/* ── Week day select ────────────────────────────────────── */
+function selectDay(el) {
+  document.querySelectorAll('.wday').forEach(d => {
+    if (!d.classList.contains('today')) d.classList.remove('sel');
+  });
+  el.classList.add('sel');
+}
+
+
+function togglePicker() {
+  const disp = document.getElementById('fpd');
+  const card = document.getElementById('fpg-card');
+  disp.classList.toggle('open');
+  card.classList.toggle('visible');
+}
+
+// Form → which fields to show
+const FORM_FIELDS = {
+  tablet:    { dose: false, qty: true,  stock: true,  units: [] },
+  capsule:   { dose: false, qty: true,  stock: true,  units: [] },
+  injection: { dose: true,  qty: false, stock: false, units: ['мл', 'мг', 'од'] },
+  syrup:     { dose: true,  qty: false, stock: false, units: ['мл'] },
+  drops:     { dose: true,  qty: false, stock: false, units: ['краплі', 'мл'] },
+  inhaler:   { dose: false, qty: false, stock: false, units: [] },
+  cream:     { dose: false, qty: false, stock: false, units: [] },
+  sachet:    { dose: false, qty: false, stock: false, units: [] },
+};
+
+function selectForm(el) {
+  document.querySelectorAll('.fpg-opt').forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel');
+  const name = el.dataset.name;
+  const sub  = el.dataset.sub;
+  const svg  = el.querySelector('svg').outerHTML;
+  document.getElementById('fpd-name').textContent = name;
+  document.getElementById('fpd-sub').textContent  = sub;
+  document.getElementById('fpd-icon').innerHTML   = svg;
+
+  // show/hide fields based on form type
+  const formKey = el.dataset.formKey || '';
+  const cfg = FORM_FIELDS[formKey] || { dose: false, qty: false, units: [] };
+  document.getElementById('dose-row').style.display = cfg.dose ? '' : 'none';
+  document.getElementById('qty-row').style.display   = cfg.qty   ? '' : 'none';
+  document.getElementById('stock-row').style.display = cfg.stock ? '' : 'none';
+  if (cfg.dose && cfg.units.length > 0) {
+    populateUnitSelect(cfg.units);
+  }
+
+  updateQtyInput(formKey);
+  document.getElementById('fpd').classList.remove('open');
+  document.getElementById('fpg-card').classList.remove('visible');
+}
+
+
+document.querySelectorAll('.s-content').forEach(sc => {
+  sc.addEventListener('scroll', () => {
+    const bar = sc.parentElement.querySelector('.app-bar');
+    if (bar) bar.classList.toggle('scrolled', sc.scrollTop > 4);
+  });
+});
+
+
+
+
+/* ── Time Picker ────────────────────────────────────────── */
+let tpActiveField = 'h';
+let tpHours = '08';
+let tpMins  = '00';
+let tpEditingChip = null;
+
+function tpOpen(chipEl) {
+  tpEditingChip = chipEl;
+  if (chipEl) {
+    const text = chipEl.querySelector ? chipEl.textContent.trim() : '08:00';
+    const parts = text.match(/(\d{2}):(\d{2})/);
+    tpHours = parts ? parts[1] : '08';
+    tpMins  = parts ? parts[2] : '00';
+  } else {
+    tpHours = '08'; tpMins = '00';
+  }
+  tpSelectField('h');
+  document.getElementById('tp-h').textContent = tpHours;
+  document.getElementById('tp-m').textContent = tpMins;
+  document.getElementById('tp-overlay').classList.add('open');
+}
+
+function tpSelectField(field) {
+  tpActiveField = field;
+  document.getElementById('tp-h').classList.toggle('active', field === 'h');
+  document.getElementById('tp-m').classList.toggle('active', field === 'm');
+}
+
+function tpKey(digit) {
+  if (tpActiveField === 'h') {
+    const next = (tpHours + digit).slice(-2);
+    const val = parseInt(next);
+    if (val <= 23) { tpHours = next.padStart(2,'0'); }
+    else { tpHours = ('0' + digit).slice(-2); }
+    document.getElementById('tp-h').textContent = tpHours;
+    if (parseInt(tpHours) >= 3) tpSelectField('m');
+  } else {
+    const next = (tpMins + digit).slice(-2);
+    const val = parseInt(next);
+    if (val <= 59) { tpMins = next.padStart(2,'0'); }
+    else { tpMins = ('0' + digit).slice(-2); }
+    document.getElementById('tp-m').textContent = tpMins;
+  }
+}
+
+function tpBackspace() {
+  if (tpActiveField === 'h') {
+    tpHours = '0' + tpHours[0];
+    document.getElementById('tp-h').textContent = tpHours;
+  } else {
+    tpMins = '0' + tpMins[0];
+    document.getElementById('tp-m').textContent = tpMins;
+  }
+}
+
+function tpConfirm() {
+  const time = tpHours + ':' + tpMins;
+  if (tpEditingChip) {
+    // Edit existing — update text node
+    const textNodes = Array.from(tpEditingChip.childNodes).filter(n => n.nodeType === 3);
+    if (textNodes.length) textNodes[0].textContent = time;
+  } else {
+    // Add new chip
+    const chips = document.querySelector('.time-chips');
+    const addBtn = chips.querySelector('.t-chip.add');
+    const chip = document.createElement('div');
+    chip.className = 't-chip close-mi';
+    chip.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' + time + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" onclick="tpDeleteChip(this)" style="cursor:pointer"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+    chips.insertBefore(chip, addBtn);
+  }
+  tpClose();
+}
+
+function tpCancel() { tpClose(); }
+function tpClose() {
+  document.getElementById('tp-overlay').classList.remove('open');
+  tpEditingChip = null;
+}
+function tpOverlayClick(e) {
+  if (e.target === document.getElementById('tp-overlay')) tpClose();
+}
+function tpDeleteChip(svgEl) {
+  svgEl.closest('.t-chip').remove();
+}
+
+/* ── Unit dropdown ───────────────────────────────────────── */
+/* ── Quantity stepper ───────────────────────────────────── */
+const QTY_CONFIG = {
+  tablet:  { step: 0.5, min: 0.5, unit: 'табл' },
+  capsule: { step: 1,   min: 1,   unit: 'капс' },
+};
+let qtyValue = 1;
+
+function stepQty(dir) {
+  const formKey = document.querySelector('.fpg-opt.sel')?.dataset.formKey || '';
+  const cfg = QTY_CONFIG[formKey] || { step: 1, min: 0.5, unit: 'шт' };
+  qtyValue = Math.max(cfg.min, qtyValue + dir * cfg.step);
+  qtyValue = Math.round(qtyValue * 10) / 10;
+  document.getElementById('qty-val').textContent = qtyValue % 1 === 0 ? qtyValue : qtyValue.toFixed(1);
+  document.getElementById('qty-unit').textContent = cfg.unit;
+}
+
+function updateQtyInput(formKey) {
+  const cfg = QTY_CONFIG[formKey];
+  if (!cfg) return;
+  qtyValue = cfg.min;
+  document.getElementById('qty-val').textContent = qtyValue;
+  document.getElementById('qty-unit').textContent = cfg.unit;
+}
+
+
+
+/* ── Unit select ────────────────────────────────────────── */
+function populateUnitSelect(units) {
+  const sel = document.getElementById('dose-unit-select');
+  if (!sel) return;
+  sel.innerHTML = units.map(u => `<option value="${u}">${u}</option>`).join('');
+}
+
+/* ── Type toggle ────────────────────────────────────────── */
+function selectType(type) {
+  const opts = document.querySelectorAll('#s-add .seg-opt');
+  opts[0].classList.toggle('sel', type === 'perm');
+  opts[1].classList.toggle('sel', type === 'course');
+  document.querySelector('.course-card').style.display = type === 'course' ? 'block' : 'none';
+}
+
+/* ── Mark all in slot ───────────────────────────────────── */
+function markAllInSlot(slotId) {
+  const slot = document.getElementById(slotId);
+  slot.querySelectorAll('.m3-cb:not(.disabled)').forEach(cb => {
+    cb.classList.add('on');
+    const tile = cb.closest('.med-tile');
+    if (tile) tile.classList.add('done');
+  });
+}
+
+
+function toggleSearch() {
+  const wrap = document.getElementById('appbar-search-wrap');
+  const title = document.getElementById('meds-title');
+  const btn = document.getElementById('search-toggle');
+  const active = wrap.classList.toggle('active');
+  title.style.opacity = active ? '0' : '1';
+  btn.style.opacity = active ? '0' : '1';
+  if (active) {
+    setTimeout(() => document.getElementById('search-input').focus(), 230);
+  } else {
+    document.getElementById('search-input').value = '';
+    filterMeds();
+  }
+}
+
+function clearSearch() {
+  const wrap = document.getElementById('appbar-search-wrap');
+  const title = document.getElementById('meds-title');
+  const btn = document.getElementById('search-toggle');
+  wrap.classList.remove('active');
+  title.style.opacity = '1';
+  btn.style.opacity = '1';
+  document.getElementById('search-input').value = '';
+  filterMeds();
+}
+
+function filterMeds() {
+  const q = document.getElementById('search-input').value.toLowerCase().trim();
+
+  const sel = document.querySelector('#s-meds .chip-row .f-chip.sel');
+  const chipFilter = sel ? sel.dataset.filter : 'all';
+
+  document.querySelectorAll('#s-meds .mlt[data-med]').forEach(t => {
+    let hide = q && !t.dataset.med.includes(q);
+    if (!hide && chipFilter !== 'all') hide = t.dataset.type !== chipFilter;
+    t.classList.toggle('hidden', hide);
+    // hide the divider that immediately follows this tile (if any)
+    const next = t.nextElementSibling;
+    if (next && next.classList.contains('divider')) {
+      next.classList.toggle('hidden', hide);
+    }
+  });
+  // also hide leading dividers before visible tiles where previous tile is hidden
+  document.querySelectorAll('#s-meds .divider').forEach(d => {
+    const prev = d.previousElementSibling;
+    const next = d.nextElementSibling;
+    if (prev && prev.classList.contains('mlt') && prev.classList.contains('hidden')) {
+      d.classList.add('hidden');
+    }
+  });
+
+  // per-section empty message
+  document.querySelectorAll('#s-meds .sec-head').forEach(head => {
+    let next = head.nextElementSibling;
+    let hasVisible = false;
+    let emptyEl = null;
+    while (next && !next.classList.contains('sec-head')) {
+      if (next.classList.contains('sec-empty')) { emptyEl = next; }
+      if (next.classList.contains('mlt') && !next.classList.contains('hidden')) hasVisible = true;
+      next = next.nextElementSibling;
+    }
+    if (emptyEl) emptyEl.classList.toggle('visible', q.length > 0 && !hasVisible);
+  });
+}
+
+
+
+/* ── Open Add form (empty) ──────────────────────────────── */
+function openAdd() {
+  // Reset title
+  document.querySelector('#s-add .ab-title').textContent = 'Додати ліки';
+
+  // Clear name
+  document.querySelector('#s-add .tf .fi').value = '';
+
+  // Reset form picker to empty state
+  document.querySelectorAll('.fpg-opt').forEach(o => o.classList.remove('sel'));
+  document.getElementById('fpd-name').textContent = 'Оберіть форму';
+  document.getElementById('fpd-sub').textContent  = '';
+  document.getElementById('fpd-icon').innerHTML   = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>';
+  document.getElementById('dose-row').style.display = 'none';
+  document.getElementById('qty-row').style.display  = 'none';
+  document.getElementById('stock-row').style.display = 'none';
+
+  // Clear dose
+  const fields = document.querySelectorAll('#s-add .fi');
+  if (fields[1]) fields[1].value = '';
+  if (fields[2]) fields[2].value = '';
+
+  // Clear stock
+  if (fields[3]) fields[3].value = '';
+  if (fields[4]) fields[4].value = '';
+  if (fields[5]) fields[5].value = '';
+
+  // Reset time chips to one empty slot
+  const timeChips = document.querySelector('.time-chips');
+  timeChips.innerHTML = '<div class="t-chip add"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Час</div>';
+
+  // Reset type to permanent
+  const segOpts = document.querySelectorAll('.seg-opt');
+  segOpts[0].classList.add('sel');
+  segOpts[1].classList.remove('sel');
+  document.querySelector('.course-card').style.display = 'none';
+
+  // Reset qty stepper
+  qtyValue = 1;
+  const qtyVal = document.getElementById('qty-val');
+  if (qtyVal) qtyVal.textContent = '1';
+
+  // Reset save button
+  document.querySelector('.btn-filled').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg> Зберегти';
+
+  goTo('add');
+}
+
+/* ── Med data registry ──────────────────────────────────── */
+const MED_DATA = {
+  'omeprazol':   { name: 'Омепразол',   form: 'capsule', formSub: 'Тверда желатинова оболонка', dose: '20', unit: 'мг', times: ['08:00','20:00'], type: 'perm', stock: '18', total: '30', warn: '5' },
+  'vitamin_d3':  { name: 'Вітамін D3',  form: 'syrup',   formSub: 'Рідка лікарська форма',      dose: '2000', unit: 'МО', times: ['14:00'],          type: 'perm' },
+  'magniy_b6':   { name: 'Магній B6',   form: 'tablet', formSub: 'Пресована форма',            dose: '48', unit: 'мг', times: ['14:00'],            type: 'perm', stock: '5', total: '60', warn: '10' },
+  'mexiprim':   { name: 'Мексиприм',   form: 'injection', formSub: 'injection',   dose: '125', unit: 'мг', times: ['14:00','20:00'],   type: 'course', duration: '30', pause: '0', start: '22 берез. 2026' },
+  'amoxicillin': { name: 'Амоксицилін', form: 'capsule', formSub: 'Тверда желатинова оболонка', dose: '500', unit: 'мг', times: ['08:00','14:00','20:00'], type: 'course', duration: '7', pause: '0', start: '26 берез. 2026', stock: '12', total: '14', warn: '5' },
+  'fluoxetine':  { name: 'Флуоксетин',  form: 'tablet', formSub: 'Пресована форма',            dose: '20', unit: 'мг', times: ['09:00'],             type: 'course', duration: '60', pause: '5', start: '13 лют. 2026', stock: '43', total: '60', warn: '10' },
+  'ibuprofen':   { name: 'Ібупрофен',   form: 'drops',  formSub: 'Рідка крапельна форма',      dose: '400', unit: 'мг', times: ['08:00','20:00'],    type: 'course', duration: '5', pause: '0', start: '25 берез. 2026' },
+  'azithromycin': { name: 'Азитроміцин', form: 'capsule', formSub: 'Тверда желатинова оболонка', dose: '500', unit: 'мг', times: ['09:00'],             type: 'course', duration: '5', pause: '0', start: '21 берез. 2026', stock: '0', total: '5', warn: '2' },
+  'metronidazol':{ name: 'Метронідазол',form: 'tablet', formSub: 'Пресована форма',            dose: '250', unit: 'мг', times: ['08:00','20:00'],    type: 'course', duration: '7', pause: '0', start: '20 берез. 2026', stock: '0', total: '14', warn: '3' },
+};
+
+const FORM_ICONS = {
+  'tablet': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5"/><circle cx="17" cy="17" r="5"/><path d="M12 17h10"/><path d="m3.46 10.54 7.08-7.08"/></svg>',
+  'capsule': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>',
+  'syrup': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6.292a7 7 0 1 0 4 0V2"/><path d="M5 15h14"/><path d="M8.5 2h7"/></svg>',
+  'drops': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>',
+  'injection':'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></svg>',
+};
+
+function openEdit(medKey) {
+  const editTitle = 'Редагувати ліки'; // UI label
+  const d = MED_DATA[medKey];
+  if (!d) return;
+
+  // AppBar title
+  document.querySelector('#s-add .ab-title').textContent = 'Редагувати ліки';
+
+  // Name
+  document.querySelector('#s-add .tf .fi').value = d.name;
+
+  // Form picker display
+  document.getElementById('fpd-name').textContent = d.form;
+  document.getElementById('fpd-sub').textContent = d.formSub;
+  const icon = FORM_ICONS[d.form] || FORM_ICONS['capsule'];
+  document.getElementById('fpd-icon').innerHTML = icon;
+
+  // Dose + unit
+  const fields = document.querySelectorAll('#s-add .fi');
+  fields[1].value = d.dose;
+  fields[2].value = d.unit;
+
+  // Stock
+  if (d.stock !== undefined) {
+    fields[3].value = d.stock;
+    fields[4].value = d.total;
+    fields[5].value = d.warn;
+  }
+
+  // Time chips — rebuild
+  const timeChips = document.querySelector('.time-chips');
+  timeChips.innerHTML = '';
+  (d.times || []).forEach(t => {
+    const chip = document.createElement('div');
+    chip.className = 't-chip close-mi';
+    chip.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' + t +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+    timeChips.appendChild(chip);
+  });
+  const addChip = document.createElement('div');
+  addChip.className = 't-chip add';
+  addChip.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Час';
+  timeChips.appendChild(addChip);
+
+  // Type toggle
+  const segOpts = document.querySelectorAll('.seg-opt');
+  const courseCard = document.querySelector('.course-card');
+  if (d.type === 'course') {
+    segOpts[0].classList.remove('sel');
+    segOpts[1].classList.add('sel');
+    courseCard.style.display = 'block';
+    if (d.duration) document.querySelectorAll('.course-card .fi')[0].value = d.duration;
+    if (d.pause)    document.querySelectorAll('.course-card .fi')[1].value = d.pause;
+    if (d.start)    document.querySelectorAll('.course-card .fi')[2].value = d.start;
+  } else {
+    segOpts[0].classList.add('sel');
+    segOpts[1].classList.remove('sel');
+    courseCard.style.display = 'none';
+  }
+
+  // Save button label
+  // UI: update save button label
+  document.querySelector('.btn-filled').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg> Зберегти зміни';
+
+  goTo('add');
+}
+
+
+/* ── Med tile click → edit ──────────────────────────────── */
+document.getElementById('s-meds').addEventListener('click', e => {
+  const tile = e.target.closest('.mlt[data-med]');
+  if (tile) openEdit(tile.dataset.med);
+});
+
+/* init */
+/* DEV NOTE — Accordion init logic:
+   On load: collapse all slots EXCEPT the one with badge "Now" (current slot)
+   (i.e. scheduledTime <= currentTime <= scheduledTime + INTAKE_WINDOW_MINUTES)
+   In this template currentTime = 11:45 → no active slot → all collapsed */
+goTo('home');
+</script>
+</body>
+</html>
