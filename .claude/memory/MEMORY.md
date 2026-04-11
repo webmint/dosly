@@ -89,8 +89,18 @@ Greenfield Flutter app — `flutter create .` has run, scaffolding is in place. 
 ## What Worked
 <!-- Patterns and approaches that solved problems well -->
 
+- **Hand-coded `const ColorScheme` literals + per-hex assertion tests** _(Feature 001)_: 70 per-field `expect(scheme.x, const Color(0x...))` tests catch any design drift instantly. Matched spec §9 drift-protection intent. Total cost: ~120 lines of test file, huge ROI.
+- **SHA-256 hashing for bundled font assets** _(Task 001)_: `SOURCE.md` records hashes of all four Roboto TTFs. Security-reviewer independently verified them — excellent supply-chain hygiene for a personal app. Consider promoting to a CI check later.
+- **`ValueNotifier<ThemeMode>` + `ListenableBuilder` for app-wide theme state** _(Task 004+008)_: zero dependencies, built into Flutter, trivially testable, pairs cleanly with `MaterialApp.themeMode`. Appropriate choice when you don't need Riverpod yet.
+- **Task bundling for mechanical glue work** _(spec 001 breakdown)_: bundling "create data structure + write data-assertion tests" into one task (Task 002, Task 004) kept the breakdown to 8 tasks instead of 11 without losing rigor. Matched `_multi-task-continuation.md` bundling rule.
+- **Deferring manual cross-platform run to user** _(Task 008 + AC-13)_: sandbox can't drive simulators. Widget smoke test exercises the compile pipeline so AC-13 is the ONLY gap at verify time, and it's clearly scoped as "user runs `flutter run -d ios/android` after merge."
+
 ## What Failed
 <!-- Approaches that were tried and didn't work — avoid repeating these -->
+
+- **Over-trusting task-spec license claims** _(Task 001)_: the task spec said Roboto is Apache 2.0; implementer correctly discovered it's actually OFL 1.1 in v3 and shipped the right license. Lesson: when specifying licenses in future tasks, VERIFY the current license of the specific version being shipped, don't rely on historical knowledge.
+- **Test coverage gaps for getter-based code** _(Feature 001, AC-4)_: `AppTheme.lightTheme`/`darkTheme` are getters with no dedicated test. Review caught it. Lesson: for any new `lib/core/` file, plan a corresponding test file during `/plan`, not as an afterthought. Dedicated test files for `app_theme.dart`, `app.dart`, and `theme_preview_screen.dart` would close the gap at ~35 total lines.
+- **`pubspec.yaml` `weight: N` comments in task specs can desync** _(Task 001)_: task spec said Bold/Light are important but the actual type scale only uses w400/w500. Those weights are dead code until someone uses them. Lesson: when declaring font weights, cross-check against the actual `TextStyle` usages in the type scale, not just "what a design spec lists."
 
 ## External API Quirks
 <!-- Unexpected behavior from APIs, libraries, or services this project uses -->
@@ -98,6 +108,12 @@ Greenfield Flutter app — `flutter create .` has run, scaffolding is in place. 
 - **`flutter_local_notifications` + DST**: must use `matchDateTimeComponents: DateTimeComponents.time` so a 09:00 reminder fires at 09:00 local both before and after a DST shift. Combined with the `timezone` package for IANA zones.
 - **Android 12+ exact alarms**: `SCHEDULE_EXACT_ALARM` (or `USE_EXACT_ALARM` for Android 13+ apps that qualify) must be granted at runtime; check via `permission_handler`.
 - **Android 13+ notifications**: `POST_NOTIFICATIONS` is a runtime permission, not just a manifest declaration.
+- **Roboto font licensing** _(spec 001 / Task 001)_: Roboto v3 (the modern Google Fonts release) is **SIL OFL 1.1**, NOT Apache 2.0. Only the original 2011 Roboto was Apache 2.0. Always ship `OFL.txt` (not `LICENSE.txt`/Apache) with bundled Roboto assets.
+- **Roboto static weight source** _(spec 001 / Task 001)_: `github.com/google/fonts/apache/roboto/static/` no longer exists; the canonical source for static Roboto weights is the `googlefonts/roboto-3-classic` GitHub release (e.g. `Roboto_v3.015.zip` → `android/static/`). The `google/fonts` repo only ships the variable font now.
+- **Flutter `ColorScheme` field rename** _(spec 001 / Task 002)_: `inverseOnSurface` was renamed to `onInverseSurface` in modern Flutter. The HTML Theme Builder output uses `--md-inverse-on-surface` (which matches the new name semantically, not the old one). Modern code MUST use `onInverseSurface`.
+- **Deprecated `surfaceVariant` field** _(spec 001 / Task 002)_: removed from `ColorScheme`. Material Theme Builder still emits `--md-surface-variant` in HTML output, but it must be DROPPED — replaced by `surfaceContainerHighest` per Flutter migration guidance.
+- **`Color.toARGB32()` vs `Color.value`** _(spec 001 / Task 007)_: `Color.value` is deprecated in modern Flutter (3.27+). Use `c.toARGB32()` to get the 32-bit ARGB int. Works on Flutter SDK ^3.11.1.
+- **`unnecessary_import` lint trap** _(spec 001 / Task 004)_: `package:flutter/foundation.dart` is REDUNDANT when `package:flutter/material.dart` is already imported (material re-exports `ValueNotifier`, `ChangeNotifier`, etc.). Importing both fails strict-mode `dart analyze`. Pick one — usually `material.dart` for widget code.
 
 ## Performance Notes
 
