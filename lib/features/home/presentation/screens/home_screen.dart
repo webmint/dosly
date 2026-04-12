@@ -10,9 +10,13 @@ import 'package:go_router/go_router.dart';
 
 /// Placeholder main screen shown at the app's root route.
 ///
-/// Renders a centered "Hello World" label with a temporary "Theme preview"
-/// [OutlinedButton] below it that navigates to the theme preview route via
-/// `context.push('/theme-preview')`.
+/// Displays a Material 3 [AppBar] with the app title "Dosly", a disabled
+/// settings gear [IconButton] placeholder, and an `outlineVariant`-coloured
+/// bottom [Divider] border.
+///
+/// The body renders a centered "Hello World" label with a temporary
+/// "Theme preview" [OutlinedButton] below it that navigates to the theme
+/// preview route via `context.push('/theme-preview')`.
 ///
 /// The "Theme preview" button is temporary dev scaffolding and is scheduled
 /// for removal post-MVP together with the `lib/features/theme_preview/`
@@ -25,6 +29,20 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Dosly'),
+        actions: [
+          IconButton(
+            onPressed: null,
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings),
+          ),
+        ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(),
+        ),
+      ),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
