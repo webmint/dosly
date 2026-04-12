@@ -32,7 +32,8 @@ class AppTheme {
       iconTheme: IconThemeData(color: scheme.onSurfaceVariant),
       scaffoldBackgroundColor: scheme.surface,
       appBarTheme: AppBarTheme(
-        backgroundColor: scheme.surface,
+        backgroundColor: scheme.surfaceContainer,
+        surfaceTintColor: Colors.transparent,
         foregroundColor: scheme.onSurface,
         elevation: 0,
         scrolledUnderElevation: 3,

@@ -11,7 +11,7 @@ void main() {
   });
 
   testWidgets(
-    'DoslyApp renders the home screen with Hello World and a Theme preview button',
+    'DoslyApp renders the home screen with app bar, Hello World, and Theme preview button',
     (tester) async {
       await tester.pumpWidget(const DoslyApp());
       await tester.pumpAndSettle();
@@ -21,6 +21,7 @@ void main() {
         find.widgetWithText(OutlinedButton, 'Theme preview'),
         findsOneWidget,
       );
+      expect(find.text('Dosly'), findsOneWidget);
     },
   );
 
