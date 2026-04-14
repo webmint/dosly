@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Placeholder main screen shown at the app's root route.
 ///
@@ -35,7 +36,7 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             onPressed: null,
             tooltip: 'Settings',
-            icon: const Icon(Icons.settings),
+            icon: const Icon(LucideIcons.settings),
           ),
         ],
         bottom: const PreferredSize(
