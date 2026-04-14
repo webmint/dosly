@@ -163,10 +163,11 @@ What it shows:
 
 - **Color roles** — one swatch per role (primary / onPrimary / primaryContainer / …, all surface containers, outline, inverse, etc.), each rendered with its actual color as the background and hex label overlaid
 - **Typography** — one row per M3 style (`displayLarge` … `labelSmall`)
-- **Components** — one instance each of `FilledButton`, `FilledButton.tonal`, `OutlinedButton`, `TextButton`, `Chip`, `Icon` (rounded), `Switch`, `Card`, `TextField`, `FloatingActionButton`
-- **App-bar cycle action** — an `IconButton` whose icon reflects the current mode and calls `themeController.cycle` on press
+- **Icons** — the 20 canonical Lucide glyphs used across the app design (`pill`, `house`, `settings`, `history`, `circlePlus`, `thermometer`, `syringe`, `glasses`, `droplets`, `activity`, `clock`, `check`, `chevronDown`, `chevronRight`, `arrowLeft`, `search`, `plus`, `eye`, `x`, `phone`), each shown with its `LucideIcons.*` field name as a label. See [`icons.md`](icons.md) for the icon-set rationale.
+- **Components** — one instance each of `FilledButton`, `FilledButton.tonal`, `OutlinedButton`, `TextButton`, `Chip`, `Icon`, `Switch`, `Card`, `TextField`, `FloatingActionButton`
+- **App-bar cycle action** — an `IconButton` whose icon reflects the current mode (`LucideIcons.sunMoon` / `sun` / `moon`) and calls `themeController.cycle` on press
 
-All icons use the `Icons.xxx_rounded` variants to match the design reference.
+All icons are sourced from `lucide_icons_flutter` — see [`icons.md`](icons.md).
 
 **When to delete**: once real screens ship and `DoslyApp.home` points at something non-preview, delete `lib/features/theme_preview/` entirely. The folder was built to be disposable — nothing else in the codebase imports from it.
 

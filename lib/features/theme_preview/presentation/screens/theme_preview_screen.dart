@@ -6,6 +6,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/theme_controller.dart';
 import '../widgets/color_swatch_card.dart';
@@ -18,9 +19,9 @@ class ThemePreviewScreen extends StatelessWidget {
 
   static IconData _iconForMode(ThemeMode mode) {
     return switch (mode) {
-      ThemeMode.system => Icons.brightness_auto_rounded,
-      ThemeMode.light => Icons.light_mode_rounded,
-      ThemeMode.dark => Icons.dark_mode_rounded,
+      ThemeMode.system => LucideIcons.sunMoon,
+      ThemeMode.light => LucideIcons.sun,
+      ThemeMode.dark => LucideIcons.moon,
     };
   }
 
@@ -44,7 +45,7 @@ class ThemePreviewScreen extends StatelessWidget {
       floatingActionButton: const FloatingActionButton(
         onPressed: null,
         tooltip: 'Demo FAB',
-        child: Icon(Icons.add_rounded),
+        child: Icon(LucideIcons.plus),
       ),
     );
   }
@@ -126,6 +127,33 @@ class _PreviewBody extends StatelessWidget {
         TypographySample(styleName: 'labelLarge', style: textTheme.labelLarge),
         TypographySample(styleName: 'labelMedium', style: textTheme.labelMedium),
         TypographySample(styleName: 'labelSmall', style: textTheme.labelSmall),
+        const _SectionHeader(label: 'Icons'),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _iconTile(LucideIcons.pill, 'pill'),
+            _iconTile(LucideIcons.house, 'house'),
+            _iconTile(LucideIcons.settings, 'settings'),
+            _iconTile(LucideIcons.history, 'history'),
+            _iconTile(LucideIcons.circlePlus, 'circlePlus'),
+            _iconTile(LucideIcons.thermometer, 'thermometer'),
+            _iconTile(LucideIcons.syringe, 'syringe'),
+            _iconTile(LucideIcons.glasses, 'glasses'),
+            _iconTile(LucideIcons.droplets, 'droplets'),
+            _iconTile(LucideIcons.activity, 'activity'),
+            _iconTile(LucideIcons.clock, 'clock'),
+            _iconTile(LucideIcons.check, 'check'),
+            _iconTile(LucideIcons.chevronDown, 'chevronDown'),
+            _iconTile(LucideIcons.chevronRight, 'chevronRight'),
+            _iconTile(LucideIcons.arrowLeft, 'arrowLeft'),
+            _iconTile(LucideIcons.search, 'search'),
+            _iconTile(LucideIcons.plus, 'plus'),
+            _iconTile(LucideIcons.eye, 'eye'),
+            _iconTile(LucideIcons.x, 'x'),
+            _iconTile(LucideIcons.phone, 'phone'),
+          ],
+        ),
         const _SectionHeader(label: 'Components'),
         Wrap(
           spacing: 12,
@@ -138,9 +166,9 @@ class _PreviewBody extends StatelessWidget {
             TextButton(onPressed: () {}, child: const Text('Text')),
             const Chip(
               label: Text('Chip'),
-              avatar: Icon(Icons.medication_rounded, size: 18),
+              avatar: Icon(LucideIcons.pill, size: 18),
             ),
-            const Icon(Icons.schedule_rounded, size: 32),
+            const Icon(LucideIcons.clock, size: 32),
             Switch(value: true, onChanged: (_) {}),
           ],
         ),
@@ -166,11 +194,29 @@ class _PreviewBody extends StatelessWidget {
           decoration: InputDecoration(
             labelText: 'Text field',
             helperText: 'Demonstrates the input decoration theme',
-            prefixIcon: Icon(Icons.medication_rounded),
+            prefixIcon: Icon(LucideIcons.pill),
           ),
         ),
         const SizedBox(height: 32),
       ],
+    );
+  }
+
+  static Widget _iconTile(IconData icon, String label) {
+    return SizedBox(
+      width: 80,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 32),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 

@@ -2,19 +2,19 @@
 # Session State
 
 ## Current Feature
-003-home-app-bar — Home Screen App Bar
+004-lucide-icons — Lucide Icons
 
 ## Progress
 All 2 tasks complete. Feature ready for /review → /verify → /summarize → /finalize.
 
 ## Recent Task Decisions
-- Task 001: Changed AppBarTheme backgroundColor from scheme.surface to scheme.surfaceContainer, added surfaceTintColor: Colors.transparent. Clean 2-line change.
-- Task 002: Added AppBar to HomeScreen with title "Dosly", disabled settings IconButton, PreferredSize+Divider bottom border. Updated widget test to assert title.
+- Task 001: Added `lucide_icons_flutter: ^3.1.12` to pubspec.yaml. Clean resolution.
+- Task 002: Replaced all 7 Material `Icons.*` with Lucide equivalents. Added 20-icon showcase section to theme preview. All icon names compiled without issues.
 
 ## Recently Modified Files
-- `lib/core/theme/app_theme.dart` — AppBarTheme: surfaceContainer bg + transparent tint
-- `lib/features/home/presentation/screens/home_screen.dart` — added AppBar to Scaffold
-- `test/widget_test.dart` — added "Dosly" title assertion to first test
+- `pubspec.yaml` — added lucide_icons_flutter dependency
+- `lib/features/home/presentation/screens/home_screen.dart` — LucideIcons.settings
+- `lib/features/theme_preview/presentation/screens/theme_preview_screen.dart` — 7 icon swaps + 20-icon showcase section
 
 ## Integration Gate Status
 - `dart analyze`: clean
