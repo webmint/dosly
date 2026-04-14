@@ -77,5 +77,22 @@ void main() {
       final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
       expect(bar.labelBehavior, NavigationDestinationLabelBehavior.alwaysShow);
     });
+
+    testWidgets('renders a 1-px top divider above the NavigationBar',
+        (tester) async {
+      await tester.pumpWidget(_harness());
+      await tester.pumpAndSettle();
+
+      final dividers = tester.widgetList<Divider>(
+        find.descendant(
+          of: find.byType(HomeBottomNav),
+          matching: find.byType(Divider),
+        ),
+      );
+      expect(
+        dividers.any((d) => d.height == 1 && d.thickness == 1),
+        isTrue,
+      );
+    });
   });
 }
