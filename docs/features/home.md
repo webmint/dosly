@@ -8,7 +8,7 @@ Everything in this feature lives under `lib/features/home/presentation/`. There 
 
 ## The bottom navigation bar
 
-`HomeBottomNav` (in `lib/features/home/presentation/widgets/home_bottom_nav.dart`) is a thin wrapper around Flutter's built-in M3 `NavigationBar`. It declares exactly three `NavigationDestination`s in a fixed order:
+`HomeBottomNav` (in `lib/features/home/presentation/widgets/home_bottom_nav.dart`) is a thin wrapper around Flutter's built-in M3 `NavigationBar`, with a 1-px `Divider` pinned to its top edge to match the HTML design template's `.bot-nav { border-top: 1px solid var(--md-outline-variant) }` rule. The `NavigationBar` itself declares exactly three `NavigationDestination`s in a fixed order:
 
 | Index | Label     | Icon                    |
 |------:|-----------|-------------------------|
@@ -27,24 +27,31 @@ class HomeBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NavigationBar(
-      selectedIndex: 0,
-      onDestinationSelected: _noop,
-      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-      destinations: const <NavigationDestination>[
-        NavigationDestination(icon: Icon(LucideIcons.house),    label: 'Today'),
-        NavigationDestination(icon: Icon(LucideIcons.pill),     label: 'Meds'),
-        NavigationDestination(icon: Icon(LucideIcons.activity), label: 'History'),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        const Divider(height: 1, thickness: 1),
+        NavigationBar(
+          selectedIndex: 0,
+          onDestinationSelected: _noop,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: const <NavigationDestination>[
+            NavigationDestination(icon: Icon(LucideIcons.house),    label: 'Today'),
+            NavigationDestination(icon: Icon(LucideIcons.pill),     label: 'Meds'),
+            NavigationDestination(icon: Icon(LucideIcons.activity), label: 'History'),
+          ],
+        ),
       ],
     );
   }
 }
 ```
 
-Two design notes worth calling out:
+Three design notes worth calling out:
 
 - **`_noop` is a top-level function, not an inline lambda.** Inline lambdas are not `const`-compatible, which would force every call site to drop `const HomeBottomNav()`. Pulling the no-op out to a top-level function keeps the widget trivially const-constructable.
 - **No hard-coded colors, no `NavigationBarTheme` overrides.** Material 3's default `NavigationBar` already reads `surfaceContainer`, `secondaryContainer`, `onSecondaryContainer`, `onSurface`, and `onSurfaceVariant` from the ambient `ColorScheme`. Because those tokens are populated in both `lightColorScheme` and `darkColorScheme` (see [`theme.md`](theme.md)), light/dark works with zero per-theme code.
+- **The top `Divider` has no explicit color.** Material 3's `DividerTheme` default resolves to `ColorScheme.outlineVariant`, which is exactly the token the HTML template uses (`var(--md-outline-variant)`). Hard-coding a color would break dark-mode parity and duplicate what the theme already supplies.
 
 `labelBehavior: NavigationDestinationLabelBehavior.alwaysShow` is explicit — platform defaults differ, and the HTML design reference shows all three labels permanently, so the choice is pinned in code.
 
@@ -96,13 +103,14 @@ The **destination set itself** (Today / Meds / History, in that order) is the st
 
 ## Testing
 
-Widget tests live at `test/features/home/presentation/widgets/home_bottom_nav_test.dart`. They pump `HomeBottomNav` inside a minimal `MaterialApp` + `Scaffold` harness and cover five invariants:
+Widget tests live at `test/features/home/presentation/widgets/home_bottom_nav_test.dart`. They pump `HomeBottomNav` inside a minimal `MaterialApp` + `Scaffold` harness and cover six invariants:
 
 - Exactly three `NavigationDestination`s are rendered, with labels `Today` / `Meds` / `History` in order.
 - The three icons resolve to `LucideIcons.house`, `LucideIcons.pill`, `LucideIcons.activity`.
 - `NavigationBar.selectedIndex == 0` on first render.
 - Tapping `Meds` and tapping `History` leaves `selectedIndex` at `0` after `pumpAndSettle` — the tap-is-a-no-op contract.
 - `labelBehavior == NavigationDestinationLabelBehavior.alwaysShow`.
+- A 1-px `Divider` is rendered above the `NavigationBar` — regression guard for the HTML template's top border.
 
 If a future change breaks any of these, the failing test name will point directly at the invariant that slipped.
 

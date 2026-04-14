@@ -9,6 +9,8 @@
 /// * `selectedIndex` is fixed at `0` ("Today") and never changes.
 /// * `onDestinationSelected` is a no-op — destinations are tappable so users
 ///   get Material ink/ripple feedback, but taps do NOT navigate anywhere.
+/// * Renders a 1-px top divider (`ColorScheme.outlineVariant` via the ambient
+///   `DividerTheme`) matching the HTML design template's `.bot-nav` top border.
 ///
 /// A future spec will convert this widget to a `StatefulWidget` (or wire it
 /// to a router-aware provider) once real routes exist behind each
@@ -35,22 +37,28 @@ class HomeBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NavigationBar(
-      selectedIndex: 0,
-      onDestinationSelected: _noop,
-      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-      destinations: const <NavigationDestination>[
-        NavigationDestination(
-          icon: Icon(LucideIcons.house),
-          label: 'Today',
-        ),
-        NavigationDestination(
-          icon: Icon(LucideIcons.pill),
-          label: 'Meds',
-        ),
-        NavigationDestination(
-          icon: Icon(LucideIcons.activity),
-          label: 'History',
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        const Divider(height: 1, thickness: 1),
+        NavigationBar(
+          selectedIndex: 0,
+          onDestinationSelected: _noop,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: const <NavigationDestination>[
+            NavigationDestination(
+              icon: Icon(LucideIcons.house),
+              label: 'Today',
+            ),
+            NavigationDestination(
+              icon: Icon(LucideIcons.pill),
+              label: 'Meds',
+            ),
+            NavigationDestination(
+              icon: Icon(LucideIcons.activity),
+              label: 'History',
+            ),
+          ],
         ),
       ],
     );
