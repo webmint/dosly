@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../widgets/home_bottom_nav.dart';
+
 /// Placeholder main screen shown at the app's root route.
 ///
 /// Displays a Material 3 [AppBar] with the app title "Dosly", a disabled
@@ -23,6 +25,10 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 /// for removal post-MVP together with the `lib/features/theme_preview/`
 /// feature — see `specs/002-main-screen/spec.md` §6 and §8 for the removal
 /// plan and rationale.
+///
+/// A three-destination [HomeBottomNav] sits in the bottom-navigation-bar
+/// slot; its buttons are intentionally inert until a follow-up spec wires
+/// real navigation.
 class HomeScreen extends StatelessWidget {
   /// Creates the placeholder home screen.
   const HomeScreen({super.key});
@@ -60,6 +66,7 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
+      bottomNavigationBar: const HomeBottomNav(),
     );
   }
 }
