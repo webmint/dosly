@@ -36,6 +36,11 @@ dependencies:
   cupertino_icons: ^1.0.8
   go_router: ^17.2.0
   lucide_icons_flutter: ^3.1.12
+  flutter_localizations:
+    sdk: flutter
+  # Pinned to the version flutter_localizations resolves transitively in SDK 3.11.1
+  # (verified via `flutter pub deps | grep intl`). Bump alongside Flutter SDK upgrades.
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -53,6 +58,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

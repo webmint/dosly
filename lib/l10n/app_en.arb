@@ -1,0 +1,19 @@
+{
+  "@@locale": "en",
+  "settingsTooltip": "Settings",
+  "@settingsTooltip": {
+    "description": "Tooltip for the Settings icon button in the HomeScreen AppBar."
+  },
+  "bottomNavToday": "Today",
+  "@bottomNavToday": {
+    "description": "Label for the Today destination in the home bottom navigation bar."
+  },
+  "bottomNavMeds": "Meds",
+  "@bottomNavMeds": {
+    "description": "Label for the Meds destination in the home bottom navigation bar."
+  },
+  "bottomNavHistory": "History",
+  "@bottomNavHistory": {
+    "description": "Label for the History destination in the home bottom navigation bar."
+  }
+}
