@@ -27,6 +27,7 @@ class HomeBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -35,10 +36,10 @@ class HomeBottomNav extends StatelessWidget {
           selectedIndex: 0,
           onDestinationSelected: _noop,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          destinations: const <NavigationDestination>[
-            NavigationDestination(icon: Icon(LucideIcons.house),    label: 'Today'),
-            NavigationDestination(icon: Icon(LucideIcons.pill),     label: 'Meds'),
-            NavigationDestination(icon: Icon(LucideIcons.activity), label: 'History'),
+          destinations: <NavigationDestination>[
+            NavigationDestination(icon: const Icon(LucideIcons.house),    label: l.bottomNavToday),
+            NavigationDestination(icon: const Icon(LucideIcons.pill),     label: l.bottomNavMeds),
+            NavigationDestination(icon: const Icon(LucideIcons.activity), label: l.bottomNavHistory),
           ],
         ),
       ],
@@ -46,6 +47,8 @@ class HomeBottomNav extends StatelessWidget {
   }
 }
 ```
+
+Destination labels flow from `AppLocalizations` via `context.l10n` (see [`i18n.md`](i18n.md)). Because labels are runtime values from `BuildContext`, the three `NavigationDestination` instances are no longer `const`; the outer `const HomeBottomNav({super.key})` constructor and the top-level `_noop` function are preserved. `Icon` leaves remain `const`.
 
 Three design notes worth calling out:
 
@@ -67,7 +70,7 @@ Scaffold(
     actions: [
       IconButton(
         onPressed: null,
-        tooltip: 'Settings',
+        tooltip: context.l10n.settingsTooltip,  // localized via AppLocalizations
         icon: const Icon(LucideIcons.settings),
       ),
     ],
@@ -93,17 +96,17 @@ The visual contract we accept is "matches M3 intent", not "pixel-exact to the HT
 
 The shape of `HomeBottomNav` today is deliberately set up to evolve in two known steps:
 
-1. **Wire real navigation + multi-language labels.** A follow-up feature will:
+1. **Wire real navigation.** A follow-up feature will:
    - Convert the widget to stateful (or pair it with a Riverpod provider / router-aware notifier) so `selectedIndex` tracks the active route.
-   - Replace the English `Today` / `Meds` / `History` literals with localized strings (the user explicitly flagged i18n as the next step — it is not part of this feature).
    - Lift the bar into a `StatefulShellRoute` in `lib/core/routing/app_router.dart` so navigation state survives across tabs.
+   - Destination labels are already localized (feature 006-i18n-support).
 2. **Add the FAB.** The HTML template shows a FAB sitting above the center of the nav bar (`.fab-wrap` in lines 350–366). That is a separate spec — not added here to keep this feature minimal.
 
 The **destination set itself** (Today / Meds / History, in that order) is the stable contract. Follow-up work will change what happens when you tap, not which destinations exist.
 
 ## Testing
 
-Widget tests live at `test/features/home/presentation/widgets/home_bottom_nav_test.dart`. They pump `HomeBottomNav` inside a minimal `MaterialApp` + `Scaffold` harness and cover six invariants:
+Widget tests live at `test/features/home/presentation/widgets/home_bottom_nav_test.dart`. The test harness registers `AppLocalizations.localizationsDelegates` and `AppLocalizations.supportedLocales` on its `MaterialApp`, defaulting to the English locale. Tests cover six invariants:
 
 - Exactly three `NavigationDestination`s are rendered, with labels `Today` / `Meds` / `History` in order.
 - The three icons resolve to `LucideIcons.house`, `LucideIcons.pill`, `LucideIcons.activity`.
@@ -111,6 +114,8 @@ Widget tests live at `test/features/home/presentation/widgets/home_bottom_nav_te
 - Tapping `Meds` and tapping `History` leaves `selectedIndex` at `0` after `pumpAndSettle` — the tap-is-a-no-op contract.
 - `labelBehavior == NavigationDestinationLabelBehavior.alwaysShow`.
 - A 1-px `Divider` is rendered above the `NavigationBar` — regression guard for the HTML template's top border.
+
+Locale-specific tests live at `test/features/home/presentation/widgets/home_bottom_nav_l10n_test.dart`. They pump the widget under `Locale('de')`, `Locale('uk')`, and `Locale('fr')` (unsupported — verifies English fallback).
 
 If a future change breaks any of these, the failing test name will point directly at the invariant that slipped.
 
@@ -125,6 +130,7 @@ If a future change breaks any of these, the failing test name will point directl
 - [`../../specs/005-bottom-nav/spec.md`](../../specs/005-bottom-nav/spec.md) — the spec that introduced this feature
 - [`../../specs/005-bottom-nav/plan.md`](../../specs/005-bottom-nav/plan.md) — design decisions (built-in vs custom, statefulness, theme wiring)
 - [`../../specs/005-bottom-nav/summary.md`](../../specs/005-bottom-nav/summary.md) — concise feature summary
+- [`i18n.md`](i18n.md) — how localized strings are sourced, how to add new strings and locales
 - [`theme.md`](theme.md) — the `ColorScheme` roles the nav bar reads from
 - [`icons.md`](icons.md) — the Lucide icon set the destinations use
 - [`../architecture.md`](../architecture.md) — where the home feature sits in the Clean Architecture layering

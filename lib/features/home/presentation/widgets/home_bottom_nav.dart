@@ -20,6 +20,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../l10n/l10n_extensions.dart';
+
 /// No-op callback for [NavigationBar.onDestinationSelected].
 ///
 /// Declared as a top-level function so that callers can construct
@@ -37,6 +39,7 @@ class HomeBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -45,18 +48,18 @@ class HomeBottomNav extends StatelessWidget {
           selectedIndex: 0,
           onDestinationSelected: _noop,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          destinations: const <NavigationDestination>[
+          destinations: <NavigationDestination>[
             NavigationDestination(
-              icon: Icon(LucideIcons.house),
-              label: 'Today',
+              icon: const Icon(LucideIcons.house),
+              label: l.bottomNavToday,
             ),
             NavigationDestination(
-              icon: Icon(LucideIcons.pill),
-              label: 'Meds',
+              icon: const Icon(LucideIcons.pill),
+              label: l.bottomNavMeds,
             ),
             NavigationDestination(
-              icon: Icon(LucideIcons.activity),
-              label: 'History',
+              icon: const Icon(LucideIcons.activity),
+              label: l.bottomNavHistory,
             ),
           ],
         ),

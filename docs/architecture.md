@@ -83,6 +83,20 @@ The `ListenableBuilder` at the root of `DoslyApp` rebuilds `MaterialApp.router` 
 
 The controller is **in-memory only** — it resets to `ThemeMode.system` on every app restart. Persistence will arrive with the future Settings feature, which will use drift; it is not bolted onto `ThemeController`.
 
+## Internationalization (i18n)
+
+Translation infrastructure lives under `lib/l10n/` at the `lib/` root, not under `lib/core/` — this follows Flutter's framework convention for ARB sources (the `arb-dir` default used by `flutter gen-l10n`). The project accepts this deviation from the `lib/core/` rule for project-authored cross-feature code because ARB files are translation assets, not authored Dart logic.
+
+**Layer placement**: `AppLocalizations` is a presentation concern. It must never be imported from `domain/` (constitution §2.1 — domain must be pure Dart). This rule is currently moot because no `domain/` layer exists yet; it is called out here for when the first medication feature introduces one.
+
+**Single-`!` rule**: `AppLocalizations.of(context)` returns nullable. The project's constitution §4.2.1 prohibits `!` in general, with one documented exception: `AppLocalizations.of(context)!`. That exception is exercised in exactly one place — the `context.l10n` getter in `lib/l10n/l10n_extensions.dart`. All widgets call `context.l10n.xxx`; no widget calls `AppLocalizations.of(context)` directly. This is the codebase pattern for any future "framework-nullable-but-guaranteed-non-null-in-practice" primitive: centralize the `!` in one extension, consumers stay clean.
+
+**Fallback locale**: `lib/app.dart` contains a private `_resolveLocale` function that overrides Flutter's default resolution. Flutter's default returns the alphabetically-first supported locale for unsupported devices — because `gen_l10n` emits `[de, en, uk]` alphabetically, the default would surface German as the fallback. `_resolveLocale` pins the fallback to English regardless of list order.
+
+**Generated files**: Generated `app_localizations*.dart` files are committed to `lib/l10n/` (not gitignored). With `synthetic-package: false` (modern Flutter default), they are normal source files. Committing them ensures fresh clones compile before `flutter pub get` runs — the same policy the project will apply to freezed/drift/riverpod codegen when those land.
+
+See [`features/i18n.md`](features/i18n.md) for the full walkthrough, including how to add a new string or locale.
+
 ## Routing
 
 dosly uses **`go_router`** as its routing foundation. The router is declared as a top-level singleton in `lib/core/routing/app_router.dart` and consumed by `DoslyApp` via `MaterialApp.router(routerConfig: appRouter)`.

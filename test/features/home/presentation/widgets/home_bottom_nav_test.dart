@@ -1,4 +1,5 @@
 import 'package:dosly/features/home/presentation/widgets/home_bottom_nav.dart';
+import 'package:dosly/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -9,8 +10,10 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 /// the ambient `Directionality`, `MediaQuery`, and `Theme` it needs to
 /// render a Material 3 [NavigationBar].
 Widget _harness() {
-  return const MaterialApp(
-    home: Scaffold(
+  return MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: const Scaffold(
       body: SizedBox.shrink(),
       bottomNavigationBar: HomeBottomNav(),
     ),
