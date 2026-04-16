@@ -9,13 +9,23 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 /// Wraps [HomeBottomNav] in a [MaterialApp] + [Scaffold] so the widget has
 /// the ambient `Directionality`, `MediaQuery`, and `Theme` it needs to
 /// render a Material 3 [NavigationBar].
-Widget _harness() {
+///
+/// [selectedIndex] is forwarded to [HomeBottomNav.selectedIndex].
+/// [onDestinationSelected] is forwarded to [HomeBottomNav.onDestinationSelected];
+/// defaults to a no-op when not provided.
+Widget _harness({
+  int selectedIndex = 0,
+  ValueChanged<int>? onDestinationSelected,
+}) {
   return MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: const Scaffold(
-      body: SizedBox.shrink(),
-      bottomNavigationBar: HomeBottomNav(),
+    home: Scaffold(
+      body: const SizedBox.shrink(),
+      bottomNavigationBar: HomeBottomNav(
+        selectedIndex: selectedIndex,
+        onDestinationSelected: onDestinationSelected ?? (_) {},
+      ),
     ),
   );
 }
@@ -46,31 +56,32 @@ void main() {
       expect(find.byIcon(LucideIcons.activity), findsOneWidget);
     });
 
-    testWidgets('NavigationBar.selectedIndex is 0 on first render',
+    testWidgets(
+        'NavigationBar.selectedIndex reflects the selectedIndex parameter',
         (tester) async {
-      await tester.pumpWidget(_harness());
-      await tester.pumpAndSettle();
+      for (final index in [0, 1, 2]) {
+        await tester.pumpWidget(_harness(selectedIndex: index));
+        await tester.pumpAndSettle();
 
-      final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
-      expect(bar.selectedIndex, 0);
+        final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+        expect(bar.selectedIndex, index);
+      }
     });
 
-    testWidgets('tapping an inactive destination does not change selectedIndex',
+    testWidgets(
+        'tapping a destination invokes onDestinationSelected with the tapped index',
         (tester) async {
-      await tester.pumpWidget(_harness());
+      final indices = <int>[];
+      await tester.pumpWidget(_harness(onDestinationSelected: indices.add));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Meds'));
       await tester.pumpAndSettle();
-
-      var bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
-      expect(bar.selectedIndex, 0);
+      expect(indices, [1]);
 
       await tester.tap(find.text('History'));
       await tester.pumpAndSettle();
-
-      bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
-      expect(bar.selectedIndex, 0);
+      expect(indices, [1, 2]);
     });
 
     testWidgets('labelBehavior is alwaysShow', (tester) async {

@@ -1,20 +1,17 @@
 /// Home feature — bottom navigation bar widget.
 ///
-/// This library hosts [HomeBottomNav], a Material 3 [NavigationBar] with
-/// three fixed destinations (Today, Meds, History) rendered with Lucide
-/// icons.
+/// This library hosts [HomeBottomNav], a router-agnostic Material 3
+/// [NavigationBar] with three fixed destinations (Today, Meds, History)
+/// rendered with Lucide icons.
 ///
-/// The widget is intentionally inert for now:
+/// The widget's active state and tap handling are entirely external:
 ///
-/// * `selectedIndex` is fixed at `0` ("Today") and never changes.
-/// * `onDestinationSelected` is a no-op — destinations are tappable so users
-///   get Material ink/ripple feedback, but taps do NOT navigate anywhere.
+/// * `selectedIndex` is supplied by the caller (typically the routing shell
+///   at `lib/core/routing/app_shell.dart`).
+/// * `onDestinationSelected` is supplied by the caller and forwarded directly
+///   to [NavigationBar.onDestinationSelected].
 /// * Renders a 1-px top divider (`ColorScheme.outlineVariant` via the ambient
 ///   `DividerTheme`) matching the HTML design template's `.bot-nav` top border.
-///
-/// A future spec will convert this widget to a `StatefulWidget` (or wire it
-/// to a router-aware provider) once real routes exist behind each
-/// destination.
 library;
 
 import 'package:flutter/material.dart';
@@ -22,20 +19,37 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../l10n/l10n_extensions.dart';
 
-/// No-op callback for [NavigationBar.onDestinationSelected].
-///
-/// Declared as a top-level function so that callers can construct
-/// [HomeBottomNav] with `const` — inline lambdas are not `const`-compatible.
-void _noop(int _) {}
-
 /// Material 3 bottom navigation bar for the home screen.
 ///
 /// Renders a [NavigationBar] with three fixed destinations (Today, Meds,
-/// History). The widget is currently presentational only — see the library
-/// dartdoc for details on the inert behaviour and future plans.
+/// History). The widget is router-agnostic — the active tab index and
+/// navigation callback are provided by the parent, typically the routing
+/// shell at `lib/core/routing/app_shell.dart`.
+///
+/// Parameters:
+/// * [selectedIndex] — the zero-based index of the currently active
+///   destination; forwarded to [NavigationBar.selectedIndex].
+/// * [onDestinationSelected] — called with the tapped destination index;
+///   forwarded to [NavigationBar.onDestinationSelected].
 class HomeBottomNav extends StatelessWidget {
   /// Creates the home screen bottom navigation bar.
-  const HomeBottomNav({super.key});
+  ///
+  /// Both [selectedIndex] and [onDestinationSelected] are required and must
+  /// be provided by the parent (typically the routing shell).
+  const HomeBottomNav({
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    super.key,
+  });
+
+  /// The index of the currently selected destination (0 = Today, 1 = Meds,
+  /// 2 = History).
+  final int selectedIndex;
+
+  /// Called when the user taps a destination.
+  ///
+  /// Receives the zero-based index of the tapped destination.
+  final ValueChanged<int> onDestinationSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -45,8 +59,8 @@ class HomeBottomNav extends StatelessWidget {
       children: <Widget>[
         const Divider(height: 1, thickness: 1),
         NavigationBar(
-          selectedIndex: 0,
-          onDestinationSelected: _noop,
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onDestinationSelected,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: <NavigationDestination>[
             NavigationDestination(
