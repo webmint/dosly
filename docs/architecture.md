@@ -101,36 +101,72 @@ See [`features/i18n.md`](features/i18n.md) for the full walkthrough, including h
 
 dosly uses **`go_router`** as its routing foundation. The router is declared as a top-level singleton in `lib/core/routing/app_router.dart` and consumed by `DoslyApp` via `MaterialApp.router(routerConfig: appRouter)`.
 
+### Route topology
+
+The router uses a `StatefulShellRoute.indexedStack` to wrap the three primary tab destinations inside a shared `AppShell` scaffold, plus a sibling top-level `GoRoute` for the dev-only `/theme-preview` screen that intentionally renders outside the shell (no bottom nav).
+
 ```dart
 // lib/core/routing/app_router.dart
 final GoRouter appRouter = GoRouter(
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const HomeScreen(),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          AppShell(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(routes: [GoRoute(path: '/',       builder: ...)]),
+        StatefulShellBranch(routes: [GoRoute(path: '/meds',   builder: ...)]),
+        StatefulShellBranch(routes: [GoRoute(path: '/history',builder: ...)]),
+      ],
     ),
-    GoRoute(
-      path: '/theme-preview',
-      builder: (context, state) => const ThemePreviewScreen(),
-    ),
+    GoRoute(path: '/theme-preview', builder: ...),
   ],
 );
 ```
 
-The route table is currently flat and minimal:
+Branch order matches `HomeBottomNav` destination order (0 = Today, 1 = Meds, 2 = History). Reordering either side without updating the other breaks tab highlighting.
 
-| Path | Screen | Notes |
-|---|---|---|
-| `/` | `HomeScreen` | App entry — placeholder until the real main screen ships |
-| `/theme-preview` | `ThemePreviewScreen` | Dev-only, reachable via a button on `HomeScreen`. Scheduled for removal post-MVP along with `lib/features/theme_preview/`. |
+**Route table:**
 
-A few conventions to note:
+| Path | Screen | Shell | Notes |
+|---|---|---|---|
+| `/` | `HomeScreen` | yes | App entry — Today tab placeholder |
+| `/meds` | `MedsScreen` | yes | Meds tab placeholder |
+| `/history` | `HistoryScreen` | yes | History tab placeholder |
+| `/theme-preview` | `ThemePreviewScreen` | no | Dev-only; scheduled for post-MVP removal |
 
-- **`lib/core/routing/` is the composition root for routes.** It is the only place in the app allowed to import from multiple feature folders simultaneously — this is the documented exception to the "feature A never imports feature B" rule, because the router by definition has to know about every screen.
-- **`appRouter` mirrors the `themeController` pattern** — a top-level `final` declared next to its module, not a Riverpod provider. Riverpod will arrive with the first real feature; the router was deliberately kept on plain primitives to match the existing app-wide state style.
+### AppShell
+
+`AppShell` (in `lib/core/routing/app_shell.dart`) is the adapter between go_router's `StatefulNavigationShell` and the feature-scoped `HomeBottomNav` widget. It renders a `Scaffold` with `navigationShell` as the `body` and `HomeBottomNav` as the `bottomNavigationBar`:
+
+```dart
+// lib/core/routing/app_shell.dart
+class AppShell extends StatelessWidget {
+  const AppShell({required this.navigationShell, super.key});
+  final StatefulNavigationShell navigationShell;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: navigationShell,
+      bottomNavigationBar: HomeBottomNav(
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: navigationShell.goBranch,
+      ),
+    );
+  }
+}
+```
+
+`navigationShell.goBranch` is a method tearoff that satisfies `ValueChanged<int>` directly — no lambda wrapper needed. Each branch's screen supplies its own `AppBar`; the shell intentionally omits one.
+
+`StatefulShellRoute.indexedStack` preserves each branch's navigator stack across tab switches — navigating away from a branch and back restores its scroll position and back stack. This is the standard go_router idiom for persistent-state tabbed navigation.
+
+### Conventions
+
+- **`lib/core/routing/` is the composition root for routes.** It is the only place in the app allowed to import from multiple feature folders simultaneously — the documented exception to the "feature A never imports feature B" rule.
+- **`appRouter` mirrors the `themeController` pattern** — a top-level `final` declared next to its module, not a Riverpod provider. Riverpod will arrive with the first real feature; the router was deliberately kept on plain primitives.
 - **Navigation is `context.go(...)` / `context.push(...)`** from `package:go_router/go_router.dart`, not `Navigator.of(context)`.
-
-This section will grow as the route table grows. For now there is no `ShellRoute`, no nested navigation, no redirect logic, and no deep-link handling — just two flat routes.
+- **`HomeBottomNav` is router-agnostic.** It accepts `int` + `ValueChanged<int>` — plain values, not a `StatefulNavigationShell`. `AppShell` is the only coupling point.
 
 ## Entry point
 

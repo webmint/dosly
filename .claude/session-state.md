@@ -2,32 +2,30 @@
 # Session State
 
 ## Current Feature
-006-i18n-support — **All 7 tasks complete**. Ready for `/review` → `/verify` → `/summarize` → `/finalize`.
+007-meds-history-screens — **All 5 tasks complete**. Ready for `/review` → `/verify` → `/summarize` → `/finalize`.
 
 ## Recently Completed Tasks
-- **Task 007** (qa-engineer): Added `home_bottom_nav_l10n_test.dart` with 3 cases (de/uk/fr-fallback). Discovered Flutter default falls back to alphabetically-first locale, not English. Fix: added `_resolveLocale` in `lib/app.dart` as `localeResolutionCallback`. Spec §3.2 and AC-5 updated.
-- **Task 006** (mobile-engineer): Localized `HomeBottomNav` destination labels via `AppLocalizations.of(context)!.bottomNav{Today,Meds,History}`. `const` pushed down to Icon leaves.
-- **Task 005** (qa-engineer): Registered delegates in `home_bottom_nav_test.dart` harness. `const` moved from outer MaterialApp to inner Scaffold.
+- **Task 005** (mobile-engineer, CHECKPOINT, terminal gate): Refactored `app_router.dart` to `StatefulShellRoute.indexedStack` (3 branches `/`,`/meds`,`/history`) + sibling `/theme-preview`. Added `app_router_test.dart` (5 integration tests). Full gate: `dart analyze` clean, 105/105 tests, APK build success. Code review: APPROVE.
+- **Task 004** (mobile-engineer, CHECKPOINT): `AppShell` adapter — direct `goBranch` tearoff compiled cleanly. APPROVE.
+- **Task 003** (mobile-engineer): HistoryScreen + test. APPROVE.
+- **Task 002** (mobile-engineer): MedsScreen + test. APPROVE.
+- **Task 001** (mobile-engineer): HomeBottomNav signature refactor + cascade. APPROVE.
 
 ## Recent Decisions
-- **Dropped `synthetic-package: false`** from `l10n.yaml` — Flutter 3.41+ fully retired the option; omission = current default.
-- **Added `localeResolutionCallback`** to `MaterialApp.router` — Flutter's default fallback picks first `supportedLocales` entry (alphabetically `de`), not English. Explicit callback pins fallback to English.
-- **Dropped `helloWorld` from i18n scope** — it's a temporary placeholder on HomeScreen; translating wasted work.
+- Test-only router instances are the right pattern for verifying StatefulShellRoute branch-stack preservation without polluting production routes. Build via local function, dispose at test end.
+- `GoRouter.of(tester.element(find.byType(HomeBottomNav)))` is the clean way to get router context in integration tests — avoids `!`.
 
 ## Recently Modified Files
-- `lib/app.dart` — added `_resolveLocale` + wired `localeResolutionCallback`
-- `lib/features/home/presentation/widgets/home_bottom_nav.dart` — localized labels
-- `lib/features/home/presentation/screens/home_screen.dart` — localized Settings tooltip
-- `lib/l10n/app_en.arb`, `app_de.arb`, `app_uk.arb` — 4 keys each
-- `lib/l10n/app_localizations*.dart` — generated, committed
-- `pubspec.yaml`, `pubspec.lock`, `l10n.yaml` — infra for i18n
-- `test/features/home/presentation/widgets/home_bottom_nav_test.dart` — delegates registered
-- `test/features/home/presentation/widgets/home_bottom_nav_l10n_test.dart` — new locale tests
+- lib/core/routing/app_router.dart — StatefulShellRoute refactor
+- test/core/routing/app_router_test.dart (new) — 5 integration tests
+- lib/core/routing/app_shell.dart (new) — shell adapter
+- lib/features/meds/, lib/features/history/ — new screens + tests
+- lib/features/home/ — HomeBottomNav + HomeScreen modifications
 
 ## Verification State
-- `dart analyze`: clean
-- `flutter test`: 88/88 pass (85 pre-existing + 3 new)
-- `flutter build apk --debug`: success
+- dart analyze: clean
+- flutter test: 105/105 pass
+- flutter build apk --debug: success
 
 ## Context Load
 light

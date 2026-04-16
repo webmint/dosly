@@ -1,4 +1,4 @@
-import 'package:dosly/features/home/presentation/widgets/home_bottom_nav.dart';
+import 'package:dosly/features/meds/presentation/screens/meds_screen.dart';
 import 'package:dosly/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,7 +21,7 @@ Locale _resolveLocale(Locale? deviceLocale, Iterable<Locale> supportedLocales) {
   return const Locale('en');
 }
 
-/// Builds a widget tree wrapping [HomeBottomNav] under the requested [locale].
+/// Builds a widget tree wrapping [MedsScreen] under the requested [locale].
 ///
 /// Registers the full `AppLocalizations` delegate chain plus the project's
 /// English-fallback `localeResolutionCallback`, so unsupported locales
@@ -32,44 +32,69 @@ Widget _harness({required Locale locale}) {
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     localeResolutionCallback: _resolveLocale,
-    home: Scaffold(
-      body: const SizedBox.shrink(),
-      bottomNavigationBar: HomeBottomNav(
-        selectedIndex: 0,
-        onDestinationSelected: (_) {},
-      ),
-    ),
+    home: const MedsScreen(),
   );
 }
 
 void main() {
-  group('HomeBottomNav locale switching', () {
-    testWidgets('renders German labels under Locale("de")', (tester) async {
+  group('MedsScreen locale switching', () {
+    testWidgets('renders "Meds" under Locale("en")', (tester) async {
+      await tester.pumpWidget(_harness(locale: const Locale('en')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Meds'), findsOneWidget);
+    });
+
+    testWidgets('renders "Medikamente" under Locale("de")', (tester) async {
       await tester.pumpWidget(_harness(locale: const Locale('de')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Heute'), findsOneWidget);
       expect(find.text('Medikamente'), findsOneWidget);
-      expect(find.text('Verlauf'), findsOneWidget);
     });
 
-    testWidgets('renders Ukrainian labels under Locale("uk")', (tester) async {
+    testWidgets('renders "Ліки" under Locale("uk")', (tester) async {
       await tester.pumpWidget(_harness(locale: const Locale('uk')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Сьогодні'), findsOneWidget);
       expect(find.text('Ліки'), findsOneWidget);
-      expect(find.text('Історія'), findsOneWidget);
     });
 
-    testWidgets('falls back to English for unsupported Locale("fr")',
+    testWidgets('falls back to "Meds" for unsupported Locale("fr")',
         (tester) async {
       await tester.pumpWidget(_harness(locale: const Locale('fr')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Today'), findsOneWidget);
       expect(find.text('Meds'), findsOneWidget);
-      expect(find.text('History'), findsOneWidget);
+    });
+  });
+
+  group('MedsScreen AppBar shape', () {
+    testWidgets('AppBar has no actions', (tester) async {
+      await tester.pumpWidget(_harness(locale: const Locale('en')));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<AppBar>(find.byType(AppBar)).actions,
+        anyOf(isNull, isEmpty),
+      );
+    });
+
+    testWidgets('1-px Divider is a descendant of the AppBar', (tester) async {
+      await tester.pumpWidget(_harness(locale: const Locale('en')));
+      await tester.pumpAndSettle();
+
+      final appBarFinder = find.byType(AppBar);
+      final dividerFinder = find.descendant(
+        of: appBarFinder,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is Divider &&
+              widget.height == 1 &&
+              widget.thickness == 1,
+        ),
+      );
+
+      expect(dividerFinder, findsOneWidget);
     });
   });
 }

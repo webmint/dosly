@@ -1,17 +1,22 @@
 /// Application routing composition root.
 ///
-/// Declares the top-level [appRouter] — a flat `GoRouter` with exactly two
-/// routes:
+/// Declares the top-level [appRouter] — a `StatefulShellRoute.indexedStack`
+/// with three branches (Home `/`, Meds `/meds`, History `/history`) sharing
+/// a single [AppShell] scaffold + [HomeBottomNav], plus a sibling top-level
+/// [GoRoute] for `/theme-preview` that renders WITHOUT the shell (so the
+/// dev-preview screen has no bottom nav).
 ///
-///   * `'/'`             → `HomeScreen`
-///   * `'/theme-preview'` → `ThemePreviewScreen` (temporary dev-only route,
-///     scheduled for removal post-MVP — see `specs/002-main-screen/spec.md`)
+/// Branch order matches [HomeBottomNav] destination order (0=Today, 1=Meds,
+/// 2=History). Do not reorder without updating the bottom nav.
 library;
 
 import 'package:go_router/go_router.dart';
 
+import '../../features/history/presentation/screens/history_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/meds/presentation/screens/meds_screen.dart';
 import '../../features/theme_preview/presentation/screens/theme_preview_screen.dart';
+import 'app_shell.dart';
 
 /// Application singleton router instance.
 ///
@@ -20,9 +25,35 @@ import '../../features/theme_preview/presentation/screens/theme_preview_screen.d
 /// `MaterialApp.router`.
 final GoRouter appRouter = GoRouter(
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const HomeScreen(),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          AppShell(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/',
+              builder: (context, state) => const HomeScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/meds',
+              builder: (context, state) => const MedsScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/history',
+              builder: (context, state) => const HistoryScreen(),
+            ),
+          ],
+        ),
+      ],
     ),
     // TODO(post-mvp): remove this route when lib/features/theme_preview/
     // is deleted — see specs/002-main-screen/spec.md §6 and §8.

@@ -10,7 +10,6 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../l10n/l10n_extensions.dart';
-import '../widgets/home_bottom_nav.dart';
 
 /// Placeholder main screen shown at the app's root route.
 ///
@@ -27,9 +26,8 @@ import '../widgets/home_bottom_nav.dart';
 /// feature — see `specs/002-main-screen/spec.md` §6 and §8 for the removal
 /// plan and rationale.
 ///
-/// A three-destination [HomeBottomNav] sits in the bottom-navigation-bar
-/// slot; its buttons are intentionally inert until a follow-up spec wires
-/// real navigation.
+/// The bottom navigation bar is provided by the routing shell
+/// (`lib/core/routing/app_shell.dart`) at the app level, not by [HomeScreen].
 class HomeScreen extends StatelessWidget {
   /// Creates the placeholder home screen.
   const HomeScreen({super.key});
@@ -67,7 +65,6 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: const HomeBottomNav(),
     );
   }
 }

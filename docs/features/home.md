@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **home feature** owns the app's root screen — `HomeScreen` — and everything that renders inside it. Today that means the top `AppBar`, a placeholder body, and a Material 3 **bottom navigation bar** with three destinations (Today · Meds · History) rendered in Lucide icons. The bar is the app's long-term primary navigation surface: future features will hang real screens off each destination, but at this stage the buttons are intentionally inert — they light up with ripple feedback on tap and do nothing else.
+The **home feature** owns the app's root screen — `HomeScreen` — and the shared bottom navigation bar widget. `HomeScreen` renders the top `AppBar` and a placeholder body for the Today tab. The bottom navigation bar (`HomeBottomNav`) lives in the same feature folder but is hosted by the routing shell at `lib/core/routing/app_shell.dart`, which wires it to go_router's `StatefulShellRoute` and supplies real `selectedIndex` / `onDestinationSelected` values.
 
 Everything in this feature lives under `lib/features/home/presentation/`. There is no `domain/` or `data/` layer yet — the home screen is pure UI sitting on top of the core theme.
 
@@ -16,14 +16,19 @@ Everything in this feature lives under `lib/features/home/presentation/`. There 
 | 1     | Meds      | `LucideIcons.pill`      |
 | 2     | History   | `LucideIcons.activity`  |
 
-The widget is a `StatelessWidget` with a hard-coded `selectedIndex: 0` and a no-op callback:
+The widget is a `StatelessWidget` whose active state and tap handling are entirely external — both `selectedIndex` and `onDestinationSelected` are required constructor parameters:
 
 ```dart
 // lib/features/home/presentation/widgets/home_bottom_nav.dart
-void _noop(int _) {}
-
 class HomeBottomNav extends StatelessWidget {
-  const HomeBottomNav({super.key});
+  const HomeBottomNav({
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    super.key,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +38,8 @@ class HomeBottomNav extends StatelessWidget {
       children: <Widget>[
         const Divider(height: 1, thickness: 1),
         NavigationBar(
-          selectedIndex: 0,
-          onDestinationSelected: _noop,
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onDestinationSelected,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: <NavigationDestination>[
             NavigationDestination(icon: const Icon(LucideIcons.house),    label: l.bottomNavToday),
@@ -48,11 +53,10 @@ class HomeBottomNav extends StatelessWidget {
 }
 ```
 
-Destination labels flow from `AppLocalizations` via `context.l10n` (see [`i18n.md`](i18n.md)). Because labels are runtime values from `BuildContext`, the three `NavigationDestination` instances are no longer `const`; the outer `const HomeBottomNav({super.key})` constructor and the top-level `_noop` function are preserved. `Icon` leaves remain `const`.
+Destination labels flow from `AppLocalizations` via `context.l10n` (see [`i18n.md`](i18n.md)). `Icon` leaves remain `const`; the `NavigationDestination`s are not `const` because labels are runtime values.
 
-Three design notes worth calling out:
+Two design notes worth calling out:
 
-- **`_noop` is a top-level function, not an inline lambda.** Inline lambdas are not `const`-compatible, which would force every call site to drop `const HomeBottomNav()`. Pulling the no-op out to a top-level function keeps the widget trivially const-constructable.
 - **No hard-coded colors, no `NavigationBarTheme` overrides.** Material 3's default `NavigationBar` already reads `surfaceContainer`, `secondaryContainer`, `onSecondaryContainer`, `onSurface`, and `onSurfaceVariant` from the ambient `ColorScheme`. Because those tokens are populated in both `lightColorScheme` and `darkColorScheme` (see [`theme.md`](theme.md)), light/dark works with zero per-theme code.
 - **The top `Divider` has no explicit color.** Material 3's `DividerTheme` default resolves to `ColorScheme.outlineVariant`, which is exactly the token the HTML template uses (`var(--md-outline-variant)`). Hard-coding a color would break dark-mode parity and duplicate what the theme already supplies.
 
@@ -60,31 +64,19 @@ Three design notes worth calling out:
 
 ## Usage
 
-`HomeBottomNav` is consumed in exactly one place — `HomeScreen`:
+`HomeBottomNav` is constructed by `AppShell` (in `lib/core/routing/app_shell.dart`), which is the sole consumer:
 
 ```dart
-// lib/features/home/presentation/screens/home_screen.dart
-Scaffold(
-  appBar: AppBar(
-    title: const Text('Dosly'),
-    actions: [
-      IconButton(
-        onPressed: null,
-        tooltip: context.l10n.settingsTooltip,  // localized via AppLocalizations
-        icon: const Icon(LucideIcons.settings),
-      ),
-    ],
-    bottom: const PreferredSize(
-      preferredSize: Size.fromHeight(1),
-      child: Divider(),
-    ),
-  ),
-  body: /* placeholder body */,
-  bottomNavigationBar: const HomeBottomNav(),
-);
+// lib/core/routing/app_shell.dart
+HomeBottomNav(
+  selectedIndex: navigationShell.currentIndex,
+  onDestinationSelected: navigationShell.goBranch,
+)
 ```
 
-Nothing outside `HomeScreen` should construct `HomeBottomNav` — it is a home-feature-scoped widget, not a shared component. If a second screen needs a bottom nav, that is the trigger to lift the widget into a shell route (see [Evolution](#evolution) below).
+`navigationShell.goBranch` is a method tearoff that satisfies `ValueChanged<int>` directly — no lambda wrapper. The shell provides `selectedIndex` from `navigationShell.currentIndex`, which go_router updates automatically as branches are switched.
+
+`HomeScreen` no longer hosts `HomeBottomNav`. Each branch screen (`HomeScreen`, `MedsScreen`, `HistoryScreen`) provides only its own `AppBar`; the shell provides the shared bottom bar around all three.
 
 ## Why built-in `NavigationBar` (not a custom widget)
 
@@ -94,24 +86,25 @@ The visual contract we accept is "matches M3 intent", not "pixel-exact to the HT
 
 ## Evolution
 
-The shape of `HomeBottomNav` today is deliberately set up to evolve in two known steps:
+The shape of `HomeBottomNav` was set up to evolve in two steps:
 
-1. **Wire real navigation.** A follow-up feature will:
-   - Convert the widget to stateful (or pair it with a Riverpod provider / router-aware notifier) so `selectedIndex` tracks the active route.
-   - Lift the bar into a `StatefulShellRoute` in `lib/core/routing/app_router.dart` so navigation state survives across tabs.
-   - Destination labels are already localized (feature 006-i18n-support).
-2. **Add the FAB.** The HTML template shows a FAB sitting above the center of the nav bar (`.fab-wrap` in lines 350–366). That is a separate spec — not added here to keep this feature minimal.
+1. **Wire real navigation.** Done in spec `007-meds-history-screens`:
+   - `HomeBottomNav` converted to router-agnostic (`selectedIndex` + `onDestinationSelected` required params).
+   - Lifted into `AppShell` + `StatefulShellRoute.indexedStack` in `lib/core/routing/` — navigation state now survives across tab switches.
+   - `MedsScreen` (`/meds`) and `HistoryScreen` (`/history`) added as real branch destinations.
+   - Destination labels were already localized (feature 006-i18n-support), reused as AppBar titles on the new screens.
+2. **Add the FAB.** The HTML template shows a FAB sitting above the center of the nav bar (`.fab-wrap` in lines 350–366). That is a separate spec — not added yet to keep each feature minimal.
 
-The **destination set itself** (Today / Meds / History, in that order) is the stable contract. Follow-up work will change what happens when you tap, not which destinations exist.
+The **destination set itself** (Today / Meds / History, in that order) is the stable contract. Follow-up work will replace the placeholder bodies with real content, not change which destinations exist.
 
 ## Testing
 
-Widget tests live at `test/features/home/presentation/widgets/home_bottom_nav_test.dart`. The test harness registers `AppLocalizations.localizationsDelegates` and `AppLocalizations.supportedLocales` on its `MaterialApp`, defaulting to the English locale. Tests cover six invariants:
+Widget tests live at `test/features/home/presentation/widgets/home_bottom_nav_test.dart`. The test harness wraps `HomeBottomNav` in a `MaterialApp` + `Scaffold`, accepting `selectedIndex` and an optional `onDestinationSelected` callback (defaults to a no-op). Tests cover six invariants:
 
 - Exactly three `NavigationDestination`s are rendered, with labels `Today` / `Meds` / `History` in order.
 - The three icons resolve to `LucideIcons.house`, `LucideIcons.pill`, `LucideIcons.activity`.
-- `NavigationBar.selectedIndex == 0` on first render.
-- Tapping `Meds` and tapping `History` leaves `selectedIndex` at `0` after `pumpAndSettle` — the tap-is-a-no-op contract.
+- `NavigationBar.selectedIndex` reflects the `selectedIndex` parameter passed in (tested for 0, 1, and 2).
+- Tapping `Meds` invokes `onDestinationSelected` with index `1`; tapping `History` invokes it with `2`.
 - `labelBehavior == NavigationDestinationLabelBehavior.alwaysShow`.
 - A 1-px `Divider` is rendered above the `NavigationBar` — regression guard for the HTML template's top border.
 
@@ -122,7 +115,7 @@ If a future change breaks any of these, the failing test name will point directl
 ## Rules
 
 - **Do not add icons to the bar without updating the Lucide canonical set.** New icons belong in both `theme_preview_screen.dart`'s showcase and [`icons.md`](icons.md). The current three (`house`, `pill`, `activity`) are already on that list.
-- **Do not hard-code `selectedIndex` anywhere but in `HomeBottomNav` itself.** When the "wire real navigation" spec lands, `selectedIndex` becomes derived state — callers must not pre-empt that by passing it in.
+- **Do not construct `HomeBottomNav` outside `AppShell`.** It is not a shared component — it is a home-feature widget hosted by the routing shell. Adding a second call site would duplicate navigation state.
 - **Do not add a `NavigationBarThemeData` override until the user asks for one.** The M3 defaults match the design template; an override adds a second source of truth for something that is already right.
 
 ## Related

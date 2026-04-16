@@ -1,0 +1,266 @@
+// Integration tests for [appRouter] — verifies StatefulShellRoute topology,
+// tab-tap navigation, selectedIndex tracking, branch stack preservation, and
+// /theme-preview rendering outside the shell.
+//
+// Test 4 uses a test-only router that mirrors the production shape but adds a
+// sentinel child route under the Meds branch. This is the standard go_router
+// approach for verifying branch-stack preservation (AC-11) without polluting
+// production routes.
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:dosly/core/routing/app_router.dart';
+import 'package:dosly/core/routing/app_shell.dart';
+import 'package:dosly/features/history/presentation/screens/history_screen.dart';
+import 'package:dosly/features/home/presentation/screens/home_screen.dart';
+import 'package:dosly/features/home/presentation/widgets/home_bottom_nav.dart';
+import 'package:dosly/features/meds/presentation/screens/meds_screen.dart';
+import 'package:dosly/features/theme_preview/presentation/screens/theme_preview_screen.dart';
+import 'package:dosly/l10n/app_localizations.dart';
+
+// ---------------------------------------------------------------------------
+// Sentinel widget used only in Test 4's test-only router.
+// The string 'SENTINEL_MEDS_SUB' is unique — it will not appear in any
+// production widget so find.text() calls on it unambiguously verify branch
+// stack state.
+// ---------------------------------------------------------------------------
+class _SentinelScreen extends StatelessWidget {
+  const _SentinelScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: Text('SENTINEL_MEDS_SUB')),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Test-only router for Test 4.
+// Mirrors the production appRouter shape but adds a child GoRoute('sentinel')
+// under the Meds StatefulShellBranch so the test can push /meds/sentinel and
+// verify that the branch stack is preserved across tab switches.
+// ---------------------------------------------------------------------------
+GoRouter _buildTestRouterWithSentinel() {
+  return GoRouter(
+    routes: [
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/meds',
+                builder: (context, state) => const MedsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'sentinel',
+                    builder: (context, state) => const _SentinelScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/history',
+                builder: (context, state) => const HistoryScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Pump helper — builds a MaterialApp.router with localization delegates so
+// widgets using context.l10n do not crash. Locale is pinned to English so
+// bottom-nav label text is predictable across all test machines.
+// ---------------------------------------------------------------------------
+Future<void> _pumpRouter(WidgetTester tester, GoRouter router) async {
+  await tester.pumpWidget(
+    MaterialApp.router(
+      routerConfig: router,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('en'),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  group('appRouter', () {
+    // -----------------------------------------------------------------------
+    // Test 1 — AC-1, AC-2, AC-9: tap-based tab navigation between branches.
+    // Start at /. Tap Meds → MedsScreen. Tap History → HistoryScreen.
+    // Tap Today → HomeScreen. Verifies destination-tap routing through the
+    // StatefulShellRoute + HomeBottomNav.
+    // -----------------------------------------------------------------------
+    testWidgets(
+      'Test 1 (AC-1, AC-2, AC-9): tab taps navigate between branches',
+      (tester) async {
+        await _pumpRouter(tester, appRouter);
+
+        // Initial route: HomeScreen should be visible.
+        expect(find.byType(HomeScreen), findsOneWidget);
+
+        // Tap the "Meds" bottom nav destination.
+        await tester.tap(find.text('Meds'));
+        await tester.pumpAndSettle();
+        expect(find.byType(MedsScreen), findsOneWidget);
+
+        // Tap "History".
+        await tester.tap(find.text('History'));
+        await tester.pumpAndSettle();
+        expect(find.byType(HistoryScreen), findsOneWidget);
+
+        // Tap "Today" to return home.
+        await tester.tap(find.text('Today'));
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeScreen), findsOneWidget);
+      },
+    );
+
+    // -----------------------------------------------------------------------
+    // Test 2 — AC-8: exactly one HomeBottomNav is in the widget tree at all
+    // times as the user navigates between the three shell branches.
+    // -----------------------------------------------------------------------
+    testWidgets(
+      'Test 2 (AC-8): exactly one HomeBottomNav across all shell branches',
+      (tester) async {
+        await _pumpRouter(tester, appRouter);
+
+        // At /.
+        expect(find.byType(HomeBottomNav), findsOneWidget);
+
+        // Navigate to /meds.
+        await tester.tap(find.text('Meds'));
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeBottomNav), findsOneWidget);
+
+        // Navigate to /history.
+        await tester.tap(find.text('History'));
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeBottomNav), findsOneWidget);
+
+        // Navigate back to /.
+        await tester.tap(find.text('Today'));
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeBottomNav), findsOneWidget);
+      },
+    );
+
+    // -----------------------------------------------------------------------
+    // Test 3 — AC-10: NavigationBar.selectedIndex reflects the active branch
+    // when navigation is performed via direct URL (GoRouter.of(context).go)
+    // rather than a tap. This verifies the shell's currentIndex wiring, not
+    // just tap-handler wiring.
+    // -----------------------------------------------------------------------
+    testWidgets(
+      'Test 3 (AC-10): selectedIndex tracks direct-URL navigation',
+      (tester) async {
+        await _pumpRouter(tester, appRouter);
+
+        // Helper: get the current selectedIndex from the NavigationBar.
+        int selectedIndex() =>
+            tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex;
+
+        // Initial state: index 0 (Today / home branch).
+        expect(selectedIndex(), 0);
+
+        // Navigate to /meds via GoRouter.of — use a context that is under the
+        // router (HomeBottomNav is always present in the shell branches).
+        GoRouter.of(tester.element(find.byType(HomeBottomNav))).go('/meds');
+        await tester.pumpAndSettle();
+        expect(selectedIndex(), 1);
+
+        // Navigate to /history.
+        GoRouter.of(tester.element(find.byType(HomeBottomNav))).go('/history');
+        await tester.pumpAndSettle();
+        expect(selectedIndex(), 2);
+
+        // Navigate back to /.
+        GoRouter.of(tester.element(find.byType(HomeBottomNav))).go('/');
+        await tester.pumpAndSettle();
+        expect(selectedIndex(), 0);
+      },
+    );
+
+    // -----------------------------------------------------------------------
+    // Test 4 — AC-11: branch stack is preserved across tab switches.
+    // Uses a TEST-ONLY router (declared in this file) that adds a sentinel
+    // child route under /meds without modifying the production appRouter.
+    // Flow: start → push /meds/sentinel → switch to History → switch back to
+    // Meds → sentinel screen must still be showing (branch stack preserved).
+    // -----------------------------------------------------------------------
+    testWidgets(
+      'Test 4 (AC-11): branch stack is preserved when switching tabs',
+      (tester) async {
+        final testRouter = _buildTestRouterWithSentinel();
+        await _pumpRouter(tester, testRouter);
+
+        // Push the sentinel sub-route inside the Meds branch.
+        GoRouter.of(tester.element(find.byType(HomeScreen))).go('/meds/sentinel');
+        await tester.pumpAndSettle();
+        expect(find.text('SENTINEL_MEDS_SUB'), findsOneWidget);
+
+        // Switch to History branch — sentinel must disappear.
+        await tester.tap(find.text('History'));
+        await tester.pumpAndSettle();
+        expect(find.byType(HistoryScreen), findsOneWidget);
+        expect(find.text('SENTINEL_MEDS_SUB'), findsNothing);
+
+        // Switch back to Meds branch — sentinel must reappear (stack preserved).
+        await tester.tap(find.text('Meds'));
+        await tester.pumpAndSettle();
+        expect(find.text('SENTINEL_MEDS_SUB'), findsOneWidget);
+
+        testRouter.dispose();
+      },
+    );
+
+    // -----------------------------------------------------------------------
+    // Test 5 — AC-13: /theme-preview renders outside the shell (no
+    // HomeBottomNav). Navigating back to / restores the bottom nav.
+    // -----------------------------------------------------------------------
+    testWidgets(
+      'Test 5 (AC-13): /theme-preview renders without the shell bottom nav',
+      (tester) async {
+        await _pumpRouter(tester, appRouter);
+
+        // Start at /: bottom nav must be present.
+        expect(find.byType(HomeScreen), findsOneWidget);
+        expect(find.byType(HomeBottomNav), findsOneWidget);
+
+        // Tap the "Theme preview" OutlinedButton on HomeScreen.
+        await tester.tap(find.widgetWithText(OutlinedButton, 'Theme preview'));
+        await tester.pumpAndSettle();
+
+        // ThemePreviewScreen is shown; HomeBottomNav must NOT be in the tree.
+        expect(find.byType(ThemePreviewScreen), findsOneWidget);
+        expect(find.byType(HomeBottomNav), findsNothing);
+
+        // Navigate back to / — bottom nav must reappear.
+        GoRouter.of(tester.element(find.byType(ThemePreviewScreen))).go('/');
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeScreen), findsOneWidget);
+        expect(find.byType(HomeBottomNav), findsOneWidget);
+      },
+    );
+  });
+}
