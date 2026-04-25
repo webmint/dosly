@@ -15,6 +15,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/history/presentation/screens/history_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/meds/presentation/screens/meds_screen.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/theme_preview/presentation/screens/theme_preview_screen.dart';
 import 'app_shell.dart';
 
@@ -54,6 +55,10 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
       ],
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
     ),
     // TODO(post-mvp): remove this route when lib/features/theme_preview/
     // is deleted — see specs/002-main-screen/spec.md §6 and §8.

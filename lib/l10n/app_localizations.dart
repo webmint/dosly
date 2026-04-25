@@ -106,6 +106,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTooltip;
 
+  /// Localized title for the Settings screen AppBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
   /// Label for the Today destination in the home bottom navigation bar.
   ///
   /// In en, this message translates to:

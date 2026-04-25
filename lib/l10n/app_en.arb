@@ -4,6 +4,10 @@
   "@settingsTooltip": {
     "description": "Tooltip for the Settings icon button in the HomeScreen AppBar."
   },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Localized title for the Settings screen AppBar."
+  },
   "bottomNavToday": "Today",
   "@bottomNavToday": {
     "description": "Label for the Today destination in the home bottom navigation bar."

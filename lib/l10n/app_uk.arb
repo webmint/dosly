@@ -1,6 +1,7 @@
 {
   "@@locale": "uk",
   "settingsTooltip": "Налаштування",
+  "settingsTitle": "Налаштування",
   "bottomNavToday": "Сьогодні",
   "bottomNavMeds": "Ліки",
   "bottomNavHistory": "Історія"

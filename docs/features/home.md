@@ -6,6 +6,35 @@ The **home feature** owns the app's root screen — `HomeScreen`. `HomeScreen` r
 
 Everything in this feature lives under `lib/features/home/presentation/`. There is no `domain/` or `data/` layer yet — the home screen is pure UI sitting on top of the core theme.
 
+## HomeScreen
+
+`HomeScreen` (in `lib/features/home/presentation/screens/home_screen.dart`) is a `StatelessWidget` that renders a `Scaffold` with:
+
+- An `AppBar` with the hard-coded title `"Dosly"` (not localized — the app name is a proper noun).
+- A settings gear `IconButton` in `actions` that calls `context.push('/settings')`. The tooltip is the localized `settingsTooltip` string.
+- A 1-px `Divider` pinned to the bottom of the `AppBar` via `PreferredSize`.
+- A placeholder `body` with a centered "Hello World" text and a temporary "Theme preview" `OutlinedButton` (scheduled for post-MVP removal — see `specs/002-main-screen/spec.md` §6).
+
+```dart
+// lib/features/home/presentation/screens/home_screen.dart
+AppBar(
+  title: const Text('Dosly'),
+  actions: [
+    IconButton(
+      onPressed: () => context.push('/settings'),
+      tooltip: context.l10n.settingsTooltip,
+      icon: const Icon(LucideIcons.settings),
+    ),
+  ],
+  bottom: const PreferredSize(
+    preferredSize: Size.fromHeight(1),
+    child: Divider(height: 1, thickness: 1),
+  ),
+),
+```
+
+`context.push` is used (not `context.go`) so that the settings screen is pushed onto the navigator stack — the back button and back gesture work correctly, and the user returns to the home tab when they dismiss settings.
+
 ## The bottom navigation bar
 
 `AppBottomNav` (in `lib/core/widgets/app_bottom_nav.dart`) is a thin wrapper around Flutter's built-in M3 `NavigationBar`, with a 1-px `Divider` pinned to its top edge to match the HTML design template's `.bot-nav { border-top: 1px solid var(--md-outline-variant) }` rule. The widget was moved from `lib/features/home/presentation/widgets/` to `lib/core/widgets/` because it is shared across all three tab screens (Today, Meds, History) and belongs in `lib/core/` per constitution §2.1 — feature A must not own cross-feature code. The `NavigationBar` itself declares exactly three `NavigationDestination`s in a fixed order:
@@ -126,4 +155,5 @@ If a future change breaks any of these, the failing test name will point directl
 - [`i18n.md`](i18n.md) — how localized strings are sourced, how to add new strings and locales
 - [`theme.md`](theme.md) — the `ColorScheme` roles the nav bar reads from
 - [`icons.md`](icons.md) — the Lucide icon set the destinations use
+- [`settings.md`](settings.md) — the Settings screen pushed from the home gear icon
 - [`../architecture.md`](../architecture.md) — where the home feature sits in the Clean Architecture layering

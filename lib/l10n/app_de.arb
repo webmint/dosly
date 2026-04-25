@@ -1,6 +1,7 @@
 {
   "@@locale": "de",
   "settingsTooltip": "Einstellungen",
+  "settingsTitle": "Einstellungen",
   "bottomNavToday": "Heute",
   "bottomNavMeds": "Medikamente",
   "bottomNavHistory": "Verlauf"

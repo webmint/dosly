@@ -12,6 +12,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get settingsTooltip => 'Налаштування';
 
   @override
+  String get settingsTitle => 'Налаштування';
+
+  @override
   String get bottomNavToday => 'Сьогодні';
 
   @override

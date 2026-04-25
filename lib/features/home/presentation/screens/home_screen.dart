@@ -13,9 +13,9 @@ import '../../../../l10n/l10n_extensions.dart';
 
 /// Placeholder main screen shown at the app's root route.
 ///
-/// Displays a Material 3 [AppBar] with the app title "Dosly", a disabled
-/// settings gear [IconButton] placeholder, and an `outlineVariant`-coloured
-/// bottom [Divider] border.
+/// Displays a Material 3 [AppBar] with the app title "Dosly", a settings
+/// gear [IconButton] that navigates to `/settings`, and an
+/// `outlineVariant`-coloured bottom [Divider] border.
 ///
 /// The body renders a centered "Hello World" label with a temporary
 /// "Theme preview" [OutlinedButton] below it that navigates to the theme
@@ -39,14 +39,14 @@ class HomeScreen extends StatelessWidget {
         title: const Text('Dosly'),
         actions: [
           IconButton(
-            onPressed: null,
+            onPressed: () => context.push('/settings'),
             tooltip: context.l10n.settingsTooltip,
             icon: const Icon(LucideIcons.settings),
           ),
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(),
+          child: Divider(height: 1, thickness: 1),
         ),
       ),
       body: Center(
