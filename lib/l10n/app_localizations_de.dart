@@ -12,6 +12,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsTooltip => 'Einstellungen';
 
   @override
+  String get settingsTitle => 'Einstellungen';
+
+  @override
   String get bottomNavToday => 'Heute';
 
   @override

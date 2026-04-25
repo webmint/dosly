@@ -17,6 +17,7 @@ import 'package:dosly/features/history/presentation/screens/history_screen.dart'
 import 'package:dosly/features/home/presentation/screens/home_screen.dart';
 import 'package:dosly/core/widgets/app_bottom_nav.dart';
 import 'package:dosly/features/meds/presentation/screens/meds_screen.dart';
+import 'package:dosly/features/settings/presentation/screens/settings_screen.dart';
 import 'package:dosly/features/theme_preview/presentation/screens/theme_preview_screen.dart';
 import 'package:dosly/l10n/app_localizations.dart';
 
@@ -257,6 +258,35 @@ void main() {
 
         // Navigate back to / — bottom nav must reappear.
         GoRouter.of(tester.element(find.byType(ThemePreviewScreen))).go('/');
+        await tester.pumpAndSettle();
+        expect(find.byType(HomeScreen), findsOneWidget);
+        expect(find.byType(AppBottomNav), findsOneWidget);
+      },
+    );
+
+    // -----------------------------------------------------------------------
+    // Test 6 — AC-5, AC-7: /settings renders outside the shell (no
+    // AppBottomNav). Navigating back restores the bottom nav and HomeScreen.
+    // -----------------------------------------------------------------------
+    testWidgets(
+      'Test 6 (AC-5, AC-7): /settings renders without the shell bottom nav and back returns to home',
+      (tester) async {
+        await _pumpRouter(tester, appRouter);
+
+        // Start at /: bottom nav must be present.
+        expect(find.byType(HomeScreen), findsOneWidget);
+        expect(find.byType(AppBottomNav), findsOneWidget);
+
+        // Navigate to /settings via push (it is a push route, not a shell branch).
+        GoRouter.of(tester.element(find.byType(HomeScreen))).push('/settings');
+        await tester.pumpAndSettle();
+
+        // SettingsScreen is shown; AppBottomNav must NOT be in the tree.
+        expect(find.byType(SettingsScreen), findsOneWidget);
+        expect(find.byType(AppBottomNav), findsNothing);
+
+        // Navigate back — bottom nav must reappear.
+        GoRouter.of(tester.element(find.byType(SettingsScreen))).pop();
         await tester.pumpAndSettle();
         expect(find.byType(HomeScreen), findsOneWidget);
         expect(find.byType(AppBottomNav), findsOneWidget);
