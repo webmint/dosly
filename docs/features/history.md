@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **history feature** owns the History tab — destination index 2 in `HomeBottomNav`. Currently the feature contains a single placeholder screen (`HistoryScreen`) with a localized `AppBar` and an empty body. Real adherence-history content will be added by a future spec.
+The **history feature** owns the History tab — destination index 2 in `AppBottomNav`. Currently the feature contains a single placeholder screen (`HistoryScreen`) with a localized `AppBar` and an empty body. Real adherence-history content will be added by a future spec.
 
 Everything in this feature lives under `lib/features/history/presentation/`. There is no `domain/` or `data/` layer yet.
 
@@ -64,6 +64,6 @@ No changes to `AppBar` structure or the `/history` route path are expected.
 ## Related
 
 - [`../../specs/007-meds-history-screens/spec.md`](../../specs/007-meds-history-screens/spec.md) — the spec that introduced this screen
-- [`home.md`](home.md) — `HomeBottomNav` and `AppShell`, which host this screen
+- [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen
 - [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology and routing conventions
 - [`i18n.md`](i18n.md) — how `bottomNavHistory` is translated and how to add new strings

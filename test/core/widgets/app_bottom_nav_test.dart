@@ -1,4 +1,4 @@
-import 'package:dosly/features/home/presentation/widgets/home_bottom_nav.dart';
+import 'package:dosly/core/widgets/app_bottom_nav.dart';
 import 'package:dosly/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,12 +6,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Builds the minimal widget harness used across all test cases.
 ///
-/// Wraps [HomeBottomNav] in a [MaterialApp] + [Scaffold] so the widget has
+/// Wraps [AppBottomNav] in a [MaterialApp] + [Scaffold] so the widget has
 /// the ambient `Directionality`, `MediaQuery`, and `Theme` it needs to
 /// render a Material 3 [NavigationBar].
 ///
-/// [selectedIndex] is forwarded to [HomeBottomNav.selectedIndex].
-/// [onDestinationSelected] is forwarded to [HomeBottomNav.onDestinationSelected];
+/// [selectedIndex] is forwarded to [AppBottomNav.selectedIndex].
+/// [onDestinationSelected] is forwarded to [AppBottomNav.onDestinationSelected];
 /// defaults to a no-op when not provided.
 Widget _harness({
   int selectedIndex = 0,
@@ -22,7 +22,7 @@ Widget _harness({
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
       body: const SizedBox.shrink(),
-      bottomNavigationBar: HomeBottomNav(
+      bottomNavigationBar: AppBottomNav(
         selectedIndex: selectedIndex,
         onDestinationSelected: onDestinationSelected ?? (_) {},
       ),
@@ -31,7 +31,7 @@ Widget _harness({
 }
 
 void main() {
-  group('HomeBottomNav', () {
+  group('AppBottomNav', () {
     testWidgets(
       'renders exactly 3 NavigationDestinations with Today/Meds/History '
       'labels in order',
@@ -99,7 +99,7 @@ void main() {
 
       final dividers = tester.widgetList<Divider>(
         find.descendant(
-          of: find.byType(HomeBottomNav),
+          of: find.byType(AppBottomNav),
           matching: find.byType(Divider),
         ),
       );

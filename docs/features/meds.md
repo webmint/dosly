@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **meds feature** owns the Meds tab — destination index 1 in `HomeBottomNav`. Currently the feature contains a single placeholder screen (`MedsScreen`) with a localized `AppBar` and an empty body. Real medication-list content will be added by a future spec.
+The **meds feature** owns the Meds tab — destination index 1 in `AppBottomNav`. Currently the feature contains a single placeholder screen (`MedsScreen`) with a localized `AppBar` and an empty body. Real medication-list content will be added by a future spec.
 
 Everything in this feature lives under `lib/features/meds/presentation/`. There is no `domain/` or `data/` layer yet.
 
@@ -64,6 +64,6 @@ No changes to `AppBar` structure or the `/meds` route path are expected.
 ## Related
 
 - [`../../specs/007-meds-history-screens/spec.md`](../../specs/007-meds-history-screens/spec.md) — the spec that introduced this screen
-- [`home.md`](home.md) — `HomeBottomNav` and `AppShell`, which host this screen
+- [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen
 - [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology and routing conventions
 - [`i18n.md`](i18n.md) — how `bottomNavMeds` is translated and how to add new strings

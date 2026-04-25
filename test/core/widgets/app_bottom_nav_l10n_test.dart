@@ -1,4 +1,4 @@
-import 'package:dosly/features/home/presentation/widgets/home_bottom_nav.dart';
+import 'package:dosly/core/widgets/app_bottom_nav.dart';
 import 'package:dosly/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,7 +21,7 @@ Locale _resolveLocale(Locale? deviceLocale, Iterable<Locale> supportedLocales) {
   return const Locale('en');
 }
 
-/// Builds a widget tree wrapping [HomeBottomNav] under the requested [locale].
+/// Builds a widget tree wrapping [AppBottomNav] under the requested [locale].
 ///
 /// Registers the full `AppLocalizations` delegate chain plus the project's
 /// English-fallback `localeResolutionCallback`, so unsupported locales
@@ -34,7 +34,7 @@ Widget _harness({required Locale locale}) {
     localeResolutionCallback: _resolveLocale,
     home: Scaffold(
       body: const SizedBox.shrink(),
-      bottomNavigationBar: HomeBottomNav(
+      bottomNavigationBar: AppBottomNav(
         selectedIndex: 0,
         onDestinationSelected: (_) {},
       ),
@@ -43,7 +43,7 @@ Widget _harness({required Locale locale}) {
 }
 
 void main() {
-  group('HomeBottomNav locale switching', () {
+  group('AppBottomNav locale switching', () {
     testWidgets('renders German labels under Locale("de")', (tester) async {
       await tester.pumpWidget(_harness(locale: const Locale('de')));
       await tester.pumpAndSettle();

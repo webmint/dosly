@@ -2,11 +2,11 @@
 ///
 /// Declares the top-level [appRouter] — a `StatefulShellRoute.indexedStack`
 /// with three branches (Home `/`, Meds `/meds`, History `/history`) sharing
-/// a single [AppShell] scaffold + [HomeBottomNav], plus a sibling top-level
+/// a single [AppShell] scaffold + [AppBottomNav], plus a sibling top-level
 /// [GoRoute] for `/theme-preview` that renders WITHOUT the shell (so the
 /// dev-preview screen has no bottom nav).
 ///
-/// Branch order matches [HomeBottomNav] destination order (0=Today, 1=Meds,
+/// Branch order matches [AppBottomNav] destination order (0=Today, 1=Meds,
 /// 2=History). Do not reorder without updating the bottom nav.
 library;
 
