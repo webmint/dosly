@@ -123,7 +123,7 @@ final GoRouter appRouter = GoRouter(
 );
 ```
 
-Branch order matches `HomeBottomNav` destination order (0 = Today, 1 = Meds, 2 = History). Reordering either side without updating the other breaks tab highlighting.
+Branch order matches `AppBottomNav` destination order (0 = Today, 1 = Meds, 2 = History). Reordering either side without updating the other breaks tab highlighting.
 
 **Route table:**
 
@@ -136,7 +136,7 @@ Branch order matches `HomeBottomNav` destination order (0 = Today, 1 = Meds, 2 =
 
 ### AppShell
 
-`AppShell` (in `lib/core/routing/app_shell.dart`) is the adapter between go_router's `StatefulNavigationShell` and the feature-scoped `HomeBottomNav` widget. It renders a `Scaffold` with `navigationShell` as the `body` and `HomeBottomNav` as the `bottomNavigationBar`:
+`AppShell` (in `lib/core/routing/app_shell.dart`) is the adapter between go_router's `StatefulNavigationShell` and the core `AppBottomNav` widget (in `lib/core/widgets/app_bottom_nav.dart`). It renders a `Scaffold` with `navigationShell` as the `body` and `AppBottomNav` as the `bottomNavigationBar`:
 
 ```dart
 // lib/core/routing/app_shell.dart
@@ -148,7 +148,7 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: HomeBottomNav(
+      bottomNavigationBar: AppBottomNav(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: navigationShell.goBranch,
       ),
@@ -166,7 +166,7 @@ class AppShell extends StatelessWidget {
 - **`lib/core/routing/` is the composition root for routes.** It is the only place in the app allowed to import from multiple feature folders simultaneously — the documented exception to the "feature A never imports feature B" rule.
 - **`appRouter` mirrors the `themeController` pattern** — a top-level `final` declared next to its module, not a Riverpod provider. Riverpod will arrive with the first real feature; the router was deliberately kept on plain primitives.
 - **Navigation is `context.go(...)` / `context.push(...)`** from `package:go_router/go_router.dart`, not `Navigator.of(context)`.
-- **`HomeBottomNav` is router-agnostic.** It accepts `int` + `ValueChanged<int>` — plain values, not a `StatefulNavigationShell`. `AppShell` is the only coupling point.
+- **`AppBottomNav` is router-agnostic.** It accepts `int` + `ValueChanged<int>` — plain values, not a `StatefulNavigationShell`. `AppShell` is the only coupling point.
 
 ## Entry point
 

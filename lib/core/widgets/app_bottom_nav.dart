@@ -1,6 +1,6 @@
-/// Home feature — bottom navigation bar widget.
+/// Application-wide bottom navigation bar widget.
 ///
-/// This library hosts [HomeBottomNav], a router-agnostic Material 3
+/// This library hosts [AppBottomNav], a router-agnostic Material 3
 /// [NavigationBar] with three fixed destinations (Today, Meds, History)
 /// rendered with Lucide icons.
 ///
@@ -17,9 +17,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../l10n/l10n_extensions.dart';
+import '../../l10n/l10n_extensions.dart';
 
-/// Material 3 bottom navigation bar for the home screen.
+/// Material 3 bottom navigation bar for the app.
 ///
 /// Renders a [NavigationBar] with three fixed destinations (Today, Meds,
 /// History). The widget is router-agnostic — the active tab index and
@@ -31,12 +31,12 @@ import '../../../../l10n/l10n_extensions.dart';
 ///   destination; forwarded to [NavigationBar.selectedIndex].
 /// * [onDestinationSelected] — called with the tapped destination index;
 ///   forwarded to [NavigationBar.onDestinationSelected].
-class HomeBottomNav extends StatelessWidget {
-  /// Creates the home screen bottom navigation bar.
+class AppBottomNav extends StatelessWidget {
+  /// Creates the app bottom navigation bar.
   ///
   /// Both [selectedIndex] and [onDestinationSelected] are required and must
   /// be provided by the parent (typically the routing shell).
-  const HomeBottomNav({
+  const AppBottomNav({
     required this.selectedIndex,
     required this.onDestinationSelected,
     super.key,

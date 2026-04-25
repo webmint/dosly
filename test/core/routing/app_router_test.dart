@@ -15,7 +15,7 @@ import 'package:dosly/core/routing/app_router.dart';
 import 'package:dosly/core/routing/app_shell.dart';
 import 'package:dosly/features/history/presentation/screens/history_screen.dart';
 import 'package:dosly/features/home/presentation/screens/home_screen.dart';
-import 'package:dosly/features/home/presentation/widgets/home_bottom_nav.dart';
+import 'package:dosly/core/widgets/app_bottom_nav.dart';
 import 'package:dosly/features/meds/presentation/screens/meds_screen.dart';
 import 'package:dosly/features/theme_preview/presentation/screens/theme_preview_screen.dart';
 import 'package:dosly/l10n/app_localizations.dart';
@@ -109,7 +109,7 @@ void main() {
     // Test 1 — AC-1, AC-2, AC-9: tap-based tab navigation between branches.
     // Start at /. Tap Meds → MedsScreen. Tap History → HistoryScreen.
     // Tap Today → HomeScreen. Verifies destination-tap routing through the
-    // StatefulShellRoute + HomeBottomNav.
+    // StatefulShellRoute + AppBottomNav.
     // -----------------------------------------------------------------------
     testWidgets(
       'Test 1 (AC-1, AC-2, AC-9): tab taps navigate between branches',
@@ -137,31 +137,31 @@ void main() {
     );
 
     // -----------------------------------------------------------------------
-    // Test 2 — AC-8: exactly one HomeBottomNav is in the widget tree at all
+    // Test 2 — AC-8: exactly one AppBottomNav is in the widget tree at all
     // times as the user navigates between the three shell branches.
     // -----------------------------------------------------------------------
     testWidgets(
-      'Test 2 (AC-8): exactly one HomeBottomNav across all shell branches',
+      'Test 2 (AC-8): exactly one AppBottomNav across all shell branches',
       (tester) async {
         await _pumpRouter(tester, appRouter);
 
         // At /.
-        expect(find.byType(HomeBottomNav), findsOneWidget);
+        expect(find.byType(AppBottomNav), findsOneWidget);
 
         // Navigate to /meds.
         await tester.tap(find.text('Meds'));
         await tester.pumpAndSettle();
-        expect(find.byType(HomeBottomNav), findsOneWidget);
+        expect(find.byType(AppBottomNav), findsOneWidget);
 
         // Navigate to /history.
         await tester.tap(find.text('History'));
         await tester.pumpAndSettle();
-        expect(find.byType(HomeBottomNav), findsOneWidget);
+        expect(find.byType(AppBottomNav), findsOneWidget);
 
         // Navigate back to /.
         await tester.tap(find.text('Today'));
         await tester.pumpAndSettle();
-        expect(find.byType(HomeBottomNav), findsOneWidget);
+        expect(find.byType(AppBottomNav), findsOneWidget);
       },
     );
 
@@ -184,18 +184,18 @@ void main() {
         expect(selectedIndex(), 0);
 
         // Navigate to /meds via GoRouter.of — use a context that is under the
-        // router (HomeBottomNav is always present in the shell branches).
-        GoRouter.of(tester.element(find.byType(HomeBottomNav))).go('/meds');
+        // router (AppBottomNav is always present in the shell branches).
+        GoRouter.of(tester.element(find.byType(AppBottomNav))).go('/meds');
         await tester.pumpAndSettle();
         expect(selectedIndex(), 1);
 
         // Navigate to /history.
-        GoRouter.of(tester.element(find.byType(HomeBottomNav))).go('/history');
+        GoRouter.of(tester.element(find.byType(AppBottomNav))).go('/history');
         await tester.pumpAndSettle();
         expect(selectedIndex(), 2);
 
         // Navigate back to /.
-        GoRouter.of(tester.element(find.byType(HomeBottomNav))).go('/');
+        GoRouter.of(tester.element(find.byType(AppBottomNav))).go('/');
         await tester.pumpAndSettle();
         expect(selectedIndex(), 0);
       },
@@ -236,7 +236,7 @@ void main() {
 
     // -----------------------------------------------------------------------
     // Test 5 — AC-13: /theme-preview renders outside the shell (no
-    // HomeBottomNav). Navigating back to / restores the bottom nav.
+    // AppBottomNav). Navigating back to / restores the bottom nav.
     // -----------------------------------------------------------------------
     testWidgets(
       'Test 5 (AC-13): /theme-preview renders without the shell bottom nav',
@@ -245,21 +245,21 @@ void main() {
 
         // Start at /: bottom nav must be present.
         expect(find.byType(HomeScreen), findsOneWidget);
-        expect(find.byType(HomeBottomNav), findsOneWidget);
+        expect(find.byType(AppBottomNav), findsOneWidget);
 
         // Tap the "Theme preview" OutlinedButton on HomeScreen.
         await tester.tap(find.widgetWithText(OutlinedButton, 'Theme preview'));
         await tester.pumpAndSettle();
 
-        // ThemePreviewScreen is shown; HomeBottomNav must NOT be in the tree.
+        // ThemePreviewScreen is shown; AppBottomNav must NOT be in the tree.
         expect(find.byType(ThemePreviewScreen), findsOneWidget);
-        expect(find.byType(HomeBottomNav), findsNothing);
+        expect(find.byType(AppBottomNav), findsNothing);
 
         // Navigate back to / — bottom nav must reappear.
         GoRouter.of(tester.element(find.byType(ThemePreviewScreen))).go('/');
         await tester.pumpAndSettle();
         expect(find.byType(HomeScreen), findsOneWidget);
-        expect(find.byType(HomeBottomNav), findsOneWidget);
+        expect(find.byType(AppBottomNav), findsOneWidget);
       },
     );
   });
