@@ -2,101 +2,117 @@
 
 ## Overview
 
-The **settings feature** owns the Settings screen — a push destination reached from the gear icon in `HomeScreen`'s `AppBar`. Currently the feature contains a single placeholder screen (`SettingsScreen`) with a localized `AppBar` and an empty body. Real settings content (theme persistence, locale picker, notification preferences, etc.) will be added by future specs.
+The **settings feature** owns the Settings screen — a push destination reached from the gear icon in `HomeScreen`'s `AppBar`. It introduced the first full Clean Architecture stack in the project (domain + data + presentation) and brought Riverpod, `shared_preferences`, and `fpdart` into the codebase.
 
-Everything in this feature lives under `lib/features/settings/presentation/`. There is no `domain/` or `data/` layer yet.
+Currently the feature exposes one group of controls: theme mode. The user can follow the device system theme (default) or manually select Light or Dark.
 
-## SettingsScreen
+## How it works
 
-`SettingsScreen` (in `lib/features/settings/presentation/screens/settings_screen.dart`) is a `StatelessWidget` that renders a `Scaffold` with:
+### Domain
 
-- An `AppBar` whose title is the localized `settingsTitle` string (`context.l10n.settingsTitle`).
-- A 1-px `Divider` pinned to the bottom of the `AppBar` via `PreferredSize`, matching the HTML design template's header border rule.
-- A `SizedBox.shrink()` body — intentionally empty until the settings feature is implemented.
-- A back button in the leading slot provided automatically by Flutter because this screen is pushed onto the navigator stack — no manual `leading:` is needed.
+`AppSettings` (`lib/features/settings/domain/entities/app_settings.dart`) is a plain immutable value object with two fields:
+
+| Field | Default | Meaning |
+|---|---|---|
+| `useSystemTheme` | `true` | Follow the device theme when `true` |
+| `manualThemeMode` | `ThemeMode.light` | Override used when `useSystemTheme` is `false` |
+
+The `effectiveThemeMode` getter derives what to pass to `MaterialApp.themeMode`:
 
 ```dart
-// lib/features/settings/presentation/screens/settings_screen.dart
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+ThemeMode get effectiveThemeMode =>
+    useSystemTheme ? ThemeMode.system : manualThemeMode;
+```
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(context.l10n.settingsTitle),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, thickness: 1),
-        ),
-      ),
-      body: const SizedBox.shrink(),
-    );
-  }
+`SettingsRepository` (`lib/features/settings/domain/repositories/settings_repository.dart`) is the abstract contract consumed by the presentation layer. It exposes synchronous `load()` and async `saveThemeMode` / `saveUseSystemTheme` operations, all returning `Either<Failure, T>`.
+
+### Data
+
+`SettingsLocalDataSource` wraps `SharedPreferencesWithCache` — all reads are synchronous (cache hit), writes are async (flushes to platform storage).
+
+`SettingsRepositoryImpl` implements the contract: catches platform exceptions, converts them to `CacheFailure`, and wraps results in `Either`.
+
+### Presentation
+
+`SettingsNotifier` (`lib/features/settings/presentation/providers/settings_provider.dart`) is a `Notifier<AppSettings>`. Its `build()` loads the initial state synchronously from the repository cache. Mutation methods follow an optimistic pattern: in-memory state is only updated if persistence succeeds.
+
+```dart
+Future<void> setUseSystemTheme(bool value) async {
+  final result = await ref.read(settingsRepositoryProvider).saveUseSystemTheme(value);
+  result.fold(
+    (failure) { /* log, leave state unchanged */ },
+    (_) { state = state.copyWith(useSystemTheme: value); },
+  );
 }
 ```
 
+`DoslyApp` watches `settingsProvider` with a narrow selector so only a `ThemeMode` change triggers a root rebuild:
+
+```dart
+themeMode: ref.watch(settingsProvider.select((s) => s.effectiveThemeMode)),
+```
+
+## ThemeSelector widget
+
+`ThemeSelector` (`lib/features/settings/presentation/widgets/theme_selector.dart`) is a `ConsumerWidget` composed of two controls:
+
+1. A `SwitchListTile` — "Use system theme" toggle. Default ON.
+2. A full-width `SegmentedButton<ThemeMode>` — Light / Dark. Disabled (but visually reflecting the current system brightness) while the toggle is ON.
+
+When the user turns the toggle OFF, `ThemeSelector` pre-fills the manual segment with the current device brightness so the visual transition is seamless.
+
+```dart
+// Switching to manual: pre-select the segment that matches current system brightness
+final manualMode = systemBrightness == Brightness.dark
+    ? ThemeMode.dark
+    : ThemeMode.light;
+ref.read(settingsProvider.notifier).setThemeMode(manualMode);
+```
+
+## SettingsScreen
+
+`SettingsScreen` (`lib/features/settings/presentation/screens/settings_screen.dart`) renders a `Scaffold` with:
+
+- An `AppBar` with the localized `settingsTitle` and a 1-px bottom `Divider`.
+- A `ListView` body containing `ThemeSelector` inside a `Padding` with 16 px horizontal inset.
+- A back button provided automatically by Flutter (screen is pushed, not a tab).
+
 ## Routing
 
-`SettingsScreen` is mounted at `/settings` as a **sibling** `GoRoute` outside the `StatefulShellRoute.indexedStack` in `lib/core/routing/app_router.dart`. This means the screen renders without the bottom navigation bar — it is a push destination, not a tab branch.
-
-Navigate to it from any screen that has a `BuildContext` with a go_router scope:
+`SettingsScreen` is mounted at `/settings` as a sibling `GoRoute` outside `StatefulShellRoute.indexedStack` — it renders without the bottom navigation bar. Navigate to it with `context.push`:
 
 ```dart
 context.push('/settings');
 ```
 
-Use `context.push` (not `context.go`) so that the back button and the navigator back stack work correctly. `context.go` would replace the current history entry and break the back gesture.
+Use `push` (not `go`) to preserve the back stack. The entry point is `HomeScreen`'s gear `IconButton`.
 
-The entry point in the current codebase is `HomeScreen`'s gear `IconButton`:
+## Persistence
 
-```dart
-// lib/features/home/presentation/screens/home_screen.dart
-IconButton(
-  onPressed: () => context.push('/settings'),
-  tooltip: context.l10n.settingsTooltip,
-  icon: const Icon(LucideIcons.settings),
-),
-```
+Settings are stored in `SharedPreferencesWithCache` under two keys:
 
-## Localized title
+| Key | Type | Default |
+|---|---|---|
+| `themeMode` | `String` (`'light'` / `'dark'`) | `'light'` |
+| `useSystemTheme` | `bool` | `true` |
 
-The `settingsTitle` ARB key is a dedicated key for the screen title. It differs from `settingsTooltip`, which is used for the `IconButton` tooltip in `HomeScreen`. Current translations:
+The `allowList` in `main()` is fixed to these two keys — no other preferences are accidentally cached.
 
-| Key | English | German | Ukrainian |
-|---|---|---|---|
-| `settingsTitle` | Settings | Einstellungen | Налаштування |
-| `settingsTooltip` | Settings | Einstellungen | Налаштування |
+## Localized strings
 
-Both resolve to the same string in all three locales today. If the title and tooltip ever need different wording, they are already separate keys.
-
-## Evolution
-
-The empty body is a deliberate placeholder. When the real settings feature lands, it will:
-
-- Add a theme-mode selector (persisting the current in-memory `ThemeController` value to a drift-backed store — see [`theme.md`](theme.md)).
-- Add a locale picker (replacing the device-locale-only resolution described in [`i18n.md`](i18n.md)).
-- Add notification-preference toggles (future spec).
-
-No changes to `AppBar` structure or the `/settings` route path are expected. The route remaining outside `StatefulShellRoute` is intentional and permanent — settings is not a tab destination.
-
-## Testing
-
-Widget tests live at `test/features/settings/presentation/screens/settings_screen_test.dart`. They cover:
-
-- `SettingsScreen` renders without throwing.
-- The `AppBar` title text matches the English `settingsTitle` string.
-- A 1-px bottom `Divider` is present on the `AppBar`.
-- The body is empty (`SizedBox.shrink()`).
-- The automatic back button is present (Flutter provides it because the screen is pushed).
-- The screen does not render a `BottomNavigationBar` or `NavigationBar`.
-
-A router integration test in `test/core/routing/app_router_test.dart` verifies that `context.push('/settings')` transitions to `SettingsScreen` from the home route.
+| ARB key | English |
+|---|---|
+| `settingsTitle` | Settings |
+| `settingsTooltip` | Settings |
+| `settingsUseSystemTheme` | Use system theme |
+| `settingsUseSystemThemeSub` | Follows your device light/dark setting |
+| `settingsThemeLight` | Light |
+| `settingsThemeDark` | Dark |
 
 ## Related
 
-- [`../../specs/008-settings-screen/spec.md`](../../specs/008-settings-screen/spec.md) — the spec that introduced this screen
+- [`../architecture.md`](../architecture.md) — Riverpod bootstrap, `sharedPreferencesProvider`, `Failure` hierarchy
+- [`theme.md`](theme.md) — M3 theme tokens; `AppTheme.lightTheme` / `darkTheme`
+- [`i18n.md`](i18n.md) — how to add or change localized strings
 - [`home.md`](home.md) — `HomeScreen`, which hosts the gear icon entry point
-- [`../architecture.md`](../architecture.md) — route topology and the sibling-route pattern
-- [`i18n.md`](i18n.md) — how `settingsTitle` and `settingsTooltip` are translated and how to add new strings
-- [`theme.md`](theme.md) — `ThemeController`, whose persistence is deferred to the future settings feature
+- [`../../specs/009-theme-settings/spec.md`](../../specs/009-theme-settings/spec.md) — the spec that drove this feature

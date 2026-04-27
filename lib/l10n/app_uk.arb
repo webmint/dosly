@@ -4,5 +4,10 @@
   "settingsTitle": "Налаштування",
   "bottomNavToday": "Сьогодні",
   "bottomNavMeds": "Ліки",
-  "bottomNavHistory": "Історія"
+  "bottomNavHistory": "Історія",
+  "settingsAppearanceHeader": "Зовнішній вигляд",
+  "settingsUseSystemTheme": "Системна тема",
+  "settingsUseSystemThemeSub": "Використовувати налаштування пристрою",
+  "settingsThemeLight": "Світла",
+  "settingsThemeDark": "Темна"
 }

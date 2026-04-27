@@ -6,19 +6,22 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../core/theme/theme_controller.dart';
+// Temporary cross-feature import — ThemePreviewScreen is a dev-only screen
+// scheduled for removal (see specs/002-main-screen/spec.md §6 and §8).
+import '../../../settings/presentation/providers/settings_provider.dart';
 import '../widgets/color_swatch_card.dart';
 import '../widgets/typography_sample.dart';
 
 /// Top-level preview screen showing the full M3 design system.
-class ThemePreviewScreen extends StatelessWidget {
+class ThemePreviewScreen extends ConsumerWidget {
   /// Creates the preview screen.
   const ThemePreviewScreen({super.key});
 
-  static IconData _iconForMode(ThemeMode mode) {
-    return switch (mode) {
+  static IconData _iconForEffectiveMode(ThemeMode effectiveMode) {
+    return switch (effectiveMode) {
       ThemeMode.system => LucideIcons.sunMoon,
       ThemeMode.light => LucideIcons.sun,
       ThemeMode.dark => LucideIcons.moon,
@@ -26,15 +29,32 @@ class ThemePreviewScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsProvider);
+    final effectiveMode = settings.effectiveThemeMode;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('dosly · M3 preview'),
         actions: [
           IconButton(
             tooltip: 'Cycle theme mode',
-            icon: Icon(_iconForMode(themeController.value)),
-            onPressed: themeController.cycle,
+            icon: Icon(_iconForEffectiveMode(effectiveMode)),
+            onPressed: () {
+              final notifier = ref.read(settingsProvider.notifier);
+              // Cycle: system → light → dark → system
+              if (settings.useSystemTheme) {
+                // system → light (manual)
+                notifier.setThemeMode(ThemeMode.light);
+                notifier.setUseSystemTheme(false);
+              } else if (settings.manualThemeMode == ThemeMode.light) {
+                // light → dark (manual)
+                notifier.setThemeMode(ThemeMode.dark);
+              } else {
+                // dark → system
+                notifier.setUseSystemTheme(true);
+              }
+            },
           ),
         ],
       ),

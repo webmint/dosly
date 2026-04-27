@@ -21,9 +21,7 @@ import 'app_shell.dart';
 
 /// Application singleton router instance.
 ///
-/// Mirrors the top-level controller pattern used by `themeController` in
-/// `lib/core/theme/theme_controller.dart`. Consumed by `DoslyApp` via
-/// `MaterialApp.router`.
+/// Consumed by `DoslyApp` via `MaterialApp.router`.
 final GoRouter appRouter = GoRouter(
   routes: [
     StatefulShellRoute.indexedStack(

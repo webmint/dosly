@@ -129,6 +129,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'History'**
   String get bottomNavHistory;
+
+  /// Section header for the appearance/theme settings group.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsAppearanceHeader;
+
+  /// Label for the switch that toggles following the device system theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Use system theme'**
+  String get settingsUseSystemTheme;
+
+  /// Subtitle for the system theme switch describing what the toggle does.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow your device settings'**
+  String get settingsUseSystemThemeSub;
+
+  /// Label for the Light theme option in the theme selector.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get settingsThemeLight;
+
+  /// Label for the Dark theme option in the theme selector.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get settingsThemeDark;
 }
 
 class _AppLocalizationsDelegate

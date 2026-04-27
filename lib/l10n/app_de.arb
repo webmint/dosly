@@ -4,5 +4,10 @@
   "settingsTitle": "Einstellungen",
   "bottomNavToday": "Heute",
   "bottomNavMeds": "Medikamente",
-  "bottomNavHistory": "Verlauf"
+  "bottomNavHistory": "Verlauf",
+  "settingsAppearanceHeader": "Darstellung",
+  "settingsUseSystemTheme": "Systemdesign verwenden",
+  "settingsUseSystemThemeSub": "Geräteeinstellungen folgen",
+  "settingsThemeLight": "Hell",
+  "settingsThemeDark": "Dunkel"
 }

@@ -20,7 +20,7 @@ Hard rules (from the [constitution](../constitution.md) §2.1):
 
 Anything shared across features lives under `lib/core/` and must be **feature-agnostic** — it may not know about medications, schedules, or any domain concept.
 
-> This is the first feature. No `domain/` or `data/` layers exist yet — `001-m3-theme` only introduced `core/theme/` and a one-off `features/theme_preview/presentation/` folder. The three-layer pattern above will be exercised for real by the first medication feature.
+> The three-layer pattern was first exercised in full by `009-theme-settings`: `domain/entities/app_settings.dart` and `domain/repositories/settings_repository.dart` exist as pure Dart; `data/` holds the data source and repository implementation; `presentation/` holds the Riverpod providers and widgets.
 
 ## The theme module
 
@@ -30,8 +30,7 @@ Theme code lives under `lib/core/theme/` because it is cross-feature, has no dom
 lib/core/theme/
 ├── app_color_schemes.dart   # const ColorScheme lightColorScheme / darkColorScheme
 ├── app_text_theme.dart      # AppTextTheme.textTheme (M3 type scale on Roboto)
-├── app_theme.dart           # AppTheme.lightTheme / darkTheme (composes the above)
-└── theme_controller.dart    # ThemeController + singleton themeController
+└── app_theme.dart           # AppTheme.lightTheme / darkTheme (composes the above)
 ```
 
 See [`features/theme.md`](features/theme.md) for the full walkthrough.
@@ -42,46 +41,79 @@ See [`features/theme.md`](features/theme.md) for the full walkthrough.
 
 A grep for `Color(0xFF` outside `lib/core/theme/` is run as part of verification (spec `001-m3-theme` AC-14).
 
-## App-wide state: `ListenableBuilder` + `ValueNotifier<ThemeMode>`
+## App-wide state: Riverpod + `SharedPreferences`
 
-Dosly intends to use Riverpod for feature-level state, but it has not been introduced yet (see spec `001-m3-theme` §6 — explicitly out of scope for the first feature). For the one piece of app-wide state that exists right now — the current `ThemeMode` — the app uses plain Flutter primitives:
+Dosly uses **Riverpod** (`flutter_riverpod`) for all feature-level and app-wide reactive state. It was introduced with the `009-theme-settings` feature, which also replaced the earlier `ThemeController` singleton.
 
-```dart
-// lib/core/theme/theme_controller.dart
-class ThemeController extends ValueNotifier<ThemeMode> {
-  ThemeController() : super(ThemeMode.system);
-  void setMode(ThemeMode mode) { value = mode; }
-  void cycle() { /* system -> light -> dark -> system */ }
-}
-
-final ThemeController themeController = ThemeController();
-```
+`DoslyApp` is a `ConsumerWidget`. It watches `settingsProvider` with a narrow selector so only a `ThemeMode` change triggers a rebuild:
 
 ```dart
 // lib/app.dart
-class DoslyApp extends StatelessWidget {
+class DoslyApp extends ConsumerWidget {
   const DoslyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: themeController,
-      builder: (context, _) => MaterialApp.router(
-        title: 'dosly',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: themeController.value,
-        routerConfig: appRouter,
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp.router(
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ref.watch(
+        settingsProvider.select((s) => s.effectiveThemeMode),
       ),
+      routerConfig: appRouter,
     );
   }
 }
 ```
 
-The `ListenableBuilder` at the root of `DoslyApp` rebuilds `MaterialApp.router` whenever the controller's value changes, which flips `themeMode` and causes Flutter to re-theme the tree. No Riverpod, no `InheritedWidget`, no `setState`. Routing is delegated to `appRouter` (see [Routing](#routing) below).
+### Bootstrap: `SharedPreferencesWithCache`
 
-The controller is **in-memory only** — it resets to `ThemeMode.system` on every app restart. Persistence will arrive with the future Settings feature, which will use drift; it is not bolted onto `ThemeController`.
+Settings are persisted via `SharedPreferencesWithCache`, which provides a synchronous in-memory cache backed by the platform `SharedPreferences` store. It is initialized in `main()` before `runApp()` and injected into the entire provider tree via a `ProviderScope` override:
+
+```dart
+// lib/main.dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferencesWithCache.create(
+    cacheOptions: const SharedPreferencesWithCacheOptions(
+      allowList: <String>{'themeMode', 'useSystemTheme'},
+    ),
+  );
+  runApp(
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const DoslyApp(),
+    ),
+  );
+}
+```
+
+`sharedPreferencesProvider` (in `lib/core/providers/shared_preferences_provider.dart`) is declared with a throwing placeholder — failing to provide the override at startup is a programmer error caught immediately.
+
+### Provider wiring
+
+| Provider | Type | Purpose |
+|---|---|---|
+| `sharedPreferencesProvider` | `Provider<SharedPreferencesWithCache>` | App-wide prefs instance, override-injected |
+| `settingsRepositoryProvider` | `Provider<SettingsRepository>` | Wires data source to repository |
+| `settingsProvider` | `NotifierProvider<SettingsNotifier, AppSettings>` | Current settings + mutation API |
+
+### Failure handling
+
+The data layer returns `Either<Failure, T>` (via `fpdart`) for all fallible operations. `lib/core/error/failures.dart` defines the sealed `Failure` hierarchy:
+
+```dart
+sealed class Failure { const Failure(); }
+
+class CacheFailure extends Failure {
+  const CacheFailure(this.message);
+  final String message;
+}
+```
+
+Sealed classes let callers pattern-match exhaustively. `SettingsNotifier` follows the "optimistic-write, no-update-on-failure" pattern: in-memory state is only updated when persistence succeeds.
+
+> The earlier `ThemeController` singleton (`lib/core/theme/theme_controller.dart`) has been deleted. All theme-mode state is now owned by `settingsProvider`.
 
 ## Internationalization (i18n)
 
@@ -172,22 +204,14 @@ class AppShell extends StatelessWidget {
 
 ## Entry point
 
-`lib/main.dart` is deliberately tiny — it exists only to call `runApp`:
+`lib/main.dart` bootstraps the app. It now contains async initialization code — currently `SharedPreferencesWithCache` creation — that runs before `runApp`. Future async work (database open, notification scheduler init) follows the same pattern: add to `main()` before `runApp`, per constitution §4.2.1.
 
-```dart
-import 'package:flutter/material.dart';
-
-import 'app.dart';
-
-void main() {
-  runApp(const DoslyApp());
-}
-```
-
-All wiring happens in `lib/app.dart`. Future async bootstrap (database open, notification scheduler init) will go into `main()` before `runApp`, per constitution §4.2.1 ("never block `main()` on async work" — show a splash, run setup, then `runApp`).
+All UI wiring happens in `lib/app.dart`. `DoslyApp` is a `ConsumerWidget` rather than a plain `StatelessWidget`, and the entire widget tree is wrapped in a `ProviderScope` that overrides platform-specific providers (currently `sharedPreferencesProvider`). See [App-wide state](#app-wide-state-riverpod--sharedpreferences) above.
 
 ## Related
 
 - [constitution.md](../constitution.md) — the full rule set
 - [features/theme.md](features/theme.md) — the theme feature walkthrough
-- [specs/001-m3-theme/plan.md](../specs/001-m3-theme/plan.md) — the plan that drove this first feature
+- [features/settings.md](features/settings.md) — Settings screen and theme-mode selector
+- [specs/001-m3-theme/plan.md](../specs/001-m3-theme/plan.md) — the plan that introduced the M3 theme
+- [specs/009-theme-settings/spec.md](../specs/009-theme-settings/spec.md) — the spec that introduced Riverpod, SharedPreferences, and the Failure hierarchy
