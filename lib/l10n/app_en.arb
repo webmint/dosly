@@ -19,5 +19,25 @@
   "bottomNavHistory": "History",
   "@bottomNavHistory": {
     "description": "Label for the History destination in the home bottom navigation bar."
+  },
+  "settingsAppearanceHeader": "Appearance",
+  "@settingsAppearanceHeader": {
+    "description": "Section header for the appearance/theme settings group."
+  },
+  "settingsUseSystemTheme": "Use system theme",
+  "@settingsUseSystemTheme": {
+    "description": "Label for the switch that toggles following the device system theme."
+  },
+  "settingsUseSystemThemeSub": "Follow your device settings",
+  "@settingsUseSystemThemeSub": {
+    "description": "Subtitle for the system theme switch describing what the toggle does."
+  },
+  "settingsThemeLight": "Light",
+  "@settingsThemeLight": {
+    "description": "Label for the Light theme option in the theme selector."
+  },
+  "settingsThemeDark": "Dark",
+  "@settingsThemeDark": {
+    "description": "Label for the Dark theme option in the theme selector."
   }
 }

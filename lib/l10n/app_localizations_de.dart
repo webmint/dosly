@@ -22,4 +22,19 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get bottomNavHistory => 'Verlauf';
+
+  @override
+  String get settingsAppearanceHeader => 'Darstellung';
+
+  @override
+  String get settingsUseSystemTheme => 'Systemdesign verwenden';
+
+  @override
+  String get settingsUseSystemThemeSub => 'Geräteeinstellungen folgen';
+
+  @override
+  String get settingsThemeLight => 'Hell';
+
+  @override
+  String get settingsThemeDark => 'Dunkel';
 }

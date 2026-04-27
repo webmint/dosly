@@ -22,4 +22,20 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get bottomNavHistory => 'Історія';
+
+  @override
+  String get settingsAppearanceHeader => 'Зовнішній вигляд';
+
+  @override
+  String get settingsUseSystemTheme => 'Системна тема';
+
+  @override
+  String get settingsUseSystemThemeSub =>
+      'Використовувати налаштування пристрою';
+
+  @override
+  String get settingsThemeLight => 'Світла';
+
+  @override
+  String get settingsThemeDark => 'Темна';
 }

@@ -1,21 +1,23 @@
 /// Application root.
 ///
-/// Wraps `MaterialApp.router` in a [ListenableBuilder] so the entire tree
-/// rebuilds when [themeController]'s value changes. Sets the M3 light and
-/// dark themes from [AppTheme]. Routing is delegated to [appRouter] which
-/// currently exposes `/` ([HomeScreen]) and a temporary dev-only
-/// `/theme-preview` route — the preview route will be removed in the
-/// final development stages (see specs/002-main-screen/spec.md).
-/// Locale is auto-resolved from the device via [AppLocalizations.localizationsDelegates]
-/// and [AppLocalizations.supportedLocales] — when the device locale is German or Ukrainian
-/// those translations render; otherwise English (the template/fallback) is used.
+/// A [ConsumerWidget] that watches [settingsProvider] for the current
+/// [ThemeMode]. Sets the M3 light and dark themes from [AppTheme].
+/// Routing is delegated to [appRouter] which currently exposes `/`
+/// ([HomeScreen]) and a temporary dev-only `/theme-preview` route — the
+/// preview route will be removed in the final development stages (see
+/// specs/002-main-screen/spec.md). Locale is auto-resolved from the device
+/// via [AppLocalizations.localizationsDelegates] and
+/// [AppLocalizations.supportedLocales] — when the device locale is German or
+/// Ukrainian those translations render; otherwise English (the
+/// template/fallback) is used.
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'core/theme/theme_controller.dart';
+import 'features/settings/presentation/providers/settings_provider.dart';
 import 'l10n/app_localizations.dart';
 
 /// Resolves the active [Locale] for [MaterialApp.router].
@@ -39,25 +41,24 @@ Locale _resolveLocale(Locale? deviceLocale, Iterable<Locale> supportedLocales) {
 }
 
 /// The dosly application root widget.
-class DoslyApp extends StatelessWidget {
+class DoslyApp extends ConsumerWidget {
   /// Creates the application root.
   const DoslyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: themeController,
-      builder: (context, _) => MaterialApp.router(
-        title: 'dosly',
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        localeResolutionCallback: _resolveLocale,
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: themeController.value,
-        routerConfig: appRouter,
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp.router(
+      title: 'dosly',
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeResolutionCallback: _resolveLocale,
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ref.watch(
+        settingsProvider.select((s) => s.effectiveThemeMode),
       ),
+      routerConfig: appRouter,
     );
   }
 }

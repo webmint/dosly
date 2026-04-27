@@ -7,8 +7,13 @@
 // approach for verifying branch-stack preservation (AC-11) without polluting
 // production routes.
 
+import 'package:dosly/features/settings/domain/entities/app_settings.dart';
+import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
+import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:dosly/core/routing/app_router.dart';
@@ -20,6 +25,20 @@ import 'package:dosly/features/meds/presentation/screens/meds_screen.dart';
 import 'package:dosly/features/settings/presentation/screens/settings_screen.dart';
 import 'package:dosly/features/theme_preview/presentation/screens/theme_preview_screen.dart';
 import 'package:dosly/l10n/app_localizations.dart';
+
+/// Minimal fake that satisfies [SettingsRepository] for routing tests.
+class _FakeSettingsRepository implements SettingsRepository {
+  @override
+  AppSettings load() => const AppSettings();
+
+  @override
+  Future<Either<Never, void>> saveThemeMode(ThemeMode mode) async =>
+      const Right(null);
+
+  @override
+  Future<Either<Never, void>> saveUseSystemTheme(bool value) async =>
+      const Right(null);
+}
 
 // ---------------------------------------------------------------------------
 // Sentinel widget used only in Test 4's test-only router.
@@ -94,11 +113,17 @@ GoRouter _buildTestRouterWithSentinel() {
 // ---------------------------------------------------------------------------
 Future<void> _pumpRouter(WidgetTester tester, GoRouter router) async {
   await tester.pumpWidget(
-    MaterialApp.router(
-      routerConfig: router,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('en'),
+    ProviderScope(
+      overrides: [
+        settingsRepositoryProvider
+            .overrideWithValue(_FakeSettingsRepository()),
+      ],
+      child: MaterialApp.router(
+        routerConfig: router,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('en'),
+      ),
     ),
   );
   await tester.pumpAndSettle();
