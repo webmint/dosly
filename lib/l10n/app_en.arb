@@ -39,5 +39,17 @@
   "settingsThemeDark": "Dark",
   "@settingsThemeDark": {
     "description": "Label for the Dark theme option in the theme selector."
+  },
+  "settingsLanguageHeader": "Language",
+  "@settingsLanguageHeader": {
+    "description": "Section header for the language settings group on the Settings screen."
+  },
+  "settingsUseDeviceLanguage": "Use device language",
+  "@settingsUseDeviceLanguage": {
+    "description": "Label for the switch that toggles following the device-resolved language."
+  },
+  "settingsUseDeviceLanguageSub": "Follow your device settings",
+  "@settingsUseDeviceLanguageSub": {
+    "description": "Subtitle for the device-language switch describing what the toggle does."
   }
 }

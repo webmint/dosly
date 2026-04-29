@@ -37,4 +37,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsThemeDark => 'Dunkel';
+
+  @override
+  String get settingsLanguageHeader => 'Sprache';
+
+  @override
+  String get settingsUseDeviceLanguage => 'Sprache des Geräts verwenden';
+
+  @override
+  String get settingsUseDeviceLanguageSub => 'Geräteeinstellungen folgen';
 }

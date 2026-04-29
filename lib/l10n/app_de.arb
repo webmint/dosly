@@ -9,5 +9,8 @@
   "settingsUseSystemTheme": "Systemdesign verwenden",
   "settingsUseSystemThemeSub": "Geräteeinstellungen folgen",
   "settingsThemeLight": "Hell",
-  "settingsThemeDark": "Dunkel"
+  "settingsThemeDark": "Dunkel",
+  "settingsLanguageHeader": "Sprache",
+  "settingsUseDeviceLanguage": "Sprache des Geräts verwenden",
+  "settingsUseDeviceLanguageSub": "Geräteeinstellungen folgen"
 }

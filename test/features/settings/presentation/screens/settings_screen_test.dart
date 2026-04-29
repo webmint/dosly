@@ -1,3 +1,4 @@
+import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
@@ -19,6 +20,14 @@ class _FakeSettingsRepository implements SettingsRepository {
 
   @override
   Future<Either<Never, void>> saveUseSystemTheme(bool value) async =>
+      const Right(null);
+
+  @override
+  Future<Either<Never, void>> saveUseSystemLanguage(bool value) async =>
+      const Right(null);
+
+  @override
+  Future<Either<Never, void>> saveManualLanguage(AppLanguage language) async =>
       const Right(null);
 }
 
@@ -146,6 +155,32 @@ void main() {
       );
 
       expect(dividerFinder, findsOneWidget);
+    });
+  });
+
+  group('SettingsScreen language header', () {
+    testWidgets('renders uppercased "LANGUAGE" header under Locale("en")',
+        (tester) async {
+      await tester.pumpWidget(_harness(locale: const Locale('en')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('LANGUAGE'), findsOneWidget);
+    });
+
+    testWidgets('renders uppercased "МОВА" header under Locale("uk")',
+        (tester) async {
+      await tester.pumpWidget(_harness(locale: const Locale('uk')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('МОВА'), findsOneWidget);
+    });
+
+    testWidgets('renders uppercased "SPRACHE" header under Locale("de")',
+        (tester) async {
+      await tester.pumpWidget(_harness(locale: const Locale('de')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('SPRACHE'), findsOneWidget);
     });
   });
 }

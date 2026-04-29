@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/shared_preferences_provider.dart';
 import '../../data/datasources/settings_local_data_source.dart';
 import '../../data/repositories/settings_repository_impl.dart';
+import '../../domain/entities/app_language.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/repositories/settings_repository.dart';
 
@@ -31,7 +32,7 @@ final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(
 /// Notifier that manages [AppSettings] state.
 ///
 /// Reads initial settings synchronously from the repository cache and
-/// exposes methods to update individual preferences.
+/// exposes methods to update individual preferences (theme and language).
 class SettingsNotifier extends Notifier<AppSettings> {
   @override
   AppSettings build() {
@@ -74,6 +75,43 @@ class SettingsNotifier extends Notifier<AppSettings> {
       },
       (_) {
         state = state.copyWith(useSystemTheme: value);
+      },
+    );
+  }
+
+  /// Updates whether the app should follow the device language, persists the
+  /// choice, and notifies listeners.
+  ///
+  /// On persistence failure the in-memory state is not updated.
+  Future<void> setUseSystemLanguage(bool value) async {
+    final repo = ref.read(settingsRepositoryProvider);
+    final result = await repo.saveUseSystemLanguage(value);
+    result.fold(
+      (failure) {
+        if (kDebugMode) {
+          debugPrint('Settings: persistence failed — $failure');
+        }
+      },
+      (_) {
+        state = state.copyWith(useSystemLanguage: value);
+      },
+    );
+  }
+
+  /// Updates the manual language, persists it, and notifies listeners.
+  ///
+  /// On persistence failure the in-memory state is not updated.
+  Future<void> setManualLanguage(AppLanguage language) async {
+    final repo = ref.read(settingsRepositoryProvider);
+    final result = await repo.saveManualLanguage(language);
+    result.fold(
+      (failure) {
+        if (kDebugMode) {
+          debugPrint('Settings: persistence failed — $failure');
+        }
+      },
+      (_) {
+        state = state.copyWith(manualLanguage: language);
       },
     );
   }

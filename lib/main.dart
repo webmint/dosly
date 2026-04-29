@@ -9,7 +9,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferencesWithCache.create(
     cacheOptions: const SharedPreferencesWithCacheOptions(
-      allowList: <String>{'themeMode', 'useSystemTheme'},
+      allowList: <String>{
+        'themeMode',
+        'useSystemTheme',
+        'useSystemLanguage',
+        'manualLanguage',
+      },
     ),
   );
   runApp(
