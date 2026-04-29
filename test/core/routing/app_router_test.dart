@@ -7,6 +7,7 @@
 // approach for verifying branch-stack preservation (AC-11) without polluting
 // production routes.
 
+import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
@@ -37,6 +38,14 @@ class _FakeSettingsRepository implements SettingsRepository {
 
   @override
   Future<Either<Never, void>> saveUseSystemTheme(bool value) async =>
+      const Right(null);
+
+  @override
+  Future<Either<Never, void>> saveUseSystemLanguage(bool value) async =>
+      const Right(null);
+
+  @override
+  Future<Either<Never, void>> saveManualLanguage(AppLanguage language) async =>
       const Right(null);
 }
 

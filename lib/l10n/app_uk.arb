@@ -9,5 +9,8 @@
   "settingsUseSystemTheme": "Системна тема",
   "settingsUseSystemThemeSub": "Використовувати налаштування пристрою",
   "settingsThemeLight": "Світла",
-  "settingsThemeDark": "Темна"
+  "settingsThemeDark": "Темна",
+  "settingsLanguageHeader": "Мова",
+  "settingsUseDeviceLanguage": "Мова пристрою",
+  "settingsUseDeviceLanguageSub": "Використовувати налаштування пристрою"
 }

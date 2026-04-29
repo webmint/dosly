@@ -1,14 +1,15 @@
-/// Settings feature — settings screen with appearance controls.
+/// Settings feature — settings screen with appearance and language controls.
 ///
 /// This library hosts [SettingsScreen], the screen displayed when the user
 /// taps the gear icon in the [HomeScreen] AppBar. The screen renders an
-/// Appearance section with a [ThemeSelector] segmented button that lets the
-/// user pick between system, light, and dark theme modes.
+/// Appearance section with a [ThemeSelector] widget and a Language section
+/// with a [LanguageSelector] widget.
 library;
 
 import 'package:flutter/material.dart';
 
 import '../../../../l10n/l10n_extensions.dart';
+import '../widgets/language_selector.dart';
 import '../widgets/theme_selector.dart';
 
 /// Settings screen pushed from the home route's gear [IconButton].
@@ -54,6 +55,22 @@ class SettingsScreen extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: ThemeSelector(),
+          ),
+          // Language group
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+            child: Text(
+              context.l10n.settingsLanguageHeader.toUpperCase(),
+              style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.5,
+                  ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: LanguageSelector(),
           ),
         ],
       ),

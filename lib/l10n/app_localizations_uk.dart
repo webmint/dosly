@@ -38,4 +38,14 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get settingsThemeDark => 'Темна';
+
+  @override
+  String get settingsLanguageHeader => 'Мова';
+
+  @override
+  String get settingsUseDeviceLanguage => 'Мова пристрою';
+
+  @override
+  String get settingsUseDeviceLanguageSub =>
+      'Використовувати налаштування пристрою';
 }

@@ -5,11 +5,11 @@
 /// Routing is delegated to [appRouter] which currently exposes `/`
 /// ([HomeScreen]) and a temporary dev-only `/theme-preview` route — the
 /// preview route will be removed in the final development stages (see
-/// specs/002-main-screen/spec.md). Locale is auto-resolved from the device
-/// via [AppLocalizations.localizationsDelegates] and
-/// [AppLocalizations.supportedLocales] — when the device locale is German or
-/// Ukrainian those translations render; otherwise English (the
-/// template/fallback) is used.
+/// specs/002-main-screen/spec.md). [MaterialApp.locale] is driven by user
+/// settings ([AppSettings.effectiveLocale]); when it is `null` (system
+/// language opted in) the existing [_resolveLocale] callback resolves the
+/// device locale against [AppLocalizations.supportedLocales] with English
+/// as the fallback.
 library;
 
 import 'package:flutter/material.dart';
@@ -55,6 +55,7 @@ class DoslyApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
+      locale: ref.watch(settingsProvider.select((s) => s.effectiveLocale)),
       themeMode: ref.watch(
         settingsProvider.select((s) => s.effectiveThemeMode),
       ),

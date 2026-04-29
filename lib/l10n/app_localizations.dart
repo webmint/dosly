@@ -159,6 +159,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dark'**
   String get settingsThemeDark;
+
+  /// Section header for the language settings group on the Settings screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get settingsLanguageHeader;
+
+  /// Label for the switch that toggles following the device-resolved language.
+  ///
+  /// In en, this message translates to:
+  /// **'Use device language'**
+  String get settingsUseDeviceLanguage;
+
+  /// Subtitle for the device-language switch describing what the toggle does.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow your device settings'**
+  String get settingsUseDeviceLanguageSub;
 }
 
 class _AppLocalizationsDelegate

@@ -1,5 +1,6 @@
 library;
 
+import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
@@ -32,6 +33,18 @@ class _FakeSettingsRepository implements SettingsRepository {
   @override
   Future<Either<Never, void>> saveUseSystemTheme(bool value) async {
     _settings = _settings.copyWith(useSystemTheme: value);
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Never, void>> saveUseSystemLanguage(bool value) async {
+    _settings = _settings.copyWith(useSystemLanguage: value);
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Never, void>> saveManualLanguage(AppLanguage language) async {
+    _settings = _settings.copyWith(manualLanguage: language);
     return const Right(null);
   }
 }

@@ -2,6 +2,7 @@ library;
 
 import 'package:dosly/features/settings/data/datasources/settings_local_data_source.dart';
 import 'package:dosly/features/settings/data/repositories/settings_repository_impl.dart';
+import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
@@ -16,7 +17,7 @@ Future<SettingsRepositoryImpl> _buildRepository({
       InMemorySharedPreferencesAsync.withData(initialData);
   final prefs = await SharedPreferencesWithCache.create(
     cacheOptions: const SharedPreferencesWithCacheOptions(
-      allowList: {'themeMode', 'useSystemTheme'},
+      allowList: {'themeMode', 'useSystemTheme', 'useSystemLanguage', 'manualLanguage'},
     ),
   );
   final dataSource = SettingsLocalDataSource(prefs);
@@ -90,6 +91,69 @@ void main() {
 
         expect(settings.effectiveThemeMode, ThemeMode.dark);
       });
+
+      test('returns useSystemLanguage=true and manualLanguage=en by default',
+          () async {
+        final repository = await _buildRepository();
+
+        final settings = repository.load();
+
+        expect(settings.useSystemLanguage, isTrue);
+        expect(settings.manualLanguage, AppLanguage.en);
+      });
+
+      test(
+          'returns useSystemLanguage=false after saveUseSystemLanguage(false)',
+          () async {
+        final repository = await _buildRepository();
+        await repository.saveUseSystemLanguage(false);
+
+        final settings = repository.load();
+
+        expect(settings.useSystemLanguage, isFalse);
+      });
+
+      test('returns manualLanguage=uk after saveManualLanguage(AppLanguage.uk)',
+          () async {
+        final repository = await _buildRepository();
+        await repository.saveManualLanguage(AppLanguage.uk);
+
+        final settings = repository.load();
+
+        expect(settings.manualLanguage, AppLanguage.uk);
+      });
+
+      test(
+          'returns manualLanguage=en when an unknown code (xx) is stored',
+          () async {
+        final repository = await _buildRepository(
+          initialData: {'manualLanguage': 'xx'},
+        );
+
+        final settings = repository.load();
+
+        expect(settings.manualLanguage, AppLanguage.en);
+      });
+
+      test('effectiveLocale is null when useSystemLanguage=true', () async {
+        final repository = await _buildRepository();
+
+        final settings = repository.load();
+
+        expect(settings.effectiveLocale, isNull);
+      });
+
+      test(
+          'effectiveLocale equals Locale("de") when useSystemLanguage=false and manualLanguage=de',
+          () async {
+        final repository = await _buildRepository();
+        await repository.saveUseSystemLanguage(false);
+        await repository.saveManualLanguage(AppLanguage.de);
+
+        final settings = repository.load();
+
+        expect(settings.effectiveLocale, const Locale('de'));
+      });
     });
 
     group('saveThemeMode()', () {
@@ -112,6 +176,26 @@ void main() {
       });
     });
 
+    group('saveUseSystemLanguage()', () {
+      test('returns Right(null) on success', () async {
+        final repository = await _buildRepository();
+
+        final result = await repository.saveUseSystemLanguage(false);
+
+        expect(result, isA<Right<dynamic, void>>());
+      });
+    });
+
+    group('saveManualLanguage()', () {
+      test('returns Right(null) on success', () async {
+        final repository = await _buildRepository();
+
+        final result = await repository.saveManualLanguage(AppLanguage.de);
+
+        expect(result, isA<Right<dynamic, void>>());
+      });
+    });
+
     group('persistence round-trip', () {
       test(
           'saved themeMode and useSystemTheme survive reconstruction '
@@ -121,7 +205,7 @@ void main() {
             InMemorySharedPreferencesAsync.empty();
         final prefs = await SharedPreferencesWithCache.create(
           cacheOptions: const SharedPreferencesWithCacheOptions(
-            allowList: {'themeMode', 'useSystemTheme'},
+            allowList: {'themeMode', 'useSystemTheme', 'useSystemLanguage', 'manualLanguage'},
           ),
         );
         final firstRepository =
@@ -138,6 +222,33 @@ void main() {
         // Assert — persisted values are visible to the new instance.
         expect(settings.manualThemeMode, ThemeMode.dark);
         expect(settings.useSystemTheme, isFalse);
+      });
+
+      test(
+          'saved useSystemLanguage and manualLanguage survive reconstruction '
+          'from the same SharedPreferences instance', () async {
+        // Arrange — build the first repository and persist values.
+        SharedPreferencesAsyncPlatform.instance =
+            InMemorySharedPreferencesAsync.empty();
+        final prefs = await SharedPreferencesWithCache.create(
+          cacheOptions: const SharedPreferencesWithCacheOptions(
+            allowList: {'themeMode', 'useSystemTheme', 'useSystemLanguage', 'manualLanguage'},
+          ),
+        );
+        final firstRepository =
+            SettingsRepositoryImpl(SettingsLocalDataSource(prefs));
+
+        await firstRepository.saveUseSystemLanguage(false);
+        await firstRepository.saveManualLanguage(AppLanguage.uk);
+
+        // Act — reconstruct a new repository from the same prefs instance.
+        final secondRepository =
+            SettingsRepositoryImpl(SettingsLocalDataSource(prefs));
+        final settings = secondRepository.load();
+
+        // Assert — persisted values are visible to the new instance.
+        expect(settings.useSystemLanguage, isFalse);
+        expect(settings.manualLanguage, AppLanguage.uk);
       });
     });
   });

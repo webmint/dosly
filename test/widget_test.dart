@@ -1,3 +1,4 @@
+import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
@@ -10,13 +11,19 @@ import 'package:dosly/app.dart';
 
 /// Minimal fake that satisfies [SettingsRepository] for widget tests.
 ///
-/// Returns defaults from [load] and records saves in [lastSavedMode] and
-/// [lastSavedUseSystemTheme].
+/// Returns defaults from [load] and records saves in [lastSavedMode],
+/// [lastSavedUseSystemTheme], [savedUseSystemLanguage], and
+/// [savedManualLanguage]. Accepts an optional [initial] to pre-seed state.
 class _FakeSettingsRepository implements SettingsRepository {
-  AppSettings _settings = const AppSettings();
+  AppSettings _settings;
+
+  _FakeSettingsRepository({AppSettings? initial})
+      : _settings = initial ?? const AppSettings();
 
   ThemeMode? get lastSavedMode => _settings.manualThemeMode;
   bool get lastSavedUseSystemTheme => _settings.useSystemTheme;
+  bool get savedUseSystemLanguage => _settings.useSystemLanguage;
+  AppLanguage get savedManualLanguage => _settings.manualLanguage;
 
   @override
   AppSettings load() => _settings;
@@ -32,6 +39,18 @@ class _FakeSettingsRepository implements SettingsRepository {
     _settings = _settings.copyWith(useSystemTheme: value);
     return const Right(null);
   }
+
+  @override
+  Future<Either<Never, void>> saveUseSystemLanguage(bool value) async {
+    _settings = _settings.copyWith(useSystemLanguage: value);
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Never, void>> saveManualLanguage(AppLanguage language) async {
+    _settings = _settings.copyWith(manualLanguage: language);
+    return const Right(null);
+  }
 }
 
 void main() {
@@ -40,6 +59,7 @@ void main() {
   setUp(() {
     fakeRepo = _FakeSettingsRepository();
   });
+
 
   testWidgets(
     'DoslyApp renders the home screen with app bar, Hello World, and Theme preview button',
@@ -103,4 +123,50 @@ void main() {
       expect(fakeRepo.lastSavedUseSystemTheme, isTrue);
     },
   );
+
+  group('MaterialApp.locale reactivity', () {
+    testWidgets(
+      'is null by default (useSystemLanguage=true → resolution callback drives locale)',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              settingsRepositoryProvider.overrideWithValue(fakeRepo),
+            ],
+            child: const DoslyApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // DoslyApp uses MaterialApp.router — find it by type.
+        final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+        expect(app.locale, isNull);
+      },
+    );
+
+    testWidgets(
+      'becomes Locale("de") when pre-seeded with useSystemLanguage=false and manualLanguage=de',
+      (tester) async {
+        final preSeededRepo = _FakeSettingsRepository(
+          initial: const AppSettings(
+            useSystemLanguage: false,
+            manualLanguage: AppLanguage.de,
+          ),
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              settingsRepositoryProvider.overrideWithValue(preSeededRepo),
+            ],
+            child: const DoslyApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+        expect(app.locale, const Locale('de'));
+      },
+    );
+  });
 }
