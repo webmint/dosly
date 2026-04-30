@@ -48,4 +48,10 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String get settingsUseDeviceLanguageSub =>
       'Використовувати налаштування пристрою';
+
+  @override
+  String get medsAddFabTooltip => 'Додати ліки';
+
+  @override
+  String get medsAddTitle => 'Додати ліки';
 }

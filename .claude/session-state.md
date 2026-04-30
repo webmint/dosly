@@ -2,37 +2,33 @@
 # Session State
 
 ## Current Feature
-010-language-settings (Language Settings)
+011-meds-add-fab (Meds screen FAB + placeholder full-screen modal)
 
 ## Progress
-All 5/5 tasks COMPLETE — ready for /review → /verify → /summarize → /finalize
+APPROVED by /verify (twice) · 2 /fix passes applied · ready for /summarize → /finalize
 
 ## Recently Completed Tasks
-- Task 003: Notifier + wire MaterialApp.locale (architect)
-- Task 004: Localizations + UI with RadioGroup migration (mobile-engineer)
-- Task 005: Feature tests — 168/168 passing, debug APK built (qa-engineer)
+- Task 001: l10n keys medsAddFabTooltip + medsAddTitle (en/de/uk)
+- Task 002: AddMedicationModal placeholder widget + 7 widget tests
+- Task 003: FAB on MedsScreen wired to fullscreen modal route + 7 screen tests
+- Refactor (2026-04-30): bottom-sheet → full-screen modal per user feedback
+- Fix 1 (2026-04-30): correct ARB @medsAddTitle.description sheet→modal drift (cfb850f)
+- Fix 2 (2026-04-30): drop redundant modal/sheet/screen disambiguation dartdoc (06999a6)
 
 ## Key Files Modified
-- lib/features/settings/domain/entities/app_language.dart (NEW) — pure-Dart enum (en/de/uk) with code + nativeName
-- lib/features/settings/domain/entities/app_settings.dart — +useSystemLanguage, +manualLanguage, +effectiveLocale
-- lib/features/settings/domain/repositories/settings_repository.dart — +saveUseSystemLanguage, +saveManualLanguage
-- lib/features/settings/data/datasources/settings_local_data_source.dart — +4 accessors, +2 keys
-- lib/features/settings/data/repositories/settings_repository_impl.dart — extended load + 2 save methods
-- lib/features/settings/presentation/providers/settings_provider.dart — +setUseSystemLanguage, +setManualLanguage
-- lib/features/settings/presentation/widgets/language_selector.dart (NEW) — Switch + RadioGroup<AppLanguage>
-- lib/features/settings/presentation/screens/settings_screen.dart — Language section below Appearance
-- lib/main.dart — allowList grew to 4 keys
-- lib/app.dart — locale: ref.watch(settingsProvider.select((s) => s.effectiveLocale))
-- lib/l10n/*.arb (+3 keys each) + regenerated AppLocalizations
-- 5 test files updated/created
+- lib/l10n/app_en.arb, app_de.arb, app_uk.arb (+keys); app_localizations*.dart (regen)
+- lib/features/meds/presentation/widgets/add_medication_modal.dart (renamed; 6-line dartdoc cleanup applied)
+- lib/features/meds/presentation/screens/meds_screen.dart (+FAB +_openAddMedicationModal)
+- test/features/meds/presentation/widgets/add_medication_modal_test.dart (renamed)
+- test/features/meds/presentation/screens/meds_screen_test.dart (+FAB group +modal group)
 
 ## Recent Decisions
-- D1: Native names live as nativeName field on AppLanguage enum (no ARB)
-- D3: Pre-fill manualLanguage from device locale at toggle-OFF (mirrors ThemeSelector)
-- D4 (revised): Migrated to RadioGroup<AppLanguage> ancestor (Flutter 3.32+ deprecation); disabled state via tile.enabled
+- D1: Both l10n keys carry identical values per locale (placeholder convention)
+- D2 (revised): Modal is fullscreen MaterialPageRoute via rootNavigator: true — NOT a bottom sheet
+- D3: Back-arrow tooltip uses MaterialLocalizations.backButtonTooltip (no new ARB key)
+- D4 (post-verify): Drop defensive dartdoc disambiguation; keep only positive-form description
 
 ## Verification
-- dart analyze: PASS (zero issues)
-- flutter test: 168/168 PASS (was 117 baseline; +51 net new tests)
-- flutter build apk --debug: PASS
-- All 17 ACs (AC-1..AC-17) addressed; AC-18 deferred to manual on-device verification
+- dart analyze: PASS · flutter test: 184/184 PASS · flutter build apk --debug: PASS
+- /review (post-fix x2): 0 Critical/High/Medium · 1 Info (forward-looking context.mounted note)
+- /verify verdict: APPROVED · 14/14 automated ACs PASS · AC-15/16 MANUAL deferred

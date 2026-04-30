@@ -1,0 +1,169 @@
+# Plan: Meds Screen Add-FAB and Placeholder Modal
+
+**Date**: 2026-04-29 (revised 2026-04-30 — modal type swapped)
+**Spec**: [spec.md](./spec.md)
+**Status**: Shipped (post-implementation refactor 2026-04-30)
+
+## Summary
+
+Add a single Material 3 `FloatingActionButton` to `MedsScreen` that opens an
+empty **full-screen modal route** (`Navigator.push(MaterialPageRoute(
+fullscreenDialog: true, ...))` via `rootNavigator: true`) whose body is a
+`Scaffold` with an `AppBar` carrying a back-arrow `IconButton` leading and a
+localized title. Implementation is a presentation-layer-only change — no
+domain, data, providers, or new dependencies — leveraging the existing global
+`floatingActionButtonTheme`, `lucide_icons_flutter` (for both `plus` and
+`arrowLeft`), `context.l10n` extension, and `MaterialLocalizations` for the
+back-button tooltip.
+
+> **Revision (2026-04-30)**: Original plan specced `showModalBottomSheet`. User
+> rejected post-implementation: "look absolutely different from HTML... not a
+> screen, sheet not what I need." Refactored to `MaterialPageRoute(
+> fullscreenDialog: true)`. Files renamed: `add_medication_sheet.dart` →
+> `add_medication_modal.dart` (and same for the test file) via `git mv`.
+> `AddMedicationSheet` widget (Padding+Column+Text) → `AddMedicationModal`
+> widget (Scaffold+AppBar). Caller helper `_openAddMedicationSheet` →
+> `_openAddMedicationModal`. All 184 tests pass; debug APK builds cleanly.
+
+## Technical Context
+
+**Architecture**: Presentation layer only (`lib/features/meds/presentation/`)
+plus localization assets (`lib/l10n/`). No `domain/`, `data/`, or
+`core/` changes.
+**Error Handling**: N/A — opening a modal sheet is a non-fallible UI
+operation; the sheet has no async work. No `Either<Failure, T>` is required.
+**State Management**: Stateless. The FAB has no state, the sheet has no
+state, no provider is added or watched. Theme/locale propagation flows
+through the existing `MaterialApp` `themeMode` / `locale` bindings already
+driven by `settingsProvider`.
+
+## Constitution Compliance
+
+| Rule | Status | Notes |
+|------|--------|-------|
+| §3.1 No `!` null assertion | Compliant | All localized strings reached via `context.l10n` extension getter; no `AppLocalizations.of(context)!` at call sites. |
+| §3.2 No Flutter imports in `domain/` | N/A | No `domain/` files touched. |
+| §3.5 Public APIs need dartdoc `///` | Compliant | New `AddMedicationSheet` widget and any new public method (e.g., `_openAddMedicationSheet`) have dartdoc comments — the helper stays private (`_`-prefixed) inside the screen file, so dartdoc is recommended but not strictly required by the lint; we will document it anyway. |
+| §3.7 No bare TODOs | Compliant | The sheet's dartdoc explicitly references "placeholder until the real add-medication flow ships in a future spec" instead of a bare `TODO`. |
+| §3.8 `dart analyze` must pass | Will be enforced by automated post-task hook + per-task verify. |
+| §3.10 SOLID/DRY/KISS | Compliant | Single new widget (single responsibility), no duplication, simplest possible structure (one Text inside a padded SafeArea). |
+| §4 Naming conventions | Compliant | `AddMedicationSheet` (UpperCamelCase widget), `add_medication_sheet.dart` (snake_case file), `medsAddTitle` / `medsAddFabTooltip` (lowerCamelCase ARB keys matching existing `bottomNavMeds` / `settingsLanguageHeader` pattern). |
+| §7 No new dependencies | Compliant | `pubspec.yaml` is not modified. `lucide_icons_flutter` and the M3 widgets are already pinned. |
+| MEMORY.md (Feature 005) "Don't hard-code colors" | Compliant | `FloatingActionButton` uses no explicit `backgroundColor`/`foregroundColor`; theme defaults flow through. |
+| MEMORY.md (Feature 006) Centralize sanctioned `!` via `context.l10n` | Compliant | All new strings consumed via `context.l10n.medsAddTitle` / `context.l10n.medsAddFabTooltip`. |
+| MEMORY.md (Feature 010) No lint suppression | Compliant | Plan adds zero `// ignore:` comments. If `dart analyze` flags anything, fix the underlying code instead of suppressing. |
+
+## Implementation Approach
+
+### Layer Map
+
+| Layer | What | Files (existing or new) |
+|-------|------|-------------------------|
+| Domain | _none_ | _none_ |
+| Data | _none_ | _none_ |
+| Presentation — screen | Add `floatingActionButton` to `MedsScreen`'s `Scaffold`; add private `_openAddMedicationSheet(BuildContext context)` helper. | `lib/features/meds/presentation/screens/meds_screen.dart` (modify) |
+| Presentation — widget | New `AddMedicationSheet` stateless widget — single padded `Column` with one `Text` rendering the localized title in `titleLarge`. | `lib/features/meds/presentation/widgets/add_medication_sheet.dart` (create) |
+| L10n — template | Add 2 keys + 2 description blocks. | `lib/l10n/app_en.arb` (modify) |
+| L10n — German | Add 2 keys with translations. | `lib/l10n/app_de.arb` (modify) |
+| L10n — Ukrainian | Add 2 keys with translations. | `lib/l10n/app_uk.arb` (modify) |
+| L10n — generated | Regenerated by `flutter gen-l10n`. | `lib/l10n/app_localizations.dart`, `lib/l10n/app_localizations_en.dart`, `lib/l10n/app_localizations_de.dart`, `lib/l10n/app_localizations_uk.dart` (auto) |
+| Tests — screen | Extend existing test file: assert FAB present, tooltip localized, tap opens sheet showing localized title. Drop the `body == SizedBox.shrink` implication if any. | `test/features/meds/presentation/screens/meds_screen_test.dart` (modify) |
+| Tests — sheet | New widget test — sheet renders exactly one `Text` (title) and zero buttons / form fields. | `test/features/meds/presentation/widgets/add_medication_sheet_test.dart` (create) |
+
+### Key Design Decisions
+
+| Decision | Chosen Approach | Why | Alternatives Rejected |
+|----------|----------------|-----|----------------------|
+| Modal type | `showModalBottomSheet<void>` | M3 standard for "add" entry-points on mobile. Drag-to-dismiss + scrim-tap + system-back work for free. Matches HTML mock's `openAdd()` intent. | `showDialog` (centered AlertDialog) — less native on phones, no drag-to-dismiss; would still work but UX deviates from HTML reference. Flagged in spec §8 as a one-line swap if reviewer prefers. |
+| FAB widget variant | `FloatingActionButton` (regular, 56×56) | HTML mock is exactly 56×56. Theme defaults already point to `primaryContainer` / `onPrimaryContainer`. | `FloatingActionButton.extended` (icon + label) — would need a localized label and break the HTML's icon-only design. `.large` (96×96) and `.small` (40×40) — wrong size. |
+| Icon | `LucideIcons.plus` from `lucide_icons_flutter` | Already in project deps (^3.1.12). Already used in `theme_preview_screen.dart:68` for an identical FAB. HTML uses the canonical Lucide `plus` SVG (`M12 5v14M5 12h14`). | `Icons.add` (Material default) — would visually drift from the rest of the app, which uses Lucide everywhere (bottom nav, settings, etc.). |
+| FAB position | `Scaffold` default (`floatingActionButtonLocation: endFloat` is default — do not set explicitly) | HTML mock positions FAB at `right: 16px; bottom: nav-h + 16px`. Inner `Scaffold` under outer `AppShell` `Scaffold` produces this geometry naturally because the FAB renders inside the inner scaffold's body, above the outer bottom nav. | Setting `endDocked` — would push the FAB into the outer bottom-nav and clip it. |
+| Theme integration | Pass NO explicit color/shape/elevation params to either the FAB or the bottom sheet. | Constitution + MEMORY.md (Feature 005): "Built-in M3 widgets read from `Theme.of` for free; don't hard-code." Theme already defines `floatingActionButtonTheme` with the right tokens. Bottom sheet inherits `surfaceContainerLow` from M3 defaults. | Hard-coded `Color(0xFF...)` — breaks dark mode, breaks future theme refactors, is a constitution violation. |
+| Helper placement | Private top-level free function `_openAddMedicationSheet(BuildContext context)` inside `meds_screen.dart`, called via `onPressed: () => _openAddMedicationSheet(context)`. | Keeps `MedsScreen.build` tight. Single-callsite, single responsibility, no need to extract to a separate file. | Inline lambda — fine but uglier when the call grows. Public top-level helper — premature; it's used in exactly one place. Static method on `MedsScreen` — Dart doesn't let `const` constructors call statics, no benefit over a free function. |
+| Sheet widget structure | `StatelessWidget` with `build` returning `SafeArea` → `Padding(EdgeInsets.all(16))` → `Column(mainAxisSize: MainAxisSize.min, children: [Text(...)])`. | Minimum viable. `mainAxisSize: min` so the sheet height is content-driven (M3 default). 16-px padding matches `SettingsScreen`'s convention. `SafeArea` covers the bottom indicator on iOS notched devices in addition to `useSafeArea: true` on the call site (the call-site flag is the preferred mechanism — see next row). | A `SizedBox(height: 200)` hardcoded height — arbitrary and breaks if title text wraps in some locales. |
+| Sheet `useSafeArea` | Pass `useSafeArea: true` at the `showModalBottomSheet` call site. | Per Flutter docs, this is the modern way to make the sheet respect the home-indicator inset on iOS. The widget body itself does NOT need a `SafeArea` wrapper if this flag is set — the modal route handles it. We will OMIT the inner `SafeArea` to avoid double padding. | Wrapping the widget body in `SafeArea` instead of using the flag — works but bypasses the route-level handling and produces double-padded output if both are used. |
+| Testing — locale coverage | Mirror existing `meds_screen_test.dart` pattern: `_harness({required Locale})` builds `MaterialApp` + AppLocalizations delegates + production-matching `localeResolutionCallback`. Test FAB tooltip + sheet title for `en` + `de` + `uk` (and `fr` fallback for the FAB tooltip only). | Direct copy of the established pattern (Feature 006 `MedsScreen` test). Avoids reinventing harness scaffolding. | Spinning up `ProviderScope` + `settingsProvider` — unnecessary; the screen and sheet do not consume Riverpod. |
+| Testing — widget test for sheet | Test the `AddMedicationSheet` standalone (no `showModalBottomSheet`) by pumping it under the same locale harness and asserting one `Text` + zero `ElevatedButton` / `TextButton` / `IconButton` / `TextField`. | Faster to run, isolates the widget from the modal-route plumbing, mirrors `theme_selector_test.dart` style. | Driving `showModalBottomSheet` and inspecting the resulting modal — covered by the screen test (one place is enough); duplicating it in the widget test adds nothing. |
+
+### File Impact
+
+| File | Action | What Changes |
+|------|--------|-------------|
+| `lib/features/meds/presentation/screens/meds_screen.dart` | Modify | Add `floatingActionButton: FloatingActionButton(...)` to the `Scaffold`; add private `_openAddMedicationSheet(BuildContext context)` top-level function; add `import 'package:lucide_icons_flutter/lucide_icons.dart';` and `import '../widgets/add_medication_sheet.dart';`. Update library-level dartdoc to mention the FAB + placeholder sheet. |
+| `lib/features/meds/presentation/widgets/add_medication_sheet.dart` | Create | New `StatelessWidget AddMedicationSheet` with full dartdoc; uses `context.l10n.medsAddTitle` and `Theme.of(context).textTheme.titleLarge`. |
+| `lib/l10n/app_en.arb` | Modify | Add `"medsAddFabTooltip": "Add medication"` + `@medsAddFabTooltip` description; add `"medsAddTitle": "Add medication"` + `@medsAddTitle` description. |
+| `lib/l10n/app_de.arb` | Modify | Add `"medsAddFabTooltip": "Medikament hinzufügen"`, `"medsAddTitle": "Medikament hinzufügen"`. |
+| `lib/l10n/app_uk.arb` | Modify | Add `"medsAddFabTooltip": "Додати ліки"`, `"medsAddTitle": "Додати ліки"`. |
+| `lib/l10n/app_localizations.dart` (+ `_en.dart`, `_de.dart`, `_uk.dart`) | Auto-generated | Regenerated by `flutter gen-l10n` after ARB edits — do not hand-edit. |
+| `test/features/meds/presentation/screens/meds_screen_test.dart` | Modify | Add a new `group('MedsScreen FAB + Add-medication modal', ...)` with: (a) FAB exists, (b) tooltip equals localized `medsAddFabTooltip` for en/de/uk, (c) tapping FAB → `pumpAndSettle` → `find.text(<localized medsAddTitle>)` resolves to one widget. Existing locale-switching tests for the AppBar title remain unchanged. |
+| `test/features/meds/presentation/widgets/add_medication_sheet_test.dart` | Create | Pump `AddMedicationSheet` under the locale harness for `en`/`de`/`uk`. Assert: one `Text` with the localized title, zero `ElevatedButton` / `OutlinedButton` / `TextButton` / `IconButton` / `TextField` / `Form`. Confirms AC-4 (no extra widgets). |
+
+**Net file count**: 2 new files (1 widget + 1 test), 5 modified files (1 screen + 3 ARB + 1 test). Auto-generated `app_localizations*.dart` files will appear as 4 modified files in git but should not be hand-touched.
+
+### Documentation Impact
+
+| Doc File | Action | What Changes |
+|----------|--------|-------------|
+| `docs/features/meds.md` | Update if exists, otherwise no action | Add a short "Add-medication FAB & placeholder sheet" subsection noting that the FAB is currently a UI placeholder; the real add-medication flow will land in a separate feature. |
+| `docs/architecture.md` | No change | The pattern (FAB + bottom sheet) does not introduce a new architectural primitive; it is a vanilla Flutter `Scaffold.floatingActionButton` + `showModalBottomSheet`. |
+| `docs/api/*.md` | No change | No API surface added or changed. |
+
+> Note: documentation files under `docs/features/` are owned by the
+> tech-writer agent and are updated via `/finalize` at feature-merge time,
+> not by individual tasks. Tasks themselves only need inline dartdoc on
+> changed Dart files.
+
+## Risk Assessment
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| Existing `meds_screen_test.dart` assumptions about an empty body break when the FAB is added | High | Low | Update the screen test in the SAME task that introduces the FAB so the breakage is contained. |
+| `flutter gen-l10n` doesn't run between ARB edits and test execution, leaving `AppLocalizations` out of sync | Med | Med | Task ordering: ARB edits → run `flutter gen-l10n` → only then write the screen/widget code. The /execute-task pipeline runs `dart analyze` after each task; an out-of-sync localization file would surface immediately. |
+| FAB renders correctly in light mode but the bottom sheet has wrong background in dark mode | Low | Low | M3 default bottom sheet uses `colorScheme.surfaceContainerLow`, which is defined in both light/dark schemes. Manual AC-15 covers this. If a regression appears, set `backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow` explicitly — but only as a fallback. |
+| Inner `Scaffold` FAB is rendered behind/below the outer `AppBottomNav` | Low | Med | Inner-scaffold FAB renders inside the inner scaffold's body, above the outer bottom nav. Verified by reading `app_shell.dart` and the Flutter `Scaffold` docs. Manual AC-15 visual check on emulator confirms. |
+| Test harness reuses `localeResolutionCallback` from `meds_screen_test.dart` but the new sheet test forgets to wire the same callback, leading to silent fall-through to German for unsupported locales | Low | Med | Copy the harness function verbatim from `meds_screen_test.dart`; add a short comment in the new test referencing MEMORY.md's "alphabetical fallback" lesson so future readers understand why. |
+| AC-4 ("no other widgets") is over-strict — a `Padding`, `Column`, `SafeArea`, etc. count as widgets | None (definition issue) | None | The AC is about user-visible STRINGS and INTERACTIVE controls, not all widgets. The test phrasing is `expect(find.byType(ElevatedButton), findsNothing)` etc., not a blanket "no widgets except Text". This is a wording note — the spec text is clear in §3.2 / §6 ("no buttons, form fields, close icons"). |
+| Future "real add" feature replaces this sheet but leaves the placeholder file behind as dead code | Med | Low | Sheet's dartdoc explicitly marks it as a placeholder. Out-of-scope per spec §6 — out of plan scope to engineer this. The future "add medication" spec will dereference this file. |
+
+## Dependencies
+
+- **No new packages** — `pubspec.yaml` is not modified.
+- **No environment variables**.
+- **No services to configure**.
+- Existing dependencies relied upon (already pinned and in use):
+  - `flutter` SDK (Material 3 widgets: `FloatingActionButton`, `showModalBottomSheet`, `Scaffold`)
+  - `lucide_icons_flutter: ^3.1.12` (`LucideIcons.plus`)
+  - `flutter_localizations` + `flutter gen-l10n` (`AppLocalizations`)
+  - `flutter_test` (test harness, finder API)
+
+## Plan-Spec Cross-Reference Check
+
+| AC | Implementation path |
+|----|---------------------|
+| AC-1 (FAB present + Lucide plus + tooltip) | `meds_screen.dart` — `FloatingActionButton(onPressed: ..., tooltip: context.l10n.medsAddFabTooltip, child: Icon(LucideIcons.plus))`. |
+| AC-2 (theme-driven colors, no explicit overrides) | Plan §"Key Design Decisions" — Theme integration row prohibits passing colors. Code review will catch any deviation. |
+| AC-3 (tap opens `showModalBottomSheet`) | `_openAddMedicationSheet(context)` calls `showModalBottomSheet<void>(context: context, useSafeArea: true, builder: (_) => const AddMedicationSheet())`. |
+| AC-4 (sheet has only one localized string, no buttons/fields) | `add_medication_sheet.dart` body is `Padding → Column(min) → Text(context.l10n.medsAddTitle, style: titleLarge)`. New widget test asserts zero `*Button` / `TextField` / `Form` widgets. |
+| AC-5 (titleLarge style) | `Text(..., style: Theme.of(context).textTheme.titleLarge)`. |
+| AC-6 (`useSafeArea: true`, no other overrides) | Plan §"Key Design Decisions" — `useSafeArea` row + theme-integration row. Code review verifies. |
+| AC-7 (3 ARB files have the keys) | File Impact table — explicit modify entries for all three ARB files. |
+| AC-8 (en ARB has `@` description metadata) | File Impact table — `app_en.arb` row mentions adding both `@medsAddFabTooltip` and `@medsAddTitle` description blocks. |
+| AC-9 (no `!` at call sites) | Constitution Compliance §3.1 + MEMORY.md (Feature 006) — all access via `context.l10n` extension. |
+| AC-10 (`dart analyze` zero issues) | Automated post-task hook + per-task verify gate. |
+| AC-11 (existing screen test extended) | File Impact table — `meds_screen_test.dart` row spells out the new assertions. |
+| AC-12 (new sheet widget test) | File Impact table — `add_medication_sheet_test.dart` row. |
+| AC-13 (`flutter test` passes) | Per-task `flutter test` in the terminal task; this feature follows the integration-gate-on-terminal-task pattern (MEMORY.md, Features 002/005/007). |
+| AC-14 (`flutter build apk --debug`) | Terminal task gate. |
+| AC-15 (manual theme toggle) | Out of automated test scope; verified by /verify reading code (no hard-coded colors) plus manual on-device confirmation. |
+| AC-16 (manual locale toggle) | Same as AC-15 — code-only verification + manual on-device confirmation. |
+
+**Reverse check** (files in plan but not in spec's Affected Areas): None. Plan stays inside the spec's declared file footprint.
+
+## Supporting Documents
+
+- _No `research.md`_ — no signals (modal API is a built-in Flutter
+  primitive, no new deps, no architectural decision with multiple valid
+  approaches; bottom-sheet vs dialog is a spec §8 open question, not a
+  research item).
+- _No `data-model.md`_ — no entities.
+- _No `contracts.md`_ — no APIs.

@@ -177,6 +177,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Follow your device settings'**
   String get settingsUseDeviceLanguageSub;
+
+  /// Tooltip for the FAB on the Meds screen that opens the placeholder Add-medication modal.
+  ///
+  /// In en, this message translates to:
+  /// **'Add medication'**
+  String get medsAddFabTooltip;
+
+  /// Title shown at the top of the placeholder Add-medication full-screen modal on the Meds screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Add medication'**
+  String get medsAddTitle;
 }
 
 class _AppLocalizationsDelegate

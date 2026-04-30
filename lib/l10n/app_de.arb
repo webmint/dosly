@@ -12,5 +12,7 @@
   "settingsThemeDark": "Dunkel",
   "settingsLanguageHeader": "Sprache",
   "settingsUseDeviceLanguage": "Sprache des Geräts verwenden",
-  "settingsUseDeviceLanguageSub": "Geräteeinstellungen folgen"
+  "settingsUseDeviceLanguageSub": "Geräteeinstellungen folgen",
+  "medsAddFabTooltip": "Medikament hinzufügen",
+  "medsAddTitle": "Medikament hinzufügen"
 }
