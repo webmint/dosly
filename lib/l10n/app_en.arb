@@ -51,5 +51,13 @@
   "settingsUseDeviceLanguageSub": "Follow your device settings",
   "@settingsUseDeviceLanguageSub": {
     "description": "Subtitle for the device-language switch describing what the toggle does."
+  },
+  "medsAddFabTooltip": "Add medication",
+  "@medsAddFabTooltip": {
+    "description": "Tooltip for the FAB on the Meds screen that opens the placeholder Add-medication modal."
+  },
+  "medsAddTitle": "Add medication",
+  "@medsAddTitle": {
+    "description": "Title shown at the top of the placeholder Add-medication full-screen modal on the Meds screen."
   }
 }

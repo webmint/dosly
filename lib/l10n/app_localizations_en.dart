@@ -46,4 +46,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsUseDeviceLanguageSub => 'Follow your device settings';
+
+  @override
+  String get medsAddFabTooltip => 'Add medication';
+
+  @override
+  String get medsAddTitle => 'Add medication';
 }

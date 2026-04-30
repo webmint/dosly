@@ -200,6 +200,7 @@ class AppShell extends StatelessWidget {
 - **`lib/core/routing/` is the composition root for routes.** It is the only place in the app allowed to import from multiple feature folders simultaneously — the documented exception to the "feature A never imports feature B" rule.
 - **`appRouter` mirrors the `themeController` pattern** — a top-level `final` declared next to its module, not a Riverpod provider. Riverpod will arrive with the first real feature; the router was deliberately kept on plain primitives.
 - **Navigation is `context.go(...)` / `context.push(...)`** from `package:go_router/go_router.dart`, not `Navigator.of(context)`.
+- **Full-screen modals over the shell use `Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(fullscreenDialog: true, ...))`** — the only sanctioned use of the imperative `Navigator` API. `rootNavigator: true` is required so the modal covers `AppShell`'s bottom nav bar. See [`features/meds.md`](features/meds.md) for the reference implementation.
 - **`AppBottomNav` is router-agnostic.** It accepts `int` + `ValueChanged<int>` — plain values, not a `StatefulNavigationShell`. `AppShell` is the only coupling point.
 
 ## Entry point

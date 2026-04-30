@@ -12,5 +12,7 @@
   "settingsThemeDark": "Темна",
   "settingsLanguageHeader": "Мова",
   "settingsUseDeviceLanguage": "Мова пристрою",
-  "settingsUseDeviceLanguageSub": "Використовувати налаштування пристрою"
+  "settingsUseDeviceLanguageSub": "Використовувати налаштування пристрою",
+  "medsAddFabTooltip": "Додати ліки",
+  "medsAddTitle": "Додати ліки"
 }
