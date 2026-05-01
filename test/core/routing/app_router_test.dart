@@ -9,6 +9,7 @@
 
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
+import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
 import 'package:flutter/material.dart';
@@ -33,7 +34,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   AppSettings load() => const AppSettings();
 
   @override
-  Future<Either<Never, void>> saveThemeMode(ThemeMode mode) async =>
+  Future<Either<Never, void>> saveThemeMode(AppThemeMode mode) async =>
       const Right(null);
 
   @override

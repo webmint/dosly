@@ -1,12 +1,12 @@
 /// Concrete [SettingsRepository] backed by local shared preferences.
 library;
 
-import 'package:flutter/material.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/app_language.dart';
 import '../../domain/entities/app_settings.dart';
+import '../../domain/entities/app_theme_mode.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../datasources/settings_local_data_source.dart';
 
@@ -27,7 +27,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       );
 
   @override
-  Future<Either<Failure, void>> saveThemeMode(ThemeMode mode) async {
+  Future<Either<Failure, void>> saveThemeMode(AppThemeMode mode) async {
     try {
       await _dataSource.setThemeMode(mode);
       return const Right(null);

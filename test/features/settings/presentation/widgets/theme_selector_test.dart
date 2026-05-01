@@ -2,6 +2,7 @@ library;
 
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
+import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
 import 'package:dosly/features/settings/presentation/widgets/theme_selector.dart';
@@ -19,13 +20,13 @@ class _FakeSettingsRepository implements SettingsRepository {
       : _settings = initial ?? const AppSettings();
 
   bool get savedUseSystemTheme => _settings.useSystemTheme;
-  ThemeMode get savedManualThemeMode => _settings.manualThemeMode;
+  AppThemeMode get savedManualThemeMode => _settings.manualThemeMode;
 
   @override
   AppSettings load() => _settings;
 
   @override
-  Future<Either<Never, void>> saveThemeMode(ThemeMode mode) async {
+  Future<Either<Never, void>> saveThemeMode(AppThemeMode mode) async {
     _settings = _settings.copyWith(manualThemeMode: mode);
     return const Right(null);
   }
@@ -129,8 +130,8 @@ void main() {
         await tester.pumpWidget(_harness(locale: const Locale('en')));
         await tester.pumpAndSettle();
 
-        final button = tester.widget<SegmentedButton<ThemeMode>>(
-          find.byType(SegmentedButton<ThemeMode>),
+        final button = tester.widget<SegmentedButton<AppThemeMode>>(
+          find.byType(SegmentedButton<AppThemeMode>),
         );
         expect(button.onSelectionChanged, isNull);
       });
@@ -146,10 +147,10 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final button = tester.widget<SegmentedButton<ThemeMode>>(
-          find.byType(SegmentedButton<ThemeMode>),
+        final button = tester.widget<SegmentedButton<AppThemeMode>>(
+          find.byType(SegmentedButton<AppThemeMode>),
         );
-        expect(button.selected, {ThemeMode.light});
+        expect(button.selected, {AppThemeMode.light});
       });
 
       testWidgets(
@@ -163,10 +164,10 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final button = tester.widget<SegmentedButton<ThemeMode>>(
-          find.byType(SegmentedButton<ThemeMode>),
+        final button = tester.widget<SegmentedButton<AppThemeMode>>(
+          find.byType(SegmentedButton<AppThemeMode>),
         );
-        expect(button.selected, {ThemeMode.dark});
+        expect(button.selected, {AppThemeMode.dark});
       });
 
       testWidgets(
@@ -180,8 +181,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final button = tester.widget<SegmentedButton<ThemeMode>>(
-          find.byType(SegmentedButton<ThemeMode>),
+        final button = tester.widget<SegmentedButton<AppThemeMode>>(
+          find.byType(SegmentedButton<AppThemeMode>),
         );
         expect(button.onSelectionChanged, isNotNull);
       });
@@ -192,7 +193,7 @@ void main() {
         final repo = _FakeSettingsRepository(
           initial: const AppSettings(
             useSystemTheme: false,
-            manualThemeMode: ThemeMode.dark,
+            manualThemeMode: AppThemeMode.dark,
           ),
         );
         await tester.pumpWidget(
@@ -200,10 +201,10 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final button = tester.widget<SegmentedButton<ThemeMode>>(
-          find.byType(SegmentedButton<ThemeMode>),
+        final button = tester.widget<SegmentedButton<AppThemeMode>>(
+          find.byType(SegmentedButton<AppThemeMode>),
         );
-        expect(button.selected, {ThemeMode.dark});
+        expect(button.selected, {AppThemeMode.dark});
       });
 
       testWidgets(
@@ -220,7 +221,7 @@ void main() {
         await tester.tap(find.text('Dark'));
         await tester.pumpAndSettle();
 
-        expect(repo.savedManualThemeMode, ThemeMode.dark);
+        expect(repo.savedManualThemeMode, AppThemeMode.dark);
       });
 
       testWidgets(
@@ -242,7 +243,7 @@ void main() {
 
         expect(repo.savedUseSystemTheme, isFalse);
         // Dark device → dark manual mode pre-set
-        expect(repo.savedManualThemeMode, ThemeMode.dark);
+        expect(repo.savedManualThemeMode, AppThemeMode.dark);
       });
     });
 

@@ -11,6 +11,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 // Temporary cross-feature import — ThemePreviewScreen is a dev-only screen
 // scheduled for removal (see specs/002-main-screen/spec.md §6 and §8).
+import '../../../settings/domain/entities/app_theme_mode.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../widgets/color_swatch_card.dart';
 import '../widgets/typography_sample.dart';
@@ -31,7 +32,15 @@ class ThemePreviewScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
-    final effectiveMode = settings.effectiveThemeMode;
+    // The icon helper takes Flutter's 3-value `ThemeMode` for display
+    // purposes only — `AppThemeMode` is intentionally 2-value (no
+    // `system`), so we compute the display-side `ThemeMode` inline from
+    // the entity's raw fields.
+    final ThemeMode effectiveMode = settings.useSystemTheme
+        ? ThemeMode.system
+        : (settings.manualThemeMode == AppThemeMode.dark
+            ? ThemeMode.dark
+            : ThemeMode.light);
 
     return Scaffold(
       appBar: AppBar(
@@ -45,11 +54,11 @@ class ThemePreviewScreen extends ConsumerWidget {
               // Cycle: system → light → dark → system
               if (settings.useSystemTheme) {
                 // system → light (manual)
-                notifier.setThemeMode(ThemeMode.light);
+                notifier.setThemeMode(AppThemeMode.light);
                 notifier.setUseSystemTheme(false);
-              } else if (settings.manualThemeMode == ThemeMode.light) {
+              } else if (settings.manualThemeMode == AppThemeMode.light) {
                 // light → dark (manual)
-                notifier.setThemeMode(ThemeMode.dark);
+                notifier.setThemeMode(AppThemeMode.dark);
               } else {
                 // dark → system
                 notifier.setUseSystemTheme(true);
