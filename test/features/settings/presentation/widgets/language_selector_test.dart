@@ -2,6 +2,7 @@ library;
 
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
+import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
 import 'package:dosly/features/settings/presentation/widgets/language_selector.dart';
@@ -30,7 +31,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   AppSettings load() => _settings;
 
   @override
-  Future<Either<Never, void>> saveThemeMode(ThemeMode mode) async {
+  Future<Either<Never, void>> saveThemeMode(AppThemeMode mode) async {
     _settings = _settings.copyWith(manualThemeMode: mode);
     return const Right(null);
   }

@@ -15,25 +15,41 @@ The feature exposes two groups of controls: **Appearance** (theme mode) and **La
 | Field | Default | Meaning |
 |---|---|---|
 | `useSystemTheme` | `true` | Follow the device theme when `true` |
-| `manualThemeMode` | `ThemeMode.light` | Override used when `useSystemTheme` is `false` |
+| `manualThemeMode` | `AppThemeMode.light` | Override used when `useSystemTheme` is `false` |
 | `useSystemLanguage` | `true` | Follow the device language when `true` |
 | `manualLanguage` | `AppLanguage.en` | Override used when `useSystemLanguage` is `false` |
 
-The `effectiveThemeMode` getter derives what to pass to `MaterialApp.themeMode`:
+`AppThemeMode` (`lib/features/settings/domain/entities/app_theme_mode.dart`) is a domain-owned enum with two values — `light` and `dark`. It intentionally has no `system` value: the "follow system" concept is owned by the orthogonal `useSystemTheme: bool` flag. Each value carries a stable `code` field (`'light'` / `'dark'`) used for string persistence, and a `fromCodeOrDefault` static helper provides graceful fallback for unknown or legacy data. It lives alongside `AppLanguage` for the same domain-purity reason: both replace Flutter SDK types (`ThemeMode`, `Locale`) that would otherwise violate constitution §2.1 in the domain layer.
+
+### Presentation seam
+
+`AppSettings` intentionally exposes no Flutter SDK types — there are no `effectiveThemeMode` or `effectiveLocale` getters on the entity. Instead, `lib/app.dart` watches the four raw fields through separate narrow `ref.watch(settingsProvider.select(...))` calls and computes `MaterialApp.themeMode` and `locale` inline:
 
 ```dart
-ThemeMode get effectiveThemeMode =>
-    useSystemTheme ? ThemeMode.system : manualThemeMode;
+// lib/app.dart
+final useSystemTheme = ref.watch(
+  settingsProvider.select((s) => s.useSystemTheme),
+);
+final manualThemeMode = ref.watch(
+  settingsProvider.select((s) => s.manualThemeMode),
+);
+final useSystemLanguage = ref.watch(
+  settingsProvider.select((s) => s.useSystemLanguage),
+);
+final manualLanguage = ref.watch(
+  settingsProvider.select((s) => s.manualLanguage),
+);
+
+return MaterialApp.router(
+  locale: useSystemLanguage ? null : Locale(manualLanguage.code),
+  themeMode: useSystemTheme
+      ? ThemeMode.system
+      : _toFlutterThemeMode(manualThemeMode),
+  // ...
+);
 ```
 
-The `effectiveLocale` getter derives what to pass to `MaterialApp.locale`:
-
-```dart
-Locale? get effectiveLocale =>
-    useSystemLanguage ? null : Locale(manualLanguage.code);
-```
-
-When `effectiveLocale` is `null` (system language mode), `MaterialApp`'s `localeResolutionCallback` fires and resolves the device locale against supported locales with an English fallback. When non-null, the manual choice is passed directly to `MaterialApp.locale` and the callback is bypassed by Flutter.
+`_toFlutterThemeMode` is a private helper in `lib/app.dart` that maps `AppThemeMode` → `ThemeMode` exhaustively (no `default:` clause — the Dart compiler enforces exhaustiveness). This file is the single `Flutter SDK ↔ domain` mapping seam. When `locale` is `null` (system language mode), `MaterialApp`'s `localeResolutionCallback` fires and resolves the device locale against supported locales with an English fallback.
 
 `AppLanguage` (`lib/features/settings/domain/entities/app_language.dart`) is an enum of the three supported languages. Each value carries its IETF code and a `nativeName` rendered in the language's own script:
 
@@ -47,7 +63,7 @@ Native names are plain literals — they are never translated. This is the unive
 
 `SettingsRepository` (`lib/features/settings/domain/repositories/settings_repository.dart`) is the abstract contract consumed by the presentation layer. It exposes synchronous `load()` and async save operations, all returning `Either<Failure, T>`:
 
-- `saveThemeMode(ThemeMode)` — persists the manual theme choice
+- `saveThemeMode(AppThemeMode)` — persists the manual theme choice
 - `saveUseSystemTheme(bool)` — persists the system-theme toggle
 - `saveUseSystemLanguage(bool)` — persists the system-language toggle
 - `saveManualLanguage(AppLanguage)` — persists the manual language choice
@@ -72,27 +88,22 @@ Future<void> setUseSystemTheme(bool value) async {
 }
 ```
 
-`DoslyApp` watches `settingsProvider` with narrow selectors so only the relevant value change triggers a root rebuild:
-
-```dart
-locale: ref.watch(settingsProvider.select((s) => s.effectiveLocale)),
-themeMode: ref.watch(settingsProvider.select((s) => s.effectiveThemeMode)),
-```
+`DoslyApp` in `lib/app.dart` watches `settingsProvider` with four narrow selectors so only the relevant field change triggers a root rebuild. See the [Presentation seam](#presentation-seam) section above for the full shape.
 
 ## ThemeSelector widget
 
 `ThemeSelector` (`lib/features/settings/presentation/widgets/theme_selector.dart`) is a `ConsumerWidget` composed of two controls:
 
 1. A `SwitchListTile` — "Use system theme" toggle. Default ON.
-2. A full-width `SegmentedButton<ThemeMode>` — Light / Dark. Disabled (but visually reflecting the current system brightness) while the toggle is ON.
+2. A full-width `SegmentedButton<AppThemeMode>` — Light / Dark. Disabled (but visually reflecting the current system brightness) while the toggle is ON.
 
 When the user turns the toggle OFF, `ThemeSelector` pre-fills the manual segment with the current device brightness so the visual transition is seamless.
 
 ```dart
 // Switching to manual: pre-select the segment that matches current system brightness
 final manualMode = systemBrightness == Brightness.dark
-    ? ThemeMode.dark
-    : ThemeMode.light;
+    ? AppThemeMode.dark
+    : AppThemeMode.light;
 ref.read(settingsProvider.notifier).setThemeMode(manualMode);
 ```
 

@@ -3,9 +3,9 @@ library;
 import 'package:dosly/core/error/failures.dart';
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
+import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
@@ -33,7 +33,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   AppSettings load() => _settings;
 
   @override
-  Future<Either<Failure, void>> saveThemeMode(ThemeMode mode) async {
+  Future<Either<Failure, void>> saveThemeMode(AppThemeMode mode) async {
     if (failOnSaveThemeMode) {
       return const Left(CacheFailure('mock failure'));
     }
@@ -93,19 +93,18 @@ void main() {
       final settings = container.read(settingsProvider);
 
       expect(settings.useSystemTheme, isTrue);
-      expect(settings.manualThemeMode, ThemeMode.light);
-      expect(settings.effectiveThemeMode, ThemeMode.system);
+      expect(settings.manualThemeMode, AppThemeMode.light);
     });
 
-    test('setThemeMode(ThemeMode.dark) updates manualThemeMode to dark',
+    test('setThemeMode(AppThemeMode.dark) updates manualThemeMode to dark',
         () async {
       await container
           .read(settingsProvider.notifier)
-          .setThemeMode(ThemeMode.dark);
+          .setThemeMode(AppThemeMode.dark);
 
       final settings = container.read(settingsProvider);
 
-      expect(settings.manualThemeMode, ThemeMode.dark);
+      expect(settings.manualThemeMode, AppThemeMode.dark);
     });
 
     test('setThemeMode does not update state when save fails', () async {
@@ -113,11 +112,11 @@ void main() {
 
       await container
           .read(settingsProvider.notifier)
-          .setThemeMode(ThemeMode.dark);
+          .setThemeMode(AppThemeMode.dark);
 
       final settings = container.read(settingsProvider);
 
-      expect(settings.manualThemeMode, ThemeMode.light);
+      expect(settings.manualThemeMode, AppThemeMode.light);
     });
 
     test('setUseSystemTheme(false) updates useSystemTheme to false', () async {
@@ -128,7 +127,7 @@ void main() {
       final settings = container.read(settingsProvider);
 
       expect(settings.useSystemTheme, isFalse);
-      expect(settings.effectiveThemeMode, ThemeMode.light);
+      expect(settings.manualThemeMode, AppThemeMode.light);
     });
 
     test('setUseSystemTheme does not update state when save fails', () async {
@@ -144,30 +143,32 @@ void main() {
     });
 
     test(
-        'effectiveThemeMode returns system when useSystemTheme=true even if manualThemeMode=dark',
+        'useSystemTheme remains true when only manualThemeMode is updated to dark',
         () async {
       // First set manual to dark
       await container
           .read(settingsProvider.notifier)
-          .setThemeMode(ThemeMode.dark);
-      // Ensure system is still on
+          .setThemeMode(AppThemeMode.dark);
+      // Ensure useSystemTheme is still on
       final settings = container.read(settingsProvider);
-      expect(settings.effectiveThemeMode, ThemeMode.system);
+      expect(settings.useSystemTheme, isTrue);
+      expect(settings.manualThemeMode, AppThemeMode.dark);
     });
 
     test(
-        'effectiveThemeMode returns manualThemeMode when useSystemTheme=false',
+        'manualThemeMode=dark is returned when useSystemTheme is set to false',
         () async {
       await container
           .read(settingsProvider.notifier)
-          .setThemeMode(ThemeMode.dark);
+          .setThemeMode(AppThemeMode.dark);
       await container
           .read(settingsProvider.notifier)
           .setUseSystemTheme(false);
 
       final settings = container.read(settingsProvider);
 
-      expect(settings.effectiveThemeMode, ThemeMode.dark);
+      expect(settings.useSystemTheme, isFalse);
+      expect(settings.manualThemeMode, AppThemeMode.dark);
     });
 
     test('setUseSystemLanguage(false) updates useSystemLanguage to false',
@@ -217,14 +218,14 @@ void main() {
       expect(settings.manualLanguage, AppLanguage.en);
     });
 
-    test('effectiveLocale is null when useSystemLanguage=true', () {
+    test('useSystemLanguage=true by default (system locale drives resolution)', () {
       final settings = container.read(settingsProvider);
 
-      expect(settings.effectiveLocale, isNull);
+      expect(settings.useSystemLanguage, isTrue);
     });
 
     test(
-        'effectiveLocale equals Locale("de") after setUseSystemLanguage(false) + setManualLanguage(de)',
+        'manualLanguage=de is stored after setUseSystemLanguage(false) + setManualLanguage(de)',
         () async {
       await container
           .read(settingsProvider.notifier)
@@ -235,7 +236,8 @@ void main() {
 
       final settings = container.read(settingsProvider);
 
-      expect(settings.effectiveLocale, const Locale('de'));
+      expect(settings.useSystemLanguage, isFalse);
+      expect(settings.manualLanguage, AppLanguage.de);
     });
   });
 }

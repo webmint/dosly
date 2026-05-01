@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../l10n/l10n_extensions.dart';
+import '../../domain/entities/app_theme_mode.dart';
 import '../providers/settings_provider.dart';
 
 /// A compound widget that lets the user control the app theme.
@@ -35,10 +36,10 @@ class ThemeSelector extends ConsumerWidget {
 
     // When the system toggle is active, derive the displayed segment from the
     // actual device brightness so the user can see what the system is using.
-    final displayedMode = settings.useSystemTheme
+    final AppThemeMode displayedMode = settings.useSystemTheme
         ? (systemBrightness == Brightness.dark
-            ? ThemeMode.dark
-            : ThemeMode.light)
+            ? AppThemeMode.dark
+            : AppThemeMode.light)
         : settings.manualThemeMode;
 
     return Column(
@@ -55,9 +56,10 @@ class ThemeSelector extends ConsumerWidget {
             if (!value) {
               // Switching to manual: pre-select the segment that matches the
               // current system brightness so the switch feels instant.
-              final manualMode = systemBrightness == Brightness.dark
-                  ? ThemeMode.dark
-                  : ThemeMode.light;
+              final AppThemeMode manualMode =
+                  systemBrightness == Brightness.dark
+                      ? AppThemeMode.dark
+                      : AppThemeMode.light;
               ref.read(settingsProvider.notifier).setThemeMode(manualMode);
             }
             ref.read(settingsProvider.notifier).setUseSystemTheme(value);
@@ -66,25 +68,25 @@ class ThemeSelector extends ConsumerWidget {
         const SizedBox(height: 8),
         SizedBox(
           width: double.infinity,
-          child: SegmentedButton<ThemeMode>(
-          segments: <ButtonSegment<ThemeMode>>[
-            ButtonSegment<ThemeMode>(
-              value: ThemeMode.light,
+          child: SegmentedButton<AppThemeMode>(
+          segments: <ButtonSegment<AppThemeMode>>[
+            ButtonSegment<AppThemeMode>(
+              value: AppThemeMode.light,
               label: Text(l10n.settingsThemeLight),
               icon: const Icon(LucideIcons.sun),
             ),
-            ButtonSegment<ThemeMode>(
-              value: ThemeMode.dark,
+            ButtonSegment<AppThemeMode>(
+              value: AppThemeMode.dark,
               label: Text(l10n.settingsThemeDark),
               icon: const Icon(LucideIcons.moon),
             ),
           ],
-          selected: <ThemeMode>{displayedMode},
+          selected: <AppThemeMode>{displayedMode},
           // Passing null disables the button in M3, but the selected segment
           // remains visually highlighted showing the current system theme.
           onSelectionChanged: settings.useSystemTheme
               ? null
-              : (Set<ThemeMode> selection) {
+              : (Set<AppThemeMode> selection) {
                   ref
                       .read(settingsProvider.notifier)
                       .setThemeMode(selection.first);

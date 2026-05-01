@@ -1,15 +1,19 @@
 /// Application root.
 ///
-/// A [ConsumerWidget] that watches [settingsProvider] for the current
-/// [ThemeMode]. Sets the M3 light and dark themes from [AppTheme].
-/// Routing is delegated to [appRouter] which currently exposes `/`
-/// ([HomeScreen]) and a temporary dev-only `/theme-preview` route — the
-/// preview route will be removed in the final development stages (see
-/// specs/002-main-screen/spec.md). [MaterialApp.locale] is driven by user
-/// settings ([AppSettings.effectiveLocale]); when it is `null` (system
-/// language opted in) the existing [_resolveLocale] callback resolves the
-/// device locale against [AppLocalizations.supportedLocales] with English
-/// as the fallback.
+/// A [ConsumerWidget] that watches the four raw [AppSettings] fields
+/// through narrow `ref.watch(settingsProvider.select(...))` calls
+/// (`useSystemTheme`, `manualThemeMode`, `useSystemLanguage`,
+/// `manualLanguage`) and computes the Flutter-typed `themeMode` /
+/// `locale` for [MaterialApp.router] inline. This file is the single
+/// `Flutter SDK ↔ domain` mapping seam — `package:flutter`'s
+/// [ThemeMode] does not appear in `lib/features/settings/`. Routing is
+/// delegated to [appRouter] which currently exposes `/` ([HomeScreen])
+/// and a temporary dev-only `/theme-preview` route — the preview route
+/// will be removed in the final development stages (see
+/// specs/002-main-screen/spec.md). When `useSystemLanguage` is `true`
+/// `MaterialApp.locale` is left `null` so [_resolveLocale] resolves the
+/// device locale against [AppLocalizations.supportedLocales] with
+/// English as the fallback.
 library;
 
 import 'package:flutter/material.dart';
@@ -17,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/settings/domain/entities/app_theme_mode.dart';
 import 'features/settings/presentation/providers/settings_provider.dart';
 import 'l10n/app_localizations.dart';
 
@@ -40,6 +45,17 @@ Locale _resolveLocale(Locale? deviceLocale, Iterable<Locale> supportedLocales) {
   return const Locale('en');
 }
 
+/// Maps the domain-owned [AppThemeMode] to Flutter's [ThemeMode].
+///
+/// Exhaustive over [AppThemeMode]'s two values (no `default:` clause —
+/// the Dart compiler enforces exhaustiveness). The `system` case is
+/// handled at the call site by checking `useSystemTheme` before
+/// invoking this function.
+ThemeMode _toFlutterThemeMode(AppThemeMode m) => switch (m) {
+  AppThemeMode.light => ThemeMode.light,
+  AppThemeMode.dark => ThemeMode.dark,
+};
+
 /// The dosly application root widget.
 class DoslyApp extends ConsumerWidget {
   /// Creates the application root.
@@ -47,6 +63,19 @@ class DoslyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final useSystemTheme = ref.watch(
+      settingsProvider.select((s) => s.useSystemTheme),
+    );
+    final manualThemeMode = ref.watch(
+      settingsProvider.select((s) => s.manualThemeMode),
+    );
+    final useSystemLanguage = ref.watch(
+      settingsProvider.select((s) => s.useSystemLanguage),
+    );
+    final manualLanguage = ref.watch(
+      settingsProvider.select((s) => s.manualLanguage),
+    );
+
     return MaterialApp.router(
       title: 'dosly',
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -55,10 +84,10 @@ class DoslyApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      locale: ref.watch(settingsProvider.select((s) => s.effectiveLocale)),
-      themeMode: ref.watch(
-        settingsProvider.select((s) => s.effectiveThemeMode),
-      ),
+      locale: useSystemLanguage ? null : Locale(manualLanguage.code),
+      themeMode: useSystemTheme
+          ? ThemeMode.system
+          : _toFlutterThemeMode(manualThemeMode),
       routerConfig: appRouter,
     );
   }

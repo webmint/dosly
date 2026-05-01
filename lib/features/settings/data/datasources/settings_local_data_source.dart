@@ -2,10 +2,10 @@
 /// [SharedPreferencesWithCache].
 library;
 
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/entities/app_language.dart';
+import '../../domain/entities/app_theme_mode.dart';
 
 /// Key used to persist the user's manual theme-mode preference.
 const String _kThemeModeKey = 'themeMode';
@@ -30,21 +30,30 @@ class SettingsLocalDataSource {
 
   final SharedPreferencesWithCache _prefs;
 
-  /// Returns the persisted manual [ThemeMode].
+  /// Returns the persisted manual [AppThemeMode].
   ///
-  /// Falls back to [ThemeMode.light] when no value has been stored or the
-  /// stored index is out of range.
-  ThemeMode getThemeMode() {
-    final int? index = _prefs.getInt(_kThemeModeKey);
-    if (index == null || index < 0 || index >= ThemeMode.values.length) {
-      return ThemeMode.light;
+  /// Falls back to [AppThemeMode.light] when no value has been stored, the
+  /// stored code does not match any [AppThemeMode.code], or the stored
+  /// value is of the wrong type (e.g. legacy `int` data from a pre-spec-012
+  /// build). The wrong-type case throws inside `SharedPreferencesWithCache`'s
+  /// `getString` cast; we catch it and degrade gracefully.
+  AppThemeMode getThemeMode() {
+    try {
+      final String? code = _prefs.getString(_kThemeModeKey);
+      return AppThemeMode.fromCodeOrDefault(code);
+    } catch (_) {
+      // Pre-spec-012 builds persisted this key as `int` (`ThemeMode.index`).
+      // `SharedPreferencesWithCache.getString` casts the cached value to
+      // `String?` and throws `TypeError` on legacy int data. Treat any
+      // throwable as "no usable code stored" and fall back to the default.
+      return AppThemeMode.light;
     }
-    return ThemeMode.values[index];
   }
 
-  /// Persists the user's manual [mode] choice as an integer index.
-  Future<void> setThemeMode(ThemeMode mode) =>
-      _prefs.setInt(_kThemeModeKey, mode.index);
+  /// Persists the user's manual [mode] choice as its stable
+  /// [AppThemeMode.code] string (e.g. `'light'` / `'dark'`).
+  Future<void> setThemeMode(AppThemeMode mode) =>
+      _prefs.setString(_kThemeModeKey, mode.code);
 
   /// Returns whether the app should follow the device system theme.
   ///

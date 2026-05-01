@@ -22,6 +22,14 @@ Anything shared across features lives under `lib/core/` and must be **feature-ag
 
 > The three-layer pattern was first exercised in full by `009-theme-settings`: `domain/entities/app_settings.dart` and `domain/repositories/settings_repository.dart` exist as pure Dart; `data/` holds the data source and repository implementation; `presentation/` holds the Riverpod providers and widgets.
 
+> Spec `012-settings-domain-purify` (2026-04-30) made the constitution
+> §2.1 layering rule actually true for the settings feature: `lib/features/settings/domain/`
+> and `lib/features/settings/data/` are now free of `package:flutter/*` imports. The
+> Flutter SDK ↔ domain mapping (e.g., `AppThemeMode → ThemeMode`) is
+> confined to the presentation seam in `lib/app.dart`, where four narrow
+> `ref.watch(settingsProvider.select(...))` calls read the four raw entity
+> fields and compute `MaterialApp.themeMode` / `locale` inline.
+
 ## The theme module
 
 Theme code lives under `lib/core/theme/` because it is cross-feature, has no domain knowledge, and every screen in the app will eventually depend on it. This location is mandated by constitution §2.2.
@@ -45,7 +53,7 @@ A grep for `Color(0xFF` outside `lib/core/theme/` is run as part of verification
 
 Dosly uses **Riverpod** (`flutter_riverpod`) for all feature-level and app-wide reactive state. It was introduced with the `009-theme-settings` feature, which also replaced the earlier `ThemeController` singleton.
 
-`DoslyApp` is a `ConsumerWidget`. It watches `settingsProvider` with a narrow selector so only a `ThemeMode` change triggers a rebuild:
+`DoslyApp` is a `ConsumerWidget`. It watches `settingsProvider` with four narrow selectors — one per raw `AppSettings` field — so only an actual field change triggers a rebuild:
 
 ```dart
 // lib/app.dart
@@ -54,12 +62,26 @@ class DoslyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final useSystemTheme = ref.watch(
+      settingsProvider.select((s) => s.useSystemTheme),
+    );
+    final manualThemeMode = ref.watch(
+      settingsProvider.select((s) => s.manualThemeMode),
+    );
+    final useSystemLanguage = ref.watch(
+      settingsProvider.select((s) => s.useSystemLanguage),
+    );
+    final manualLanguage = ref.watch(
+      settingsProvider.select((s) => s.manualLanguage),
+    );
+
     return MaterialApp.router(
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ref.watch(
-        settingsProvider.select((s) => s.effectiveThemeMode),
-      ),
+      locale: useSystemLanguage ? null : Locale(manualLanguage.code),
+      themeMode: useSystemTheme
+          ? ThemeMode.system
+          : _toFlutterThemeMode(manualThemeMode),
       routerConfig: appRouter,
     );
   }
@@ -76,7 +98,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferencesWithCache.create(
     cacheOptions: const SharedPreferencesWithCacheOptions(
-      allowList: <String>{'themeMode', 'useSystemTheme'},
+      allowList: <String>{
+        'themeMode',
+        'useSystemTheme',
+        'useSystemLanguage',
+        'manualLanguage',
+      },
     ),
   );
   runApp(

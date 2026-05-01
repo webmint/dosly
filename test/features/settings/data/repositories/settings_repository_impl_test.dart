@@ -3,7 +3,7 @@ library;
 import 'package:dosly/features/settings/data/datasources/settings_local_data_source.dart';
 import 'package:dosly/features/settings/data/repositories/settings_repository_impl.dart';
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
-import 'package:flutter/material.dart';
+import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,7 +34,7 @@ void main() {
         final settings = repository.load();
 
         expect(settings.useSystemTheme, isTrue);
-        expect(settings.manualThemeMode, ThemeMode.light);
+        expect(settings.manualThemeMode, AppThemeMode.light);
       });
 
       test('returns useSystemTheme=false after saveUseSystemTheme(false)',
@@ -48,48 +48,43 @@ void main() {
       });
 
       test(
-          'returns manualThemeMode=dark after saveThemeMode(ThemeMode.dark)',
+          'returns manualThemeMode=dark after saveThemeMode(AppThemeMode.dark)',
           () async {
         final repository = await _buildRepository();
-        await repository.saveThemeMode(ThemeMode.dark);
+        await repository.saveThemeMode(AppThemeMode.dark);
 
         final settings = repository.load();
 
-        expect(settings.manualThemeMode, ThemeMode.dark);
+        expect(settings.manualThemeMode, AppThemeMode.dark);
       });
 
       test(
-          'returns manualThemeMode=light when out-of-range int (99) is stored',
+          'returns manualThemeMode=light when unknown string code is stored',
           () async {
         final repository = await _buildRepository(
-          initialData: {'themeMode': 99},
+          initialData: {'themeMode': 'unknown'},
         );
 
         final settings = repository.load();
 
-        expect(settings.manualThemeMode, ThemeMode.light);
+        expect(settings.manualThemeMode, AppThemeMode.light);
       });
 
-      test('effectiveThemeMode is system when useSystemTheme=true', () async {
-        final repository = await _buildRepository();
-        await repository.saveUseSystemTheme(true);
-        await repository.saveThemeMode(ThemeMode.dark);
-
-        final settings = repository.load();
-
-        expect(settings.effectiveThemeMode, ThemeMode.system);
-      });
-
+      // AC-8: legacy `int` themeMode (pre-spec-012 format, persisted as
+      // ThemeMode.index) falls back to AppThemeMode.light. The data source's
+      // try/catch around _prefs.getString absorbs the TypeError that
+      // SharedPreferencesWithCache raises when casting the cached int to
+      // String?, returning the default instead of crashing.
       test(
-          'effectiveThemeMode equals manualThemeMode when useSystemTheme=false',
+          'returns manualThemeMode=light when legacy int themeMode (1) is stored',
           () async {
-        final repository = await _buildRepository();
-        await repository.saveUseSystemTheme(false);
-        await repository.saveThemeMode(ThemeMode.dark);
+        final repository = await _buildRepository(
+          initialData: {'themeMode': 1},
+        );
 
         final settings = repository.load();
 
-        expect(settings.effectiveThemeMode, ThemeMode.dark);
+        expect(settings.manualThemeMode, AppThemeMode.light);
       });
 
       test('returns useSystemLanguage=true and manualLanguage=en by default',
@@ -135,16 +130,18 @@ void main() {
         expect(settings.manualLanguage, AppLanguage.en);
       });
 
-      test('effectiveLocale is null when useSystemLanguage=true', () async {
+      test('useSystemLanguage=true and manualLanguage=en by default (system locale drives resolution)',
+          () async {
         final repository = await _buildRepository();
 
         final settings = repository.load();
 
-        expect(settings.effectiveLocale, isNull);
+        expect(settings.useSystemLanguage, isTrue);
+        expect(settings.manualLanguage, AppLanguage.en);
       });
 
       test(
-          'effectiveLocale equals Locale("de") when useSystemLanguage=false and manualLanguage=de',
+          'manualLanguage=de is stored when useSystemLanguage=false and saveManualLanguage(de)',
           () async {
         final repository = await _buildRepository();
         await repository.saveUseSystemLanguage(false);
@@ -152,7 +149,8 @@ void main() {
 
         final settings = repository.load();
 
-        expect(settings.effectiveLocale, const Locale('de'));
+        expect(settings.useSystemLanguage, isFalse);
+        expect(settings.manualLanguage, AppLanguage.de);
       });
     });
 
@@ -160,7 +158,7 @@ void main() {
       test('returns Right(null) on success', () async {
         final repository = await _buildRepository();
 
-        final result = await repository.saveThemeMode(ThemeMode.light);
+        final result = await repository.saveThemeMode(AppThemeMode.light);
 
         expect(result, isA<Right<dynamic, void>>());
       });
@@ -211,7 +209,7 @@ void main() {
         final firstRepository =
             SettingsRepositoryImpl(SettingsLocalDataSource(prefs));
 
-        await firstRepository.saveThemeMode(ThemeMode.dark);
+        await firstRepository.saveThemeMode(AppThemeMode.dark);
         await firstRepository.saveUseSystemTheme(false);
 
         // Act — reconstruct a new repository from the same prefs instance.
@@ -220,7 +218,7 @@ void main() {
         final settings = secondRepository.load();
 
         // Assert — persisted values are visible to the new instance.
-        expect(settings.manualThemeMode, ThemeMode.dark);
+        expect(settings.manualThemeMode, AppThemeMode.dark);
         expect(settings.useSystemTheme, isFalse);
       });
 

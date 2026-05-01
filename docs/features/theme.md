@@ -2,7 +2,9 @@
 
 ## Overview
 
-The theme module is dosly's visual foundation. It hand-codes Material 3 `ColorScheme` tokens for light and dark mode, bundles Roboto at four weights, composes them into `ThemeData` with 11 pre-wired component themes, and drives `MaterialApp.themeMode` from a tiny in-memory controller. Everything lives under `lib/core/theme/` so every future feature consumes the same tokens — widgets never hardcode colors or text styles.
+The theme module is dosly's visual foundation. It hand-codes Material 3 `ColorScheme` tokens for light and dark mode, bundles Roboto at four weights, and composes them into `ThemeData` with 11 pre-wired component themes. Everything lives under `lib/core/theme/` so every future feature consumes the same tokens — widgets never hardcode colors or text styles.
+
+Runtime theme-mode selection (light / dark / system) is owned by `settingsProvider`, not by this module. See [`settings.md`](settings.md) and [`architecture.md`](../architecture.md) for how `DoslyApp` maps `AppThemeMode` to Flutter's `ThemeMode`.
 
 ## How it works
 
@@ -18,10 +20,8 @@ app_text_theme.dart      (AppTextTheme.textTheme — M3 type scale on Roboto)
 app_theme.dart           (AppTheme.lightTheme / darkTheme — ThemeData)
         │
         ▼
-app.dart                 (DoslyApp wraps MaterialApp in ListenableBuilder)
-        │
-        ▼
-theme_controller.dart    (themeController drives themeMode at runtime)
+app.dart                 (DoslyApp passes lightTheme/darkTheme to MaterialApp.router;
+                          themeMode is driven by settingsProvider)
 ```
 
 **`app_color_schemes.dart`** exports two `const ColorScheme` values — `lightColorScheme` and `darkColorScheme`. Every role (primary, secondary, tertiary, error, surface + containers, outline, inverse) is a hand-coded `Color(0xFF…)` literal taken from `dosly_m3_template.html` (Material Theme Builder, seed `#4CAF50`). `ColorScheme.fromSeed` is **not** used — the spec requires a deterministic, in-source palette that unit tests can pin.
@@ -44,52 +44,7 @@ class AppTheme {
 
 `textTheme` is tinted on build via `.apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface)` so text contrast tracks the active brightness automatically.
 
-**`theme_controller.dart`** holds the current `ThemeMode` in a `ValueNotifier<ThemeMode>` subclass and exposes a module-level singleton:
-
-```dart
-class ThemeController extends ValueNotifier<ThemeMode> {
-  ThemeController() : super(ThemeMode.system);
-
-  void setMode(ThemeMode mode) {
-    value = mode;
-  }
-
-  void cycle() {
-    value = switch (value) {
-      ThemeMode.system => ThemeMode.light,
-      ThemeMode.light => ThemeMode.dark,
-      ThemeMode.dark => ThemeMode.system,
-    };
-  }
-}
-
-final ThemeController themeController = ThemeController();
-```
-
-**`app.dart`** wraps `MaterialApp` in a `ListenableBuilder` so the entire tree rebuilds whenever the controller value changes:
-
-```dart
-class DoslyApp extends StatelessWidget {
-  const DoslyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: themeController,
-      builder: (context, _) => MaterialApp(
-        title: 'dosly',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: themeController.value,
-        home: const ThemePreviewScreen(),
-      ),
-    );
-  }
-}
-```
-
-Persistence is intentionally not handled — the controller resets to `ThemeMode.system` on every restart. Persistence will land with the future Settings feature (drift-backed).
+**`app.dart`** passes `AppTheme.lightTheme` and `AppTheme.darkTheme` to `MaterialApp.router`. `DoslyApp` is a `ConsumerWidget` that reads `settingsProvider` with four narrow selectors and computes `themeMode` and `locale` inline. See [`architecture.md`](../architecture.md#app-wide-state-riverpod--sharedpreferences) for the full bootstrap and the code sample.
 
 ## Usage
 
@@ -139,21 +94,22 @@ Text('Card title', style: Theme.of(context).textTheme.titleMedium);
 
 Do not add a new `fontFamily`. The app bundles only Roboto (300 / 400 / 500 / 700); adding another family means adding more TTF assets to `assets/fonts/` and declaring them in `pubspec.yaml` under `flutter.fonts`.
 
-## How to toggle theme mode
+## How to change the runtime theme mode
 
-From anywhere in the app, import the controller and call one of its methods:
+Theme-mode state lives in `settingsProvider` (a `Notifier<AppSettings>`). To change it from a widget, obtain the notifier via `ref.read` and call its mutation methods:
 
 ```dart
-import 'package:dosly/core/theme/theme_controller.dart';
+// Force dark mode manually (turns off "follow system")
+ref.read(settingsProvider.notifier).setThemeMode(AppThemeMode.dark);
+ref.read(settingsProvider.notifier).setUseSystemTheme(false);
 
-themeController.setMode(ThemeMode.dark);  // force dark
-themeController.setMode(ThemeMode.system); // follow OS
-themeController.cycle();                    // system -> light -> dark -> system
+// Return to following the system theme
+ref.read(settingsProvider.notifier).setUseSystemTheme(true);
 ```
 
-The `ListenableBuilder` in `DoslyApp` rebuilds `MaterialApp` and the whole tree re-themes. There is no need to call `setState` or wrap anything in a provider.
+`DoslyApp` in `lib/app.dart` watches `settingsProvider` with narrow selectors and passes the computed `ThemeMode` to `MaterialApp.router`. Changes are persisted to `SharedPreferencesWithCache` and survive restarts.
 
-Reminder: this is **in-memory only**. Restarting the app resets to `ThemeMode.system`.
+See [`settings.md`](settings.md) for the full provider and persistence contract.
 
 ## The preview screen
 
@@ -165,11 +121,11 @@ What it shows:
 - **Typography** — one row per M3 style (`displayLarge` … `labelSmall`)
 - **Icons** — the 20 canonical Lucide glyphs used across the app design (`pill`, `house`, `settings`, `history`, `circlePlus`, `thermometer`, `syringe`, `glasses`, `droplets`, `activity`, `clock`, `check`, `chevronDown`, `chevronRight`, `arrowLeft`, `search`, `plus`, `eye`, `x`, `phone`), each shown with its `LucideIcons.*` field name as a label. See [`icons.md`](icons.md) for the icon-set rationale.
 - **Components** — one instance each of `FilledButton`, `FilledButton.tonal`, `OutlinedButton`, `TextButton`, `Chip`, `Icon`, `Switch`, `Card`, `TextField`, `FloatingActionButton`
-- **App-bar cycle action** — an `IconButton` whose icon reflects the current mode (`LucideIcons.sunMoon` / `sun` / `moon`) and calls `themeController.cycle` on press
+- **App-bar cycle action** — an `IconButton` whose icon reflects the current mode (`LucideIcons.sunMoon` / `sun` / `moon`). Pressing it cycles system → light → dark → system by writing to `settingsProvider.notifier` (`setUseSystemTheme` + `setThemeMode(AppThemeMode.*)`).
 
 All icons are sourced from `lucide_icons_flutter` — see [`icons.md`](icons.md).
 
-**When to delete**: once real screens ship and `DoslyApp.home` points at something non-preview, delete `lib/features/theme_preview/` entirely. The folder was built to be disposable — nothing else in the codebase imports from it.
+**When to delete**: once real screens ship and `DoslyApp.home` points at something non-preview, delete `lib/features/theme_preview/` entirely. The folder was built to be disposable — no other feature folder imports from it (its own imports into `lib/features/settings/` are the only cross-feature dependency, and those disappear with the folder).
 
 ## Related specs and references
 

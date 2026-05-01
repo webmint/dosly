@@ -9,20 +9,48 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    invalid_annotation_target: ignore  # required for freezed
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+
 linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    - always_declare_return_types
+    - avoid_dynamic_calls
+    - avoid_print
+    - avoid_unused_constructor_parameters
+    - cancel_subscriptions
+    - close_sinks
+    # - directives_ordering
+    #   Deferred: produces 4 issues in test/ files (import-order in
+    #   app_router_test.dart, app_color_schemes_test.dart, widget_test.dart).
+    #   Fix in a follow-up lint-hardening pass scoped to test/ — typically
+    #   `dart fix --apply` resolves all four. Re-enable this rule once fixed.
+    - prefer_const_constructors
+    - prefer_const_constructors_in_immutables
+    - prefer_const_declarations
+    - prefer_const_literals_to_create_immutables
+    - prefer_final_in_for_each
+    - prefer_final_locals
+    - require_trailing_commas
+    # - sort_pub_dependencies
+    #   Deferred: `flutter pub add` appends new packages to the bottom of
+    #   `dependencies:` / `dev_dependencies:` without re-sorting, and §2.3
+    #   forbids hand-editing pubspec.yaml. Fix in a follow-up by running
+    #   `dart pub add` invocations in the canonical sort order, or scoping
+    #   a one-off pubspec sort to a dedicated task.
+    - unnecessary_lambdas
+    - unnecessary_late
+    - unnecessary_null_aware_assignments
+    - use_build_context_synchronously
+    - use_super_parameters
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

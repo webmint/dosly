@@ -1,5 +1,6 @@
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
+import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +21,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   _FakeSettingsRepository({AppSettings? initial})
       : _settings = initial ?? const AppSettings();
 
-  ThemeMode? get lastSavedMode => _settings.manualThemeMode;
+  AppThemeMode? get lastSavedMode => _settings.manualThemeMode;
   bool get lastSavedUseSystemTheme => _settings.useSystemTheme;
   bool get savedUseSystemLanguage => _settings.useSystemLanguage;
   AppLanguage get savedManualLanguage => _settings.manualLanguage;
@@ -29,7 +30,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   AppSettings load() => _settings;
 
   @override
-  Future<Either<Never, void>> saveThemeMode(ThemeMode mode) async {
+  Future<Either<Never, void>> saveThemeMode(AppThemeMode mode) async {
     _settings = _settings.copyWith(manualThemeMode: mode);
     return const Right(null);
   }
@@ -110,12 +111,12 @@ void main() {
       await tester.tap(find.byTooltip('Cycle theme mode'));
       await tester.pumpAndSettle();
       expect(fakeRepo.lastSavedUseSystemTheme, isFalse);
-      expect(fakeRepo.lastSavedMode, ThemeMode.light);
+      expect(fakeRepo.lastSavedMode, AppThemeMode.light);
 
       // Cycle again: light → dark (still manual)
       await tester.tap(find.byTooltip('Cycle theme mode'));
       await tester.pumpAndSettle();
-      expect(fakeRepo.lastSavedMode, ThemeMode.dark);
+      expect(fakeRepo.lastSavedMode, AppThemeMode.dark);
 
       // Cycle again: dark → system (useSystemTheme=true)
       await tester.tap(find.byTooltip('Cycle theme mode'));
