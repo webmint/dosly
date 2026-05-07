@@ -5,7 +5,6 @@
 /// state and persists changes through the repository).
 library;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/shared_preferences_provider.dart';
@@ -51,10 +50,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
     final repo = ref.read(settingsRepositoryProvider);
     final result = await repo.saveThemeMode(mode);
     result.fold(
-      (failure) {
-        if (kDebugMode) {
-          debugPrint('Settings: persistence failed — $failure');
-        }
+      (_) {
+        // Failure surfacing deferred to bug 003 (UI surface) and bug 017 (typed logger).
       },
       (_) {
         state = state.copyWith(manualThemeMode: mode);
@@ -70,10 +67,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
     final repo = ref.read(settingsRepositoryProvider);
     final result = await repo.saveUseSystemTheme(value);
     result.fold(
-      (failure) {
-        if (kDebugMode) {
-          debugPrint('Settings: persistence failed — $failure');
-        }
+      (_) {
+        // Failure surfacing deferred to bug 003 (UI surface) and bug 017 (typed logger).
       },
       (_) {
         state = state.copyWith(useSystemTheme: value);
@@ -89,10 +84,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
     final repo = ref.read(settingsRepositoryProvider);
     final result = await repo.saveUseSystemLanguage(value);
     result.fold(
-      (failure) {
-        if (kDebugMode) {
-          debugPrint('Settings: persistence failed — $failure');
-        }
+      (_) {
+        // Failure surfacing deferred to bug 003 (UI surface) and bug 017 (typed logger).
       },
       (_) {
         state = state.copyWith(useSystemLanguage: value);
@@ -107,10 +100,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
     final repo = ref.read(settingsRepositoryProvider);
     final result = await repo.saveManualLanguage(language);
     result.fold(
-      (failure) {
-        if (kDebugMode) {
-          debugPrint('Settings: persistence failed — $failure');
-        }
+      (_) {
+        // Failure surfacing deferred to bug 003 (UI surface) and bug 017 (typed logger).
       },
       (_) {
         state = state.copyWith(manualLanguage: language);

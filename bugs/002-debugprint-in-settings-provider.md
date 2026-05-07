@@ -1,10 +1,10 @@
 # Bug 002: `debugPrint` in committed code (× 4 sites)
 
-**Status**: Open
+**Status**: Closed
 **Severity**: Critical
 **Source**: audit (audits/2026-04-30-audit.md) — RECURRING from spec 010
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-01 (spec 013)
 
 ## Description
 
