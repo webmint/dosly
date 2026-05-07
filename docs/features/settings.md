@@ -82,7 +82,7 @@ Native names are plain literals — they are never translated. This is the unive
 Future<void> setUseSystemTheme(bool value) async {
   final result = await ref.read(settingsRepositoryProvider).saveUseSystemTheme(value);
   result.fold(
-    (failure) { /* log, leave state unchanged */ },
+    (_) { /* leave state unchanged — bug 003 will surface to UI */ },
     (_) { state = state.copyWith(useSystemTheme: value); },
   );
 }
