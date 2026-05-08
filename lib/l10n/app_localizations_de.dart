@@ -48,6 +48,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsUseDeviceLanguageSub => 'Geräteeinstellungen folgen';
 
   @override
+  String get settingsPersistenceError =>
+      'Einstellung konnte nicht gespeichert werden. Bitte erneut versuchen.';
+
+  @override
   String get medsAddFabTooltip => 'Medikament hinzufügen';
 
   @override

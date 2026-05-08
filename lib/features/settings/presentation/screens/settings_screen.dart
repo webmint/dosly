@@ -7,8 +7,11 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/failures.dart';
 import '../../../../l10n/l10n_extensions.dart';
+import '../providers/settings_provider.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/theme_selector.dart';
 
@@ -18,17 +21,30 @@ import '../widgets/theme_selector.dart';
 /// [AppLocalizationsContext.l10n] (`settingsTitle`), no `actions`, and an
 /// `outlineVariant`-coloured bottom [Divider] border (1 px, theme-driven).
 ///
+/// Listens to [settingsErrorsProvider] and shows a localized floating
+/// SnackBar each time a preference fails to persist (e.g. SharedPreferences
+/// write failure).
+///
 /// The body contains an Appearance section with a [ThemeSelector] widget.
 /// Flutter automatically renders a back button in the leading slot because
 /// this screen is pushed onto the navigator stack; no manual `leading:` is
-/// needed. [ThemeSelector] is a [ConsumerWidget] and manages its own provider
-/// subscription, so this screen can remain a plain [StatelessWidget].
-class SettingsScreen extends StatelessWidget {
+/// needed.
+class SettingsScreen extends ConsumerWidget {
   /// Creates the settings screen.
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<AsyncValue<Failure>>(settingsErrorsProvider, (prev, next) {
+      next.whenData((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.l10n.settingsPersistenceError),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      });
+    });
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(

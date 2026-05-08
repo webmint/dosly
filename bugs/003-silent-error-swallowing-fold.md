@@ -1,10 +1,10 @@
 # Bug 003: Silent error swallowing in `Either.fold` Left branch (× 4 mutators)
 
-**Status**: Open
+**Status**: Closed
 **Severity**: Critical
 **Source**: audit (audits/2026-04-30-audit.md) — RECURRING from spec 009
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-07 (spec 014)
 
 ## Description
 

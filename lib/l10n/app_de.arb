@@ -13,6 +13,7 @@
   "settingsLanguageHeader": "Sprache",
   "settingsUseDeviceLanguage": "Sprache des Geräts verwenden",
   "settingsUseDeviceLanguageSub": "Geräteeinstellungen folgen",
+  "settingsPersistenceError": "Einstellung konnte nicht gespeichert werden. Bitte erneut versuchen.",
   "medsAddFabTooltip": "Medikament hinzufügen",
   "medsAddTitle": "Medikament hinzufügen"
 }

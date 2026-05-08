@@ -178,6 +178,12 @@ abstract class AppLocalizations {
   /// **'Follow your device settings'**
   String get settingsUseDeviceLanguageSub;
 
+  /// SnackBar message shown on the Settings screen when a preference change fails to persist (e.g. SharedPreferences write error).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save your preference. Please try again.'**
+  String get settingsPersistenceError;
+
   /// Tooltip for the FAB on the Meds screen that opens the placeholder Add-medication modal.
   ///
   /// In en, this message translates to:

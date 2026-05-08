@@ -13,6 +13,7 @@
   "settingsLanguageHeader": "Мова",
   "settingsUseDeviceLanguage": "Мова пристрою",
   "settingsUseDeviceLanguageSub": "Використовувати налаштування пристрою",
+  "settingsPersistenceError": "Не вдалося зберегти налаштування. Спробуйте ще раз.",
   "medsAddFabTooltip": "Додати ліки",
   "medsAddTitle": "Додати ліки"
 }

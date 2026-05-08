@@ -50,6 +50,10 @@ class AppLocalizationsUk extends AppLocalizations {
       'Використовувати налаштування пристрою';
 
   @override
+  String get settingsPersistenceError =>
+      'Не вдалося зберегти налаштування. Спробуйте ще раз.';
+
+  @override
   String get medsAddFabTooltip => 'Додати ліки';
 
   @override
