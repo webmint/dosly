@@ -140,6 +140,8 @@ class CacheFailure extends Failure {
 
 Sealed classes let callers pattern-match exhaustively. `SettingsNotifier` follows the "optimistic-write, no-update-on-failure" pattern: in-memory state is only updated when persistence succeeds.
 
+**Side-channel error-stream pattern**: when a mutator notifier needs to surface failures to the UI without changing its state shape, it owns a broadcast `StreamController<Failure>` initialized in `build()` and closed via `ref.onDispose`. Each Left fold-branch emits the failure into the controller (`_errors.add(failure)`), and a companion top-level `StreamProvider<Failure>` exposes the stream to the widget tree. Consumers subscribe with `ref.listen<AsyncValue<Failure>>(errorsProvider, (_, next) => next.whenData(...))` to trigger side-effects such as showing a SnackBar, without coupling state shape to error state. The canonical example is `settingsErrorsProvider` in `lib/features/settings/presentation/providers/settings_provider.dart`, established by spec 014. When implementing this pattern, pass only static localized strings to the SnackBar — never forward `failure.message` to UI text, as that message originates from a platform exception and is not localized, not user-safe, and may contain internal details.
+
 > The earlier `ThemeController` singleton (`lib/core/theme/theme_controller.dart`) has been deleted. All theme-mode state is now owned by `settingsProvider`.
 
 ## Internationalization (i18n)

@@ -76,17 +76,19 @@ Native names are plain literals — they are never translated. This is the unive
 
 ### Presentation
 
-`SettingsNotifier` (`lib/features/settings/presentation/providers/settings_provider.dart`) is a `Notifier<AppSettings>`. Its `build()` loads the initial state synchronously from the repository cache. Mutation methods follow an optimistic pattern: in-memory state is only updated if persistence succeeds.
+`SettingsNotifier` (`lib/features/settings/presentation/providers/settings_provider.dart`) is a `Notifier<AppSettings>`. Its `build()` loads the initial state synchronously from the repository cache and initializes a broadcast `StreamController<Failure>` for surfacing persistence errors. The controller is closed via `ref.onDispose` when the notifier is disposed. Mutation methods follow an optimistic pattern: in-memory state is only updated if persistence succeeds; on failure the `Failure` is emitted into the stream instead.
 
 ```dart
 Future<void> setUseSystemTheme(bool value) async {
   final result = await ref.read(settingsRepositoryProvider).saveUseSystemTheme(value);
   result.fold(
-    (_) { /* leave state unchanged — bug 003 will surface to UI */ },
-    (_) { state = state.copyWith(useSystemTheme: value); },
+    (failure) => _errors.add(failure),
+    (_) => state = state.copyWith(useSystemTheme: value),
   );
 }
 ```
+
+A top-level `settingsErrorsProvider` (`StreamProvider<Failure>`) exposes the error stream to the widget tree. `SettingsScreen` listens to it via `ref.listen` and shows a localized M3 floating SnackBar (text from `context.l10n.settingsPersistenceError`) whenever a preference fails to persist.
 
 `DoslyApp` in `lib/app.dart` watches `settingsProvider` with four narrow selectors so only the relevant field change triggers a root rebuild. See the [Presentation seam](#presentation-seam) section above for the full shape.
 
@@ -142,13 +144,14 @@ Each dropdown menu item renders the language's `nativeName` — never a translat
 
 ## SettingsScreen
 
-`SettingsScreen` (`lib/features/settings/presentation/screens/settings_screen.dart`) renders a `Scaffold` with:
+`SettingsScreen` (`lib/features/settings/presentation/screens/settings_screen.dart`) is a `ConsumerWidget` that renders a `Scaffold` with:
 
 - An `AppBar` with the localized `settingsTitle` and a 1-px bottom `Divider`.
 - A `ListView` body with two groups, each preceded by an uppercased `labelSmall` header in the primary colour:
   - **Appearance** — contains `ThemeSelector`
   - **Language** — contains `LanguageSelector`
 - A back button provided automatically by Flutter (screen is pushed, not a tab).
+- A `ref.listen` call on `settingsErrorsProvider` that shows a localized M3 floating SnackBar (`context.l10n.settingsPersistenceError`) when a preference fails to persist.
 
 ## Routing
 
@@ -187,6 +190,7 @@ The `allowList` in `main()` is fixed to these four keys — no other preferences
 | `settingsLanguageHeader` | Language |
 | `settingsUseDeviceLanguage` | Use device language |
 | `settingsUseDeviceLanguageSub` | Follows your device language setting |
+| `settingsPersistenceError` | Couldn't save your preference. Please try again. |
 
 ## Related
 
@@ -196,3 +200,4 @@ The `allowList` in `main()` is fixed to these four keys — no other preferences
 - [`home.md`](home.md) — `HomeScreen`, which hosts the gear icon entry point
 - [`../../specs/009-theme-settings/spec.md`](../../specs/009-theme-settings/spec.md) — the spec that introduced the settings stack and theme control
 - [`../../specs/010-language-settings/spec.md`](../../specs/010-language-settings/spec.md) — the spec that added the language control
+- [`../../specs/014-surface-settings-errors/spec.md`](../../specs/014-surface-settings-errors/spec.md) — the spec that added the error-stream and SnackBar feedback

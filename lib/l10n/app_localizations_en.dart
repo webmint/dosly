@@ -48,6 +48,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsUseDeviceLanguageSub => 'Follow your device settings';
 
   @override
+  String get settingsPersistenceError =>
+      'Couldn\'t save your preference. Please try again.';
+
+  @override
   String get medsAddFabTooltip => 'Add medication';
 
   @override

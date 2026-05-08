@@ -240,4 +240,142 @@ void main() {
       expect(settings.manualLanguage, AppLanguage.de);
     });
   });
+
+  group('SettingsNotifier error stream', () {
+    late _FakeSettingsRepository fakeRepo;
+    late ProviderContainer container;
+
+    setUp(() {
+      fakeRepo = _FakeSettingsRepository();
+      container = ProviderContainer(
+        overrides: [
+          settingsRepositoryProvider.overrideWithValue(fakeRepo),
+        ],
+      );
+    });
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    test('settingsErrorsProvider emits CacheFailure when setThemeMode fails',
+        () async {
+      fakeRepo.failOnSaveThemeMode = true;
+      final emissions = <Failure>[];
+      final sub =
+          container.read(settingsProvider.notifier).errors.listen(emissions.add);
+
+      await container
+          .read(settingsProvider.notifier)
+          .setThemeMode(AppThemeMode.dark);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, hasLength(1));
+      expect(emissions.single, isA<CacheFailure>());
+
+      await sub.cancel();
+    });
+
+    test(
+        'settingsErrorsProvider emits CacheFailure when setUseSystemTheme fails',
+        () async {
+      fakeRepo.failOnSaveUseSystemTheme = true;
+      final emissions = <Failure>[];
+      final sub =
+          container.read(settingsProvider.notifier).errors.listen(emissions.add);
+
+      await container
+          .read(settingsProvider.notifier)
+          .setUseSystemTheme(false);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, hasLength(1));
+      expect(emissions.single, isA<CacheFailure>());
+
+      await sub.cancel();
+    });
+
+    test(
+        'settingsErrorsProvider emits CacheFailure when setUseSystemLanguage fails',
+        () async {
+      fakeRepo.failOnSaveUseSystemLanguage = true;
+      final emissions = <Failure>[];
+      final sub =
+          container.read(settingsProvider.notifier).errors.listen(emissions.add);
+
+      await container
+          .read(settingsProvider.notifier)
+          .setUseSystemLanguage(false);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, hasLength(1));
+      expect(emissions.single, isA<CacheFailure>());
+
+      await sub.cancel();
+    });
+
+    test(
+        'settingsErrorsProvider emits CacheFailure when setManualLanguage fails',
+        () async {
+      fakeRepo.failOnSaveManualLanguage = true;
+      final emissions = <Failure>[];
+      final sub =
+          container.read(settingsProvider.notifier).errors.listen(emissions.add);
+
+      await container
+          .read(settingsProvider.notifier)
+          .setManualLanguage(AppLanguage.uk);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, hasLength(1));
+      expect(emissions.single, isA<CacheFailure>());
+
+      await sub.cancel();
+    });
+
+    test('settingsErrorsProvider does NOT emit on successful save', () async {
+      final emissions = <Failure>[];
+      final sub =
+          container.read(settingsProvider.notifier).errors.listen(emissions.add);
+
+      await container
+          .read(settingsProvider.notifier)
+          .setThemeMode(AppThemeMode.dark);
+      await container
+          .read(settingsProvider.notifier)
+          .setUseSystemTheme(false);
+      await container
+          .read(settingsProvider.notifier)
+          .setUseSystemLanguage(false);
+      await container
+          .read(settingsProvider.notifier)
+          .setManualLanguage(AppLanguage.uk);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, isEmpty);
+
+      await sub.cancel();
+    });
+
+    test('errors stream supports multiple sequential emissions', () async {
+      fakeRepo.failOnSaveThemeMode = true;
+      final emissions = <Failure>[];
+      final sub =
+          container.read(settingsProvider.notifier).errors.listen(emissions.add);
+
+      await container
+          .read(settingsProvider.notifier)
+          .setThemeMode(AppThemeMode.dark);
+      await Future<void>.delayed(Duration.zero);
+      expect(emissions, hasLength(1));
+
+      await container
+          .read(settingsProvider.notifier)
+          .setThemeMode(AppThemeMode.light);
+      await Future<void>.delayed(Duration.zero);
+      expect(emissions, hasLength(2));
+
+      await sub.cancel();
+    });
+  });
 }

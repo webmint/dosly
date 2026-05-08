@@ -52,6 +52,10 @@
   "@settingsUseDeviceLanguageSub": {
     "description": "Subtitle for the device-language switch describing what the toggle does."
   },
+  "settingsPersistenceError": "Couldn't save your preference. Please try again.",
+  "@settingsPersistenceError": {
+    "description": "SnackBar message shown on the Settings screen when a preference change fails to persist (e.g. SharedPreferences write error)."
+  },
   "medsAddFabTooltip": "Add medication",
   "@medsAddFabTooltip": {
     "description": "Tooltip for the FAB on the Meds screen that opens the placeholder Add-medication modal."

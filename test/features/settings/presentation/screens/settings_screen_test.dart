@@ -1,3 +1,4 @@
+import 'package:dosly/core/error/failures.dart';
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
@@ -10,26 +11,56 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 
-/// Minimal fake that satisfies [SettingsRepository] for widget tests.
+/// Fake [SettingsRepository] for screen widget tests.
+///
+/// Holds in-memory [AppSettings] and exposes per-method [failOnSaveX]
+/// flags to simulate persistence failures.
 class _FakeSettingsRepository implements SettingsRepository {
-  @override
-  AppSettings load() => const AppSettings();
+  AppSettings _settings = const AppSettings();
+
+  bool failOnSaveThemeMode = false;
+  bool failOnSaveUseSystemTheme = false;
+  bool failOnSaveUseSystemLanguage = false;
+  bool failOnSaveManualLanguage = false;
 
   @override
-  Future<Either<Never, void>> saveThemeMode(AppThemeMode mode) async =>
-      const Right(null);
+  AppSettings load() => _settings;
 
   @override
-  Future<Either<Never, void>> saveUseSystemTheme(bool value) async =>
-      const Right(null);
+  Future<Either<Failure, void>> saveThemeMode(AppThemeMode mode) async {
+    if (failOnSaveThemeMode) {
+      return const Left(CacheFailure('mock failure'));
+    }
+    _settings = _settings.copyWith(manualThemeMode: mode);
+    return const Right(null);
+  }
 
   @override
-  Future<Either<Never, void>> saveUseSystemLanguage(bool value) async =>
-      const Right(null);
+  Future<Either<Failure, void>> saveUseSystemTheme(bool value) async {
+    if (failOnSaveUseSystemTheme) {
+      return const Left(CacheFailure('mock failure'));
+    }
+    _settings = _settings.copyWith(useSystemTheme: value);
+    return const Right(null);
+  }
 
   @override
-  Future<Either<Never, void>> saveManualLanguage(AppLanguage language) async =>
-      const Right(null);
+  Future<Either<Failure, void>> saveUseSystemLanguage(bool value) async {
+    if (failOnSaveUseSystemLanguage) {
+      return const Left(CacheFailure('mock failure'));
+    }
+    _settings = _settings.copyWith(useSystemLanguage: value);
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Failure, void>> saveManualLanguage(AppLanguage language) async {
+    if (failOnSaveManualLanguage) {
+      return const Left(CacheFailure('mock failure'));
+    }
+    _settings = _settings.copyWith(manualLanguage: language);
+    return const Right(null);
+  }
 }
 
 /// Resolves the active [Locale] for the harness [MaterialApp].
@@ -55,10 +86,17 @@ Locale _resolveLocale(Locale? deviceLocale, Iterable<Locale> supportedLocales) {
 /// Registers the full `AppLocalizations` delegate chain plus the project's
 /// English-fallback `localeResolutionCallback`, so unsupported locales
 /// resolve to English (matching production behaviour).
-Widget _harness({required Locale locale}) {
+///
+/// An optional [fakeRepo] can be supplied to override the default always-success
+/// fake — used by error-SnackBar tests to inject per-method failure flags.
+Widget _harness({
+  required Locale locale,
+  _FakeSettingsRepository? fakeRepo,
+}) {
+  final repo = fakeRepo ?? _FakeSettingsRepository();
   return ProviderScope(
     overrides: [
-      settingsRepositoryProvider.overrideWithValue(_FakeSettingsRepository()),
+      settingsRepositoryProvider.overrideWithValue(repo),
     ],
     child: MaterialApp(
       locale: locale,
@@ -182,6 +220,29 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('SPRACHE'), findsOneWidget);
+    });
+  });
+
+  group('SettingsScreen error SnackBar', () {
+    testWidgets(
+        'shows localized error SnackBar when setUseSystemTheme fails',
+        (tester) async {
+      final fakeRepo = _FakeSettingsRepository()
+        ..failOnSaveUseSystemTheme = true;
+      await tester.pumpWidget(
+        _harness(locale: const Locale('en'), fakeRepo: fakeRepo),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap the "Use system theme" SwitchListTile to trigger setUseSystemTheme.
+      await tester.tap(find.byType(SwitchListTile).first);
+      await tester.pump(); // mutator runs
+      await tester.pump(const Duration(milliseconds: 100)); // SnackBar enters
+
+      expect(
+        find.text("Couldn't save your preference. Please try again."),
+        findsOneWidget,
+      );
     });
   });
 }
