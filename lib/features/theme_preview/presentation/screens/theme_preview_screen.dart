@@ -31,7 +31,7 @@ class ThemePreviewScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsProvider);
+    final settings = ref.watch(settingsNotifierProvider);
     // The icon helper takes Flutter's 3-value `ThemeMode` for display
     // purposes only — `AppThemeMode` is intentionally 2-value (no
     // `system`), so we compute the display-side `ThemeMode` inline from
@@ -50,7 +50,7 @@ class ThemePreviewScreen extends ConsumerWidget {
             tooltip: 'Cycle theme mode',
             icon: Icon(_iconForEffectiveMode(effectiveMode)),
             onPressed: () {
-              final notifier = ref.read(settingsProvider.notifier);
+              final notifier = ref.read(settingsNotifierProvider.notifier);
               // Cycle: system → light → dark → system
               if (settings.useSystemTheme) {
                 // system → light (manual)

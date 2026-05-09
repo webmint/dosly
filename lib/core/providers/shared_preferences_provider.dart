@@ -5,8 +5,10 @@
 /// override it is a programmer error caught immediately at startup.
 library;
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+part 'shared_preferences_provider.g.dart';
 
 /// Provides the application-wide [SharedPreferencesWithCache] instance.
 ///
@@ -20,8 +22,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///   child: const DoslyApp(),
 /// );
 /// ```
-final sharedPreferencesProvider = Provider<SharedPreferencesWithCache>(
-  (ref) => throw UnimplementedError(
-    'sharedPreferencesProvider must be overridden in main()',
-  ),
-);
+@Riverpod(keepAlive: true)
+SharedPreferencesWithCache sharedPreferences(Ref ref) =>
+    throw UnimplementedError(
+      'sharedPreferencesProvider must be overridden in main()',
+    );

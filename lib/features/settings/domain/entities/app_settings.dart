@@ -21,7 +21,7 @@ part 'app_settings.freezed.dart';
 /// Application-wide user preferences.
 ///
 /// Each field is a raw domain value; presentation code reads the four
-/// fields through narrow `ref.watch(settingsProvider.select(...))` calls
+/// fields through narrow `ref.watch(settingsNotifierProvider.select(...))` calls
 /// and computes the Flutter-typed values it needs at the seam. When
 /// [useSystemTheme] is `true` (the default) the manual [manualThemeMode]
 /// is ignored by the app shell. Likewise [manualLanguage] is ignored
