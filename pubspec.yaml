@@ -45,6 +45,7 @@ dependencies:
   shared_preferences: ^2.5.5
   fpdart: ^1.2.0
   freezed_annotation: ^3.1.0
+  riverpod_annotation: ^4.0.2
 
 dev_dependencies:
   flutter_test:
@@ -60,6 +61,7 @@ dev_dependencies:
   shared_preferences_platform_interface: ^2.4.2
   freezed: ^3.2.5
   build_runner: ^2.15.0
+  riverpod_generator: ^4.0.3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

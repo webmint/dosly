@@ -3,7 +3,7 @@
 /// Exports [ThemeSelector], a [ConsumerWidget] that renders a [SwitchListTile]
 /// for the "Use system theme" toggle and a 2-segment [SegmentedButton] for the
 /// manual Light / Dark choice. State is read from and written to
-/// [settingsProvider].
+/// [settingsNotifierProvider].
 library;
 
 import 'package:flutter/material.dart';
@@ -30,7 +30,7 @@ class ThemeSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsProvider);
+    final settings = ref.watch(settingsNotifierProvider);
     final l10n = context.l10n;
     final systemBrightness = MediaQuery.platformBrightnessOf(context);
 
@@ -60,9 +60,9 @@ class ThemeSelector extends ConsumerWidget {
                   systemBrightness == Brightness.dark
                       ? AppThemeMode.dark
                       : AppThemeMode.light;
-              ref.read(settingsProvider.notifier).setThemeMode(manualMode);
+              ref.read(settingsNotifierProvider.notifier).setThemeMode(manualMode);
             }
-            ref.read(settingsProvider.notifier).setUseSystemTheme(value);
+            ref.read(settingsNotifierProvider.notifier).setUseSystemTheme(value);
           },
         ),
         const SizedBox(height: 8),
@@ -88,7 +88,7 @@ class ThemeSelector extends ConsumerWidget {
               ? null
               : (Set<AppThemeMode> selection) {
                   ref
-                      .read(settingsProvider.notifier)
+                      .read(settingsNotifierProvider.notifier)
                       .setThemeMode(selection.first);
                 },
         ),

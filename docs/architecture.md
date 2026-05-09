@@ -27,7 +27,7 @@ Anything shared across features lives under `lib/core/` and must be **feature-ag
 > and `lib/features/settings/data/` are now free of `package:flutter/*` imports. The
 > Flutter SDK ↔ domain mapping (e.g., `AppThemeMode → ThemeMode`) is
 > confined to the presentation seam in `lib/app.dart`, where four narrow
-> `ref.watch(settingsProvider.select(...))` calls read the four raw entity
+> `ref.watch(settingsNotifierProvider.select(...))` calls read the four raw entity
 > fields and compute `MaterialApp.themeMode` / `locale` inline.
 
 ## The theme module
@@ -53,7 +53,7 @@ A grep for `Color(0xFF` outside `lib/core/theme/` is run as part of verification
 
 Dosly uses **Riverpod** (`flutter_riverpod`) for all feature-level and app-wide reactive state. It was introduced with the `009-theme-settings` feature, which also replaced the earlier `ThemeController` singleton.
 
-`DoslyApp` is a `ConsumerWidget`. It watches `settingsProvider` with four narrow selectors — one per raw `AppSettings` field — so only an actual field change triggers a rebuild:
+`DoslyApp` is a `ConsumerWidget`. It watches `settingsNotifierProvider` with four narrow selectors — one per raw `AppSettings` field — so only an actual field change triggers a rebuild:
 
 ```dart
 // lib/app.dart
@@ -63,16 +63,16 @@ class DoslyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final useSystemTheme = ref.watch(
-      settingsProvider.select((s) => s.useSystemTheme),
+      settingsNotifierProvider.select((s) => s.useSystemTheme),
     );
     final manualThemeMode = ref.watch(
-      settingsProvider.select((s) => s.manualThemeMode),
+      settingsNotifierProvider.select((s) => s.manualThemeMode),
     );
     final useSystemLanguage = ref.watch(
-      settingsProvider.select((s) => s.useSystemLanguage),
+      settingsNotifierProvider.select((s) => s.useSystemLanguage),
     );
     final manualLanguage = ref.watch(
-      settingsProvider.select((s) => s.manualLanguage),
+      settingsNotifierProvider.select((s) => s.manualLanguage),
     );
 
     return MaterialApp.router(
@@ -121,9 +121,10 @@ void main() async {
 
 | Provider | Type | Purpose |
 |---|---|---|
-| `sharedPreferencesProvider` | `Provider<SharedPreferencesWithCache>` | App-wide prefs instance, override-injected |
-| `settingsRepositoryProvider` | `Provider<SettingsRepository>` | Wires data source to repository |
-| `settingsProvider` | `NotifierProvider<SettingsNotifier, AppSettings>` | Current settings + mutation API |
+| `sharedPreferencesProvider` | `@Riverpod(keepAlive: true)` function | App-wide prefs instance, override-injected at startup |
+| `settingsRepositoryProvider` | `@riverpod` function (autoDispose) | Wires data source to repository |
+| `settingsNotifierProvider` | `@Riverpod(keepAlive: true, name: 'settingsNotifierProvider')` class form | Current settings + mutation API |
+| `settingsErrorsProvider` | `@riverpod` function (autoDispose) | Broadcast stream of persistence failures from `SettingsNotifier` (added by feature 014) |
 
 ### Failure handling
 
@@ -142,7 +143,13 @@ Sealed classes let callers pattern-match exhaustively. `SettingsNotifier` follow
 
 **Side-channel error-stream pattern**: when a mutator notifier needs to surface failures to the UI without changing its state shape, it owns a broadcast `StreamController<Failure>` initialized in `build()` and closed via `ref.onDispose`. Each Left fold-branch emits the failure into the controller (`_errors.add(failure)`), and a companion top-level `StreamProvider<Failure>` exposes the stream to the widget tree. Consumers subscribe with `ref.listen<AsyncValue<Failure>>(errorsProvider, (_, next) => next.whenData(...))` to trigger side-effects such as showing a SnackBar, without coupling state shape to error state. The canonical example is `settingsErrorsProvider` in `lib/features/settings/presentation/providers/settings_provider.dart`, established by spec 014. When implementing this pattern, pass only static localized strings to the SnackBar — never forward `failure.message` to UI text, as that message originates from a platform exception and is not localized, not user-safe, and may contain internal details.
 
-> The earlier `ThemeController` singleton (`lib/core/theme/theme_controller.dart`) has been deleted. All theme-mode state is now owned by `settingsProvider`.
+> The earlier `ThemeController` singleton (`lib/core/theme/theme_controller.dart`) has been deleted. All theme-mode state is now owned by `settingsNotifierProvider`.
+
+### Riverpod codegen
+
+Provider declarations use `@riverpod` / `@Riverpod(...)` codegen (constitution §4.1.1). Run `dart run build_runner build --delete-conflicting-outputs` after editing any annotated provider; generated `*.g.dart` files sit next to their source and are committed (§2.2). The two existing exemplars are `lib/core/providers/shared_preferences_provider.dart` (function form, `@Riverpod(keepAlive: true)`) and `lib/features/settings/presentation/providers/settings_provider.dart` (mixed function and class forms).
+
+One quirk worth knowing when adding new class-form notifiers: codegen derives the provider symbol by stripping a trailing `Notifier` from the class name and appending `Provider`. So `class FooNotifier extends _$FooNotifier` emits `fooProvider`, not `fooNotifierProvider`. Pass `name: 'fooNotifierProvider'` on the annotation to keep the canonical codegen class-form naming idiom — `settings_provider.dart` does this for `SettingsNotifier`.
 
 ## Internationalization (i18n)
 

@@ -1,7 +1,7 @@
 /// Application root.
 ///
 /// A [ConsumerWidget] that watches the four raw [AppSettings] fields
-/// through narrow `ref.watch(settingsProvider.select(...))` calls
+/// through narrow `ref.watch(settingsNotifierProvider.select(...))` calls
 /// (`useSystemTheme`, `manualThemeMode`, `useSystemLanguage`,
 /// `manualLanguage`) and computes the Flutter-typed `themeMode` /
 /// `locale` for [MaterialApp.router] inline. This file is the single
@@ -64,16 +64,16 @@ class DoslyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final useSystemTheme = ref.watch(
-      settingsProvider.select((s) => s.useSystemTheme),
+      settingsNotifierProvider.select((s) => s.useSystemTheme),
     );
     final manualThemeMode = ref.watch(
-      settingsProvider.select((s) => s.manualThemeMode),
+      settingsNotifierProvider.select((s) => s.manualThemeMode),
     );
     final useSystemLanguage = ref.watch(
-      settingsProvider.select((s) => s.useSystemLanguage),
+      settingsNotifierProvider.select((s) => s.useSystemLanguage),
     );
     final manualLanguage = ref.watch(
-      settingsProvider.select((s) => s.manualLanguage),
+      settingsNotifierProvider.select((s) => s.manualLanguage),
     );
 
     return MaterialApp.router(

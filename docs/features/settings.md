@@ -23,21 +23,21 @@ The feature exposes two groups of controls: **Appearance** (theme mode) and **La
 
 ### Presentation seam
 
-`AppSettings` intentionally exposes no Flutter SDK types — there are no `effectiveThemeMode` or `effectiveLocale` getters on the entity. Instead, `lib/app.dart` watches the four raw fields through separate narrow `ref.watch(settingsProvider.select(...))` calls and computes `MaterialApp.themeMode` and `locale` inline:
+`AppSettings` intentionally exposes no Flutter SDK types — there are no `effectiveThemeMode` or `effectiveLocale` getters on the entity. Instead, `lib/app.dart` watches the four raw fields through separate narrow `ref.watch(settingsNotifierProvider.select(...))` calls and computes `MaterialApp.themeMode` and `locale` inline:
 
 ```dart
 // lib/app.dart
 final useSystemTheme = ref.watch(
-  settingsProvider.select((s) => s.useSystemTheme),
+  settingsNotifierProvider.select((s) => s.useSystemTheme),
 );
 final manualThemeMode = ref.watch(
-  settingsProvider.select((s) => s.manualThemeMode),
+  settingsNotifierProvider.select((s) => s.manualThemeMode),
 );
 final useSystemLanguage = ref.watch(
-  settingsProvider.select((s) => s.useSystemLanguage),
+  settingsNotifierProvider.select((s) => s.useSystemLanguage),
 );
 final manualLanguage = ref.watch(
-  settingsProvider.select((s) => s.manualLanguage),
+  settingsNotifierProvider.select((s) => s.manualLanguage),
 );
 
 return MaterialApp.router(
@@ -90,7 +90,7 @@ Future<void> setUseSystemTheme(bool value) async {
 
 A top-level `settingsErrorsProvider` (`StreamProvider<Failure>`) exposes the error stream to the widget tree. `SettingsScreen` listens to it via `ref.listen` and shows a localized M3 floating SnackBar (text from `context.l10n.settingsPersistenceError`) whenever a preference fails to persist.
 
-`DoslyApp` in `lib/app.dart` watches `settingsProvider` with four narrow selectors so only the relevant field change triggers a root rebuild. See the [Presentation seam](#presentation-seam) section above for the full shape.
+`DoslyApp` in `lib/app.dart` watches `settingsNotifierProvider` with four narrow selectors so only the relevant field change triggers a root rebuild. See the [Presentation seam](#presentation-seam) section above for the full shape.
 
 ## ThemeSelector widget
 
@@ -106,7 +106,7 @@ When the user turns the toggle OFF, `ThemeSelector` pre-fills the manual segment
 final manualMode = systemBrightness == Brightness.dark
     ? AppThemeMode.dark
     : AppThemeMode.light;
-ref.read(settingsProvider.notifier).setThemeMode(manualMode);
+ref.read(settingsNotifierProvider.notifier).setThemeMode(manualMode);
 ```
 
 ## LanguageSelector widget
@@ -137,7 +137,7 @@ final pre = AppLanguage.values.firstWhere(
   (lang) => lang.code == deviceCode,
   orElse: () => AppLanguage.en,
 );
-ref.read(settingsProvider.notifier).setManualLanguage(pre);
+ref.read(settingsNotifierProvider.notifier).setManualLanguage(pre);
 ```
 
 Each dropdown menu item renders the language's `nativeName` — never a translated label.

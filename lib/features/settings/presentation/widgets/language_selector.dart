@@ -3,7 +3,7 @@
 /// Exports [LanguageSelector], a [ConsumerWidget] that renders a
 /// [SwitchListTile] for the "Use device language" toggle and a
 /// [DropdownButton] populated from [AppLanguage.values] for the manual
-/// language override. State is read from and written to [settingsProvider].
+/// language override. State is read from and written to [settingsNotifierProvider].
 library;
 
 import 'package:flutter/material.dart';
@@ -32,7 +32,7 @@ class LanguageSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsProvider);
+    final settings = ref.watch(settingsNotifierProvider);
     final l10n = context.l10n;
 
     // When the system toggle is active, derive the displayed entry from the
@@ -66,9 +66,9 @@ class LanguageSelector extends ConsumerWidget {
                 (lang) => lang.code == deviceCode,
                 orElse: () => AppLanguage.en,
               );
-              ref.read(settingsProvider.notifier).setManualLanguage(pre);
+              ref.read(settingsNotifierProvider.notifier).setManualLanguage(pre);
             }
-            ref.read(settingsProvider.notifier).setUseSystemLanguage(value);
+            ref.read(settingsNotifierProvider.notifier).setUseSystemLanguage(value);
           },
         ),
         const SizedBox(height: 8),
@@ -82,7 +82,7 @@ class LanguageSelector extends ConsumerWidget {
                 : (AppLanguage? selected) {
                     if (selected != null) {
                       ref
-                          .read(settingsProvider.notifier)
+                          .read(settingsNotifierProvider.notifier)
                           .setManualLanguage(selected);
                     }
                   },

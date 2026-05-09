@@ -90,7 +90,7 @@ void main() {
     test(
         'initial state has useSystemTheme=true and manualThemeMode=light from repo',
         () {
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
 
       expect(settings.useSystemTheme, isTrue);
       expect(settings.manualThemeMode, AppThemeMode.light);
@@ -99,10 +99,10 @@ void main() {
     test('setThemeMode(AppThemeMode.dark) updates manualThemeMode to dark',
         () async {
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setThemeMode(AppThemeMode.dark);
 
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
 
       expect(settings.manualThemeMode, AppThemeMode.dark);
     });
@@ -111,20 +111,20 @@ void main() {
       fakeRepo.failOnSaveThemeMode = true;
 
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setThemeMode(AppThemeMode.dark);
 
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
 
       expect(settings.manualThemeMode, AppThemeMode.light);
     });
 
     test('setUseSystemTheme(false) updates useSystemTheme to false', () async {
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setUseSystemTheme(false);
 
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
 
       expect(settings.useSystemTheme, isFalse);
       expect(settings.manualThemeMode, AppThemeMode.light);
@@ -134,10 +134,10 @@ void main() {
       fakeRepo.failOnSaveUseSystemTheme = true;
 
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setUseSystemTheme(false);
 
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
 
       expect(settings.useSystemTheme, isTrue);
     });
@@ -147,10 +147,10 @@ void main() {
         () async {
       // First set manual to dark
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setThemeMode(AppThemeMode.dark);
       // Ensure useSystemTheme is still on
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
       expect(settings.useSystemTheme, isTrue);
       expect(settings.manualThemeMode, AppThemeMode.dark);
     });
@@ -159,13 +159,13 @@ void main() {
         'manualThemeMode=dark is returned when useSystemTheme is set to false',
         () async {
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setThemeMode(AppThemeMode.dark);
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setUseSystemTheme(false);
 
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
 
       expect(settings.useSystemTheme, isFalse);
       expect(settings.manualThemeMode, AppThemeMode.dark);
@@ -174,10 +174,10 @@ void main() {
     test('setUseSystemLanguage(false) updates useSystemLanguage to false',
         () async {
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setUseSystemLanguage(false);
 
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
 
       expect(settings.useSystemLanguage, isFalse);
     });
@@ -187,10 +187,10 @@ void main() {
       fakeRepo.failOnSaveUseSystemLanguage = true;
 
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setUseSystemLanguage(false);
 
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
 
       expect(settings.useSystemLanguage, isTrue);
     });
@@ -198,10 +198,10 @@ void main() {
     test('setManualLanguage(AppLanguage.uk) updates manualLanguage to uk',
         () async {
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setManualLanguage(AppLanguage.uk);
 
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
 
       expect(settings.manualLanguage, AppLanguage.uk);
     });
@@ -210,16 +210,16 @@ void main() {
       fakeRepo.failOnSaveManualLanguage = true;
 
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setManualLanguage(AppLanguage.uk);
 
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
 
       expect(settings.manualLanguage, AppLanguage.en);
     });
 
     test('useSystemLanguage=true by default (system locale drives resolution)', () {
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
 
       expect(settings.useSystemLanguage, isTrue);
     });
@@ -228,13 +228,13 @@ void main() {
         'manualLanguage=de is stored after setUseSystemLanguage(false) + setManualLanguage(de)',
         () async {
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setUseSystemLanguage(false);
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setManualLanguage(AppLanguage.de);
 
-      final settings = container.read(settingsProvider);
+      final settings = container.read(settingsNotifierProvider);
 
       expect(settings.useSystemLanguage, isFalse);
       expect(settings.manualLanguage, AppLanguage.de);
@@ -263,10 +263,10 @@ void main() {
       fakeRepo.failOnSaveThemeMode = true;
       final emissions = <Failure>[];
       final sub =
-          container.read(settingsProvider.notifier).errors.listen(emissions.add);
+          container.read(settingsNotifierProvider.notifier).errors.listen(emissions.add);
 
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setThemeMode(AppThemeMode.dark);
       await Future<void>.delayed(Duration.zero);
 
@@ -282,10 +282,10 @@ void main() {
       fakeRepo.failOnSaveUseSystemTheme = true;
       final emissions = <Failure>[];
       final sub =
-          container.read(settingsProvider.notifier).errors.listen(emissions.add);
+          container.read(settingsNotifierProvider.notifier).errors.listen(emissions.add);
 
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setUseSystemTheme(false);
       await Future<void>.delayed(Duration.zero);
 
@@ -301,10 +301,10 @@ void main() {
       fakeRepo.failOnSaveUseSystemLanguage = true;
       final emissions = <Failure>[];
       final sub =
-          container.read(settingsProvider.notifier).errors.listen(emissions.add);
+          container.read(settingsNotifierProvider.notifier).errors.listen(emissions.add);
 
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setUseSystemLanguage(false);
       await Future<void>.delayed(Duration.zero);
 
@@ -320,10 +320,10 @@ void main() {
       fakeRepo.failOnSaveManualLanguage = true;
       final emissions = <Failure>[];
       final sub =
-          container.read(settingsProvider.notifier).errors.listen(emissions.add);
+          container.read(settingsNotifierProvider.notifier).errors.listen(emissions.add);
 
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setManualLanguage(AppLanguage.uk);
       await Future<void>.delayed(Duration.zero);
 
@@ -336,19 +336,19 @@ void main() {
     test('settingsErrorsProvider does NOT emit on successful save', () async {
       final emissions = <Failure>[];
       final sub =
-          container.read(settingsProvider.notifier).errors.listen(emissions.add);
+          container.read(settingsNotifierProvider.notifier).errors.listen(emissions.add);
 
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setThemeMode(AppThemeMode.dark);
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setUseSystemTheme(false);
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setUseSystemLanguage(false);
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setManualLanguage(AppLanguage.uk);
       await Future<void>.delayed(Duration.zero);
 
@@ -361,16 +361,16 @@ void main() {
       fakeRepo.failOnSaveThemeMode = true;
       final emissions = <Failure>[];
       final sub =
-          container.read(settingsProvider.notifier).errors.listen(emissions.add);
+          container.read(settingsNotifierProvider.notifier).errors.listen(emissions.add);
 
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setThemeMode(AppThemeMode.dark);
       await Future<void>.delayed(Duration.zero);
       expect(emissions, hasLength(1));
 
       await container
-          .read(settingsProvider.notifier)
+          .read(settingsNotifierProvider.notifier)
           .setThemeMode(AppThemeMode.light);
       await Future<void>.delayed(Duration.zero);
       expect(emissions, hasLength(2));

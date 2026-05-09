@@ -1,13 +1,13 @@
 /// Riverpod providers for application settings.
 ///
 /// Exposes [settingsRepositoryProvider] (wires the data layer) and
-/// [settingsProvider] (the [NotifierProvider] that holds [AppSettings]
-/// state and persists changes through the repository).
+/// [settingsNotifierProvider] (the notifier that holds [AppSettings] state
+/// and persists changes through the repository).
 library;
 
 import 'dart:async';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../../core/providers/shared_preferences_provider.dart';
@@ -18,24 +18,23 @@ import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/app_theme_mode.dart';
 import '../../domain/repositories/settings_repository.dart';
 
+part 'settings_provider.g.dart';
+
 /// Provides the [SettingsRepository] implementation wired to the
 /// application-wide [SharedPreferencesWithCache].
-final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
+@riverpod
+SettingsRepository settingsRepository(Ref ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   final dataSource = SettingsLocalDataSource(prefs);
   return SettingsRepositoryImpl(dataSource);
-});
-
-/// Provides the current [AppSettings] and exposes mutation methods.
-final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(
-  SettingsNotifier.new,
-);
+}
 
 /// Notifier that manages [AppSettings] state.
 ///
 /// Reads initial settings synchronously from the repository cache and
 /// exposes methods to update individual preferences (theme and language).
-class SettingsNotifier extends Notifier<AppSettings> {
+@Riverpod(keepAlive: true, name: 'settingsNotifierProvider')
+class SettingsNotifier extends _$SettingsNotifier {
   late final StreamController<Failure> _errors;
 
   /// Broadcast stream of [Failure]s emitted by the four save mutators.
@@ -125,8 +124,12 @@ class SettingsNotifier extends Notifier<AppSettings> {
 /// Broadcast stream of persistence failures from [SettingsNotifier].
 ///
 /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
-/// errors to the user — typically as a SnackBar. Non-`autoDispose` to
-/// match the lifetime of [settingsProvider].
-final settingsErrorsProvider = StreamProvider<Failure>((ref) {
-  return ref.watch(settingsProvider.notifier).errors;
-});
+/// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes
+/// when a listener mounts and disposes when the last listener detaches. The
+/// underlying [StreamController] lives on the kept-alive
+/// [settingsNotifierProvider], so failures emitted while no listener is
+/// subscribed are simply not buffered (the stream is event-driven, not state).
+@riverpod
+Stream<Failure> settingsErrors(Ref ref) {
+  return ref.watch(settingsNotifierProvider.notifier).errors;
+}

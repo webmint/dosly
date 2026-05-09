@@ -1,10 +1,10 @@
 # Bug 004: Hand-rolled Riverpod providers; `riverpod_annotation`/`riverpod_generator` missing from pubspec
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Critical
 **Source**: audit (audits/2026-04-30-audit.md)
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-09
 
 ## Description
 
@@ -67,3 +67,21 @@ Suggested approach (to be confirmed in `/fix`):
 Note: this work likely happens together with bug 001 (which adds `freezed` codegen)
 and bug 003 (which may switch to `AsyncNotifier`). Bundling them into one
 "adopt codegen + restructure SettingsNotifier" PR makes sense.
+
+## Resolution
+
+Closed by spec [015-riverpod-codegen](../specs/015-riverpod-codegen/spec.md). All
+four manual providers (the three original sites — `sharedPreferencesProvider`,
+`settingsRepositoryProvider`, `settingsProvider` — plus `settingsErrorsProvider`
+added by feature 014) are now `@riverpod` codegen-emitted. `pubspec.yaml`
+lists `riverpod_annotation: ^4.0.2` (runtime) and `riverpod_generator: ^4.0.3`
+(dev), and generated `*.g.dart` files are committed alongside their source
+files per constitution §2.2.
+
+Notable resolution detail: the class-form `SettingsNotifier` uses
+`@Riverpod(keepAlive: true, name: 'settingsNotifierProvider')`. The `keepAlive`
+preserves the implicit lifetime of the original `NotifierProvider`. The `name:`
+parameter is required because Riverpod codegen strips a trailing `Notifier`
+from class names before appending `Provider` — so without it the emitted
+symbol would be `settingsProvider`, defeating the canonical codegen
+class-form naming idiom.
