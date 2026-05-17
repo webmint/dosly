@@ -1,26 +1,30 @@
 <!-- This file is a fixed-size sliding window. Always fully overwritten, never appended. Max ~40 lines. -->
 # Session State
 
-**Current Feature**: 016-settings-usecases
-**Branch**: spec/016-settings-usecases
-**Progress**: VERIFIED — 20/20 ACs PASS, APPROVED | Next: /summarize → /finalize
+**Current Feature**: 017-failure-freezed
+**Branch**: spec/017-failure-freezed
+**Progress**: VERIFIED — 14/14 ACs PASS, APPROVED | Next: /summarize → /finalize
 
 ## Recent Tasks
-- [x] 007 — Docs + close bugs 005/011 (tech-writer, 2026-05-10) — APPROVE on re-review
-- [x] /review — 0/0/0/8 security; 0/3/5 perf WATCH; tests ADEQUATE (2026-05-17)
-- [x] /fix narrow-select followup — 3 widget files; 227/227 tests; analyze clean (2026-05-17)
-- [x] /verify — APPROVED, 20/20 ACs PASS, build green (2026-05-17)
+- [x] 001 — Rewrite Failure as @freezed sealed union (architect, 2026-05-17) — APPROVE
+- [x] 002 — Update docs + close bug 006 (tech-writer, 2026-05-17) — APPROVE WITH WARNINGS (fixed)
+- [x] /review — 0/0/1/4 security; 0/0/3 perf; tests ADEQUATE (2026-05-17)
+  - Medium finding → forwarded to bug 017 as "Additional Finding: Failure-aware sanitizer"
+- [x] /verify — APPROVED, 14/14 ACs PASS, build green (2026-05-17)
 
 ## Recently Modified Files
-- `lib/features/settings/presentation/widgets/{theme,language}_selector.dart` — narrow `select` watches
-- `lib/features/theme_preview/presentation/screens/theme_preview_screen.dart` — same
-- `specs/016-settings-usecases/{review,verify}.md` — review report + verification verdict
-- `specs/016-settings-usecases/spec.md` — Status: Complete, 20 ACs marked [x]
+- `lib/core/error/failures.dart` — @freezed sealed union (Task 001)
+- `lib/core/error/failures.freezed.dart` — generated (NEW, Task 001)
+- `lib/features/settings/presentation/providers/settings_provider.g.dart` — regenerated side-effect
+- `docs/architecture.md` — §Failure handling updated (Task 002)
+- `bugs/006-failure-hierarchy-incomplete.md` — Closed (Task 002)
+- `bugs/017-typed-logger-missing.md` — added Failure-aware sanitizer scope (/review)
+- `specs/017-failure-freezed/{spec,review,verify}.md` — verdict APPROVED
 
 ## Recent Decisions
-- Post-review Medium fixes applied between /review and /verify (cost ~5 min); review.md kept as time-of-review snapshot per Feature 006 pattern.
-- AC-8 grep prescription was internally inconsistent with spec §3.2 — marked PASS as Implementation Deviation; lesson added to MEMORY.
-- 2 new MEMORY entries: grep-count AC consistency + narrow-`select` as default.
+- AC-1 amended: sealed implies abstract in Dart 3; MEMORY L163 rewritten to distinguish sealed vs non-sealed
+- Byte-identical-claim ACs (AC-8/9/10) confirmed the non-breaking migration claim with zero regressions
+- /review's Medium finding forwarded to bug 017 (sanitizer scope) rather than expanding spec 017
 
 ## Next
-Run `/summarize` (generates PR-ready summary), then `/finalize` (squashes WIP commits + generates feature docs).
+Run `/summarize` (PR-ready summary), then `/finalize` (squash WIP commits + feature docs).

@@ -133,15 +133,18 @@ void main() async {
 The data layer returns `Either<Failure, T>` (via `fpdart`) for all fallible operations. `lib/core/error/failures.dart` defines the sealed `Failure` hierarchy:
 
 ```dart
-sealed class Failure { const Failure(); }
-
-class CacheFailure extends Failure {
-  const CacheFailure(this.message);
-  final String message;
+@freezed
+sealed class Failure with _$Failure {
+  const factory Failure.notFound({String? id}) = NotFoundFailure;
+  const factory Failure.cache(String message) = CacheFailure;
+  const factory Failure.permissionDenied(String permission) = PermissionDeniedFailure;
+  const factory Failure.notificationSchedule(String reason) = NotificationScheduleFailure;
+  const factory Failure.validation({required String field, required String message}) = ValidationFailure;
+  const factory Failure.unknown(Object error, StackTrace stack) = UnknownFailure;
 }
 ```
 
-Sealed classes let callers pattern-match exhaustively. `SettingsNotifier` follows the "optimistic-write, no-update-on-failure" pattern: in-memory state is only updated when persistence succeeds.
+Sealed classes let callers pattern-match exhaustively. `SettingsNotifier` follows the "optimistic-write, no-update-on-failure" pattern: in-memory state is only updated when persistence succeeds. Each redirect target (`NotFoundFailure`, `CacheFailure`, `PermissionDeniedFailure`, `NotificationScheduleFailure`, `ValidationFailure`, `UnknownFailure`) is a public concrete class, so callers can pattern-match (`case CacheFailure(:final message)`) or assert (`isA<CacheFailure>()`) on the redirect name directly.
 
 **Side-channel error-stream pattern**: when a mutator notifier needs to surface failures to the UI without changing its state shape, it owns a broadcast `StreamController<Failure>` initialized in `build()` and closed via `ref.onDispose`. Each Left fold-branch emits the failure into the controller (`_errors.add(failure)`), and a companion top-level `StreamProvider<Failure>` exposes the stream to the widget tree. Consumers subscribe with `ref.listen<AsyncValue<Failure>>(errorsProvider, (_, next) => next.whenData(...))` to trigger side-effects such as showing a SnackBar, without coupling state shape to error state. The canonical example is `settingsErrorsProvider` in `lib/features/settings/presentation/providers/settings_provider.dart`, established by spec 014. When implementing this pattern, pass only static localized strings to the SnackBar — never forward `failure.message` to UI text, as that message originates from a platform exception and is not localized, not user-safe, and may contain internal details.
 

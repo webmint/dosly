@@ -317,6 +317,8 @@ String _$cycleThemeModeHash() => r'af6776358f8d2af82d13cbb8d16805de4cdfb773';
 ///
 /// Reads initial settings synchronously from the repository cache and
 /// exposes methods to update individual preferences (theme and language).
+// `name:` is load-bearing — codegen would otherwise strip the `Notifier`
+// suffix and emit `settingsProvider`. Keep in sync with consumer call sites.
 
 @ProviderFor(SettingsNotifier)
 final settingsNotifierProvider = SettingsNotifierProvider._();
@@ -325,12 +327,16 @@ final settingsNotifierProvider = SettingsNotifierProvider._();
 ///
 /// Reads initial settings synchronously from the repository cache and
 /// exposes methods to update individual preferences (theme and language).
+// `name:` is load-bearing — codegen would otherwise strip the `Notifier`
+// suffix and emit `settingsProvider`. Keep in sync with consumer call sites.
 final class SettingsNotifierProvider
     extends $NotifierProvider<SettingsNotifier, AppSettings> {
   /// Notifier that manages [AppSettings] state.
   ///
   /// Reads initial settings synchronously from the repository cache and
   /// exposes methods to update individual preferences (theme and language).
+  // `name:` is load-bearing — codegen would otherwise strip the `Notifier`
+  // suffix and emit `settingsProvider`. Keep in sync with consumer call sites.
   SettingsNotifierProvider._()
     : super(
         from: null,
@@ -364,6 +370,8 @@ String _$settingsNotifierHash() => r'50119c679c2c6bf613caff1296d7d71a904c9676';
 ///
 /// Reads initial settings synchronously from the repository cache and
 /// exposes methods to update individual preferences (theme and language).
+// `name:` is load-bearing — codegen would otherwise strip the `Notifier`
+// suffix and emit `settingsProvider`. Keep in sync with consumer call sites.
 
 abstract class _$SettingsNotifier extends $Notifier<AppSettings> {
   AppSettings build();
