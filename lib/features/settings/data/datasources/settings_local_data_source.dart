@@ -78,10 +78,7 @@ class SettingsLocalDataSource {
     if (code == null) {
       return AppLanguage.en;
     }
-    return AppLanguage.values.firstWhere(
-      (AppLanguage lang) => lang.code == code,
-      orElse: () => AppLanguage.en,
-    );
+    return AppLanguage.fromLanguageCodeOrDefault(code);
   }
 
   /// Persists the [value] for the "use system language" preference.

@@ -29,6 +29,23 @@ class _FakeSettingsRepository implements SettingsRepository {
   /// When true, [saveManualLanguage] returns a [Left] with a [CacheFailure].
   bool failOnSaveManualLanguage = false;
 
+  /// Snapshot of the current persisted [AppSettings] (mirrors what `load()`
+  /// would return). Useful for stronger end-state assertions in tests that
+  /// exercise atomic two-write use cases.
+  AppSettings get savedSettings => _settings;
+
+  /// Convenience accessor for the persisted manual theme override.
+  AppThemeMode get savedManualThemeMode => _settings.manualThemeMode;
+
+  /// Convenience accessor for the persisted manual language override.
+  AppLanguage get savedManualLanguage => _settings.manualLanguage;
+
+  /// Convenience accessor for the persisted "follow device theme" flag.
+  bool get savedUseSystemTheme => _settings.useSystemTheme;
+
+  /// Convenience accessor for the persisted "follow device language" flag.
+  bool get savedUseSystemLanguage => _settings.useSystemLanguage;
+
   @override
   AppSettings load() => _settings;
 
@@ -119,15 +136,21 @@ void main() {
       expect(settings.manualThemeMode, AppThemeMode.light);
     });
 
-    test('setUseSystemTheme(false) updates useSystemTheme to false', () async {
+    test(
+        'setUseSystemTheme(false) pre-fills manual override from device and '
+        'updates useSystemTheme to false', () async {
       await container
           .read(settingsNotifierProvider.notifier)
-          .setUseSystemTheme(false);
+          .setUseSystemTheme(false, currentDeviceMode: AppThemeMode.dark);
 
       final settings = container.read(settingsNotifierProvider);
 
       expect(settings.useSystemTheme, isFalse);
-      expect(settings.manualThemeMode, AppThemeMode.light);
+      expect(settings.manualThemeMode, AppThemeMode.dark);
+      // The atomic use case writes both: confirm the repo received the
+      // manual pre-fill in addition to the toggle.
+      expect(fakeRepo.savedManualThemeMode, AppThemeMode.dark);
+      expect(fakeRepo.savedUseSystemTheme, isFalse);
     });
 
     test('setUseSystemTheme does not update state when save fails', () async {
@@ -135,7 +158,7 @@ void main() {
 
       await container
           .read(settingsNotifierProvider.notifier)
-          .setUseSystemTheme(false);
+          .setUseSystemTheme(false, currentDeviceMode: AppThemeMode.dark);
 
       final settings = container.read(settingsNotifierProvider);
 
@@ -163,7 +186,7 @@ void main() {
           .setThemeMode(AppThemeMode.dark);
       await container
           .read(settingsNotifierProvider.notifier)
-          .setUseSystemTheme(false);
+          .setUseSystemTheme(false, currentDeviceMode: AppThemeMode.dark);
 
       final settings = container.read(settingsNotifierProvider);
 
@@ -171,15 +194,21 @@ void main() {
       expect(settings.manualThemeMode, AppThemeMode.dark);
     });
 
-    test('setUseSystemLanguage(false) updates useSystemLanguage to false',
-        () async {
+    test(
+        'setUseSystemLanguage(false) pre-fills manual override from device and '
+        'updates useSystemLanguage to false', () async {
       await container
           .read(settingsNotifierProvider.notifier)
-          .setUseSystemLanguage(false);
+          .setUseSystemLanguage(false, currentDeviceLanguage: AppLanguage.de);
 
       final settings = container.read(settingsNotifierProvider);
 
       expect(settings.useSystemLanguage, isFalse);
+      expect(settings.manualLanguage, AppLanguage.de);
+      // The atomic use case writes both: confirm the repo received the
+      // manual pre-fill in addition to the toggle.
+      expect(fakeRepo.savedManualLanguage, AppLanguage.de);
+      expect(fakeRepo.savedUseSystemLanguage, isFalse);
     });
 
     test('setUseSystemLanguage does not update state when save fails',
@@ -188,7 +217,7 @@ void main() {
 
       await container
           .read(settingsNotifierProvider.notifier)
-          .setUseSystemLanguage(false);
+          .setUseSystemLanguage(false, currentDeviceLanguage: AppLanguage.en);
 
       final settings = container.read(settingsNotifierProvider);
 
@@ -229,7 +258,7 @@ void main() {
         () async {
       await container
           .read(settingsNotifierProvider.notifier)
-          .setUseSystemLanguage(false);
+          .setUseSystemLanguage(false, currentDeviceLanguage: AppLanguage.en);
       await container
           .read(settingsNotifierProvider.notifier)
           .setManualLanguage(AppLanguage.de);
@@ -286,7 +315,7 @@ void main() {
 
       await container
           .read(settingsNotifierProvider.notifier)
-          .setUseSystemTheme(false);
+          .setUseSystemTheme(false, currentDeviceMode: AppThemeMode.dark);
       await Future<void>.delayed(Duration.zero);
 
       expect(emissions, hasLength(1));
@@ -305,7 +334,7 @@ void main() {
 
       await container
           .read(settingsNotifierProvider.notifier)
-          .setUseSystemLanguage(false);
+          .setUseSystemLanguage(false, currentDeviceLanguage: AppLanguage.en);
       await Future<void>.delayed(Duration.zero);
 
       expect(emissions, hasLength(1));
@@ -343,10 +372,10 @@ void main() {
           .setThemeMode(AppThemeMode.dark);
       await container
           .read(settingsNotifierProvider.notifier)
-          .setUseSystemTheme(false);
+          .setUseSystemTheme(false, currentDeviceMode: AppThemeMode.dark);
       await container
           .read(settingsNotifierProvider.notifier)
-          .setUseSystemLanguage(false);
+          .setUseSystemLanguage(false, currentDeviceLanguage: AppLanguage.en);
       await container
           .read(settingsNotifierProvider.notifier)
           .setManualLanguage(AppLanguage.uk);
@@ -374,6 +403,93 @@ void main() {
           .setThemeMode(AppThemeMode.light);
       await Future<void>.delayed(Duration.zero);
       expect(emissions, hasLength(2));
+
+      await sub.cancel();
+    });
+  });
+
+  group('cycleThemeMode', () {
+    late _FakeSettingsRepository fakeRepo;
+    late ProviderContainer container;
+
+    setUp(() {
+      fakeRepo = _FakeSettingsRepository();
+      container = ProviderContainer(
+        overrides: [
+          settingsRepositoryProvider.overrideWithValue(fakeRepo),
+        ],
+      );
+    });
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    test(
+        'cycles system on -> manual light: state.useSystemTheme=false, '
+        'state.manualThemeMode=light', () async {
+      // Initial state: default = useSystemTheme: true, manualThemeMode: light.
+      final initial = container.read(settingsNotifierProvider);
+      expect(initial.useSystemTheme, isTrue);
+      expect(initial.manualThemeMode, AppThemeMode.light);
+
+      await container
+          .read(settingsNotifierProvider.notifier)
+          .cycleThemeMode();
+
+      final settings = container.read(settingsNotifierProvider);
+
+      expect(settings.useSystemTheme, isFalse);
+      expect(settings.manualThemeMode, AppThemeMode.light);
+      // Repo received both writes from the atomic cycle.
+      expect(fakeRepo.savedManualThemeMode, AppThemeMode.light);
+      expect(fakeRepo.savedUseSystemTheme, isFalse);
+    });
+
+    test('cycles manual light -> manual dark: only manual write, system stays off',
+        () async {
+      // Move to (useSystemTheme: false, manualThemeMode: light) first.
+      await container
+          .read(settingsNotifierProvider.notifier)
+          .setUseSystemTheme(false, currentDeviceMode: AppThemeMode.light);
+
+      await container
+          .read(settingsNotifierProvider.notifier)
+          .cycleThemeMode();
+
+      final settings = container.read(settingsNotifierProvider);
+
+      expect(settings.useSystemTheme, isFalse);
+      expect(settings.manualThemeMode, AppThemeMode.dark);
+      expect(fakeRepo.savedManualThemeMode, AppThemeMode.dark);
+      expect(fakeRepo.savedUseSystemTheme, isFalse);
+    });
+
+    test('failure during cycle is forwarded to settingsErrorsProvider',
+        () async {
+      // Initial state is system on, so the first inner write is
+      // saveThemeMode(light). Failing that write must surface a Failure on
+      // the error stream and leave state unchanged.
+      fakeRepo.failOnSaveThemeMode = true;
+
+      final emissions = <Failure>[];
+      final sub = container
+          .read(settingsNotifierProvider.notifier)
+          .errors
+          .listen(emissions.add);
+
+      await container
+          .read(settingsNotifierProvider.notifier)
+          .cycleThemeMode();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, hasLength(1));
+      expect(emissions.single, isA<CacheFailure>());
+
+      // State must remain at the initial values (no partial application).
+      final settings = container.read(settingsNotifierProvider);
+      expect(settings.useSystemTheme, isTrue);
+      expect(settings.manualThemeMode, AppThemeMode.light);
 
       await sub.cancel();
     });

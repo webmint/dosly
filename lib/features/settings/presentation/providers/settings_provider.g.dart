@@ -64,6 +64,255 @@ final class SettingsRepositoryProvider
 String _$settingsRepositoryHash() =>
     r'96eeb7cec1454411236b528b78cf145945326caf';
 
+/// Provides a [SetThemeMode] use case wired to the settings repository.
+
+@ProviderFor(setThemeMode)
+final setThemeModeProvider = SetThemeModeProvider._();
+
+/// Provides a [SetThemeMode] use case wired to the settings repository.
+
+final class SetThemeModeProvider
+    extends $FunctionalProvider<SetThemeMode, SetThemeMode, SetThemeMode>
+    with $Provider<SetThemeMode> {
+  /// Provides a [SetThemeMode] use case wired to the settings repository.
+  SetThemeModeProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'setThemeModeProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$setThemeModeHash();
+
+  @$internal
+  @override
+  $ProviderElement<SetThemeMode> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  SetThemeMode create(Ref ref) {
+    return setThemeMode(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SetThemeMode value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SetThemeMode>(value),
+    );
+  }
+}
+
+String _$setThemeModeHash() => r'dcc6ced488bf6b189b12e96bef6ed48ba74dd9c7';
+
+/// Provides a [SetUseSystemTheme] use case wired to the settings repository.
+
+@ProviderFor(setUseSystemTheme)
+final setUseSystemThemeProvider = SetUseSystemThemeProvider._();
+
+/// Provides a [SetUseSystemTheme] use case wired to the settings repository.
+
+final class SetUseSystemThemeProvider
+    extends
+        $FunctionalProvider<
+          SetUseSystemTheme,
+          SetUseSystemTheme,
+          SetUseSystemTheme
+        >
+    with $Provider<SetUseSystemTheme> {
+  /// Provides a [SetUseSystemTheme] use case wired to the settings repository.
+  SetUseSystemThemeProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'setUseSystemThemeProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$setUseSystemThemeHash();
+
+  @$internal
+  @override
+  $ProviderElement<SetUseSystemTheme> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  SetUseSystemTheme create(Ref ref) {
+    return setUseSystemTheme(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SetUseSystemTheme value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SetUseSystemTheme>(value),
+    );
+  }
+}
+
+String _$setUseSystemThemeHash() => r'af1b82dc86b85531e608bf5674594698a81c733b';
+
+/// Provides a [SetUseSystemLanguage] use case wired to the settings repository.
+
+@ProviderFor(setUseSystemLanguage)
+final setUseSystemLanguageProvider = SetUseSystemLanguageProvider._();
+
+/// Provides a [SetUseSystemLanguage] use case wired to the settings repository.
+
+final class SetUseSystemLanguageProvider
+    extends
+        $FunctionalProvider<
+          SetUseSystemLanguage,
+          SetUseSystemLanguage,
+          SetUseSystemLanguage
+        >
+    with $Provider<SetUseSystemLanguage> {
+  /// Provides a [SetUseSystemLanguage] use case wired to the settings repository.
+  SetUseSystemLanguageProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'setUseSystemLanguageProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$setUseSystemLanguageHash();
+
+  @$internal
+  @override
+  $ProviderElement<SetUseSystemLanguage> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  SetUseSystemLanguage create(Ref ref) {
+    return setUseSystemLanguage(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SetUseSystemLanguage value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SetUseSystemLanguage>(value),
+    );
+  }
+}
+
+String _$setUseSystemLanguageHash() =>
+    r'956067016c87df5c4bbff4345d11e364f8d230bd';
+
+/// Provides a [SetManualLanguage] use case wired to the settings repository.
+
+@ProviderFor(setManualLanguage)
+final setManualLanguageProvider = SetManualLanguageProvider._();
+
+/// Provides a [SetManualLanguage] use case wired to the settings repository.
+
+final class SetManualLanguageProvider
+    extends
+        $FunctionalProvider<
+          SetManualLanguage,
+          SetManualLanguage,
+          SetManualLanguage
+        >
+    with $Provider<SetManualLanguage> {
+  /// Provides a [SetManualLanguage] use case wired to the settings repository.
+  SetManualLanguageProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'setManualLanguageProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$setManualLanguageHash();
+
+  @$internal
+  @override
+  $ProviderElement<SetManualLanguage> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  SetManualLanguage create(Ref ref) {
+    return setManualLanguage(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SetManualLanguage value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SetManualLanguage>(value),
+    );
+  }
+}
+
+String _$setManualLanguageHash() => r'7aee4de463e8216e8cb1cf28eb2252da72c51ae3';
+
+/// Provides a [CycleThemeMode] use case wired to the settings repository.
+
+@ProviderFor(cycleThemeMode)
+final cycleThemeModeProvider = CycleThemeModeProvider._();
+
+/// Provides a [CycleThemeMode] use case wired to the settings repository.
+
+final class CycleThemeModeProvider
+    extends $FunctionalProvider<CycleThemeMode, CycleThemeMode, CycleThemeMode>
+    with $Provider<CycleThemeMode> {
+  /// Provides a [CycleThemeMode] use case wired to the settings repository.
+  CycleThemeModeProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'cycleThemeModeProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$cycleThemeModeHash();
+
+  @$internal
+  @override
+  $ProviderElement<CycleThemeMode> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  CycleThemeMode create(Ref ref) {
+    return cycleThemeMode(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(CycleThemeMode value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<CycleThemeMode>(value),
+    );
+  }
+}
+
+String _$cycleThemeModeHash() => r'af6776358f8d2af82d13cbb8d16805de4cdfb773';
+
 /// Notifier that manages [AppSettings] state.
 ///
 /// Reads initial settings synchronously from the repository cache and
@@ -109,7 +358,7 @@ final class SettingsNotifierProvider
   }
 }
 
-String _$settingsNotifierHash() => r'7ae3e50f6aa4c930f55ddc49836ac2520c06be6b';
+String _$settingsNotifierHash() => r'50119c679c2c6bf613caff1296d7d71a904c9676';
 
 /// Notifier that manages [AppSettings] state.
 ///

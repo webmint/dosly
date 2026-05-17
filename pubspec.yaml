@@ -62,6 +62,8 @@ dev_dependencies:
   freezed: ^3.2.5
   build_runner: ^2.15.0
   riverpod_generator: ^4.0.3
+  # Mocking library for use case unit tests (constitution §6.2).
+  mocktail: ^1.0.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

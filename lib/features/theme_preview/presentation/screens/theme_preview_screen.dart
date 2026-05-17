@@ -31,14 +31,21 @@ class ThemePreviewScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsNotifierProvider);
+    // Narrow watches: only rebuild when these two fields change, not on any
+    // unrelated AppSettings field (e.g. language toggles).
+    final useSystemTheme = ref.watch(
+      settingsNotifierProvider.select((s) => s.useSystemTheme),
+    );
+    final manualThemeMode = ref.watch(
+      settingsNotifierProvider.select((s) => s.manualThemeMode),
+    );
     // The icon helper takes Flutter's 3-value `ThemeMode` for display
     // purposes only — `AppThemeMode` is intentionally 2-value (no
     // `system`), so we compute the display-side `ThemeMode` inline from
     // the entity's raw fields.
-    final ThemeMode effectiveMode = settings.useSystemTheme
+    final ThemeMode effectiveMode = useSystemTheme
         ? ThemeMode.system
-        : (settings.manualThemeMode == AppThemeMode.dark
+        : (manualThemeMode == AppThemeMode.dark
             ? ThemeMode.dark
             : ThemeMode.light);
 
@@ -50,19 +57,7 @@ class ThemePreviewScreen extends ConsumerWidget {
             tooltip: 'Cycle theme mode',
             icon: Icon(_iconForEffectiveMode(effectiveMode)),
             onPressed: () {
-              final notifier = ref.read(settingsNotifierProvider.notifier);
-              // Cycle: system → light → dark → system
-              if (settings.useSystemTheme) {
-                // system → light (manual)
-                notifier.setThemeMode(AppThemeMode.light);
-                notifier.setUseSystemTheme(false);
-              } else if (settings.manualThemeMode == AppThemeMode.light) {
-                // light → dark (manual)
-                notifier.setThemeMode(AppThemeMode.dark);
-              } else {
-                // dark → system
-                notifier.setUseSystemTheme(true);
-              }
+              ref.read(settingsNotifierProvider.notifier).cycleThemeMode();
             },
           ),
         ],
