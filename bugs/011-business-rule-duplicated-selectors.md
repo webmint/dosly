@@ -1,10 +1,10 @@
 # Bug 011: Business-rule duplication × 3 across `language_selector` / `theme_selector` / `theme_preview_screen`
 
-**Status**: Open
+**Status**: Closed
 **Severity**: Warning
 **Source**: audit (audits/2026-04-30-audit.md)
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-10
 
 ## Description
 

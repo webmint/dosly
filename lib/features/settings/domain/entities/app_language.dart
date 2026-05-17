@@ -25,4 +25,16 @@ enum AppLanguage {
   /// Human-readable label in the language's own script. Plain literal — never
   /// localised.
   final String nativeName;
+
+  /// Resolves a stored language [code] back to its [AppLanguage] value.
+  ///
+  /// Returns [AppLanguage.en] for any unknown or empty input — same defensive
+  /// fallback pattern used by `AppThemeMode.fromCodeOrDefault` for theme
+  /// codes. Callers persisting `String?` should null-guard before calling
+  /// (this factory takes a non-nullable [code]).
+  static AppLanguage fromLanguageCodeOrDefault(String code) =>
+      AppLanguage.values.firstWhere(
+        (lang) => lang.code == code,
+        orElse: () => AppLanguage.en,
+      );
 }

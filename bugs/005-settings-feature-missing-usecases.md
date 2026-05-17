@@ -1,10 +1,10 @@
 # Bug 005: Settings feature has no `domain/usecases/`; business rules duplicated in widgets
 
-**Status**: Open
+**Status**: Closed
 **Severity**: Critical
 **Source**: audit (audits/2026-04-30-audit.md)
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-10
 
 ## Description
 

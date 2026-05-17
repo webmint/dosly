@@ -30,17 +30,27 @@ class ThemeSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsNotifierProvider);
+    // Narrow watches: only rebuild when these two fields change, not on any
+    // unrelated AppSettings field (e.g. language toggles).
+    final useSystemTheme = ref.watch(
+      settingsNotifierProvider.select((s) => s.useSystemTheme),
+    );
+    final manualThemeMode = ref.watch(
+      settingsNotifierProvider.select((s) => s.manualThemeMode),
+    );
     final l10n = context.l10n;
     final systemBrightness = MediaQuery.platformBrightnessOf(context);
 
+    // Derive the device mode once; reused for both the displayed segment and
+    // the toggle callback so the derivation is never duplicated (DRY).
+    final AppThemeMode deviceMode = systemBrightness == Brightness.dark
+        ? AppThemeMode.dark
+        : AppThemeMode.light;
+
     // When the system toggle is active, derive the displayed segment from the
     // actual device brightness so the user can see what the system is using.
-    final AppThemeMode displayedMode = settings.useSystemTheme
-        ? (systemBrightness == Brightness.dark
-            ? AppThemeMode.dark
-            : AppThemeMode.light)
-        : settings.manualThemeMode;
+    final AppThemeMode displayedMode =
+        useSystemTheme ? deviceMode : manualThemeMode;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,21 +58,13 @@ class ThemeSelector extends ConsumerWidget {
         SwitchListTile(
           title: Text(l10n.settingsUseSystemTheme),
           subtitle: Text(l10n.settingsUseSystemThemeSub),
-          value: settings.useSystemTheme,
+          value: useSystemTheme,
           // Zero horizontal padding — the parent Padding widget already
           // provides the 16 px horizontal inset.
           contentPadding: EdgeInsets.zero,
           onChanged: (bool value) {
-            if (!value) {
-              // Switching to manual: pre-select the segment that matches the
-              // current system brightness so the switch feels instant.
-              final AppThemeMode manualMode =
-                  systemBrightness == Brightness.dark
-                      ? AppThemeMode.dark
-                      : AppThemeMode.light;
-              ref.read(settingsNotifierProvider.notifier).setThemeMode(manualMode);
-            }
-            ref.read(settingsNotifierProvider.notifier).setUseSystemTheme(value);
+            ref.read(settingsNotifierProvider.notifier)
+                .setUseSystemTheme(value, currentDeviceMode: deviceMode);
           },
         ),
         const SizedBox(height: 8),
@@ -84,7 +86,7 @@ class ThemeSelector extends ConsumerWidget {
           selected: <AppThemeMode>{displayedMode},
           // Passing null disables the button in M3, but the selected segment
           // remains visually highlighted showing the current system theme.
-          onSelectionChanged: settings.useSystemTheme
+          onSelectionChanged: useSystemTheme
               ? null
               : (Set<AppThemeMode> selection) {
                   ref

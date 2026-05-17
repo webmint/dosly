@@ -22,6 +22,8 @@ Anything shared across features lives under `lib/core/` and must be **feature-ag
 
 > The three-layer pattern was first exercised in full by `009-theme-settings`: `domain/entities/app_settings.dart` and `domain/repositories/settings_repository.dart` exist as pure Dart; `data/` holds the data source and repository implementation; `presentation/` holds the Riverpod providers and widgets.
 
+> Spec `016-settings-usecases` completed the domain triangle by adding a `domain/usecases/` sublayer to the settings feature — five callable classes (`SetThemeMode`, `SetUseSystemTheme`, `SetUseSystemLanguage`, `SetManualLanguage`, `CycleThemeMode`), each with a `const` constructor taking one `SettingsRepository`. The notifier delegates all persistence through these use cases via Riverpod function providers; `ref.read(settingsRepositoryProvider)` no longer appears in any mutator body. `lib/features/settings/` is the canonical example of the full four-sublayer domain: `entities/`, `repositories/`, `usecases/`, and their corresponding `data/` and `presentation/` counterparts.
+
 > Spec `012-settings-domain-purify` (2026-04-30) made the constitution
 > §2.1 layering rule actually true for the settings feature: `lib/features/settings/domain/`
 > and `lib/features/settings/data/` are now free of `package:flutter/*` imports. The

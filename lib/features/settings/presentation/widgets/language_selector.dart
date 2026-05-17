@@ -32,19 +32,27 @@ class LanguageSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsNotifierProvider);
+    // Narrow watches: only rebuild when these two fields change, not on any
+    // unrelated AppSettings field (e.g. theme toggles).
+    final useSystemLanguage = ref.watch(
+      settingsNotifierProvider.select((s) => s.useSystemLanguage),
+    );
+    final manualLanguage = ref.watch(
+      settingsNotifierProvider.select((s) => s.manualLanguage),
+    );
     final l10n = context.l10n;
+
+    // Derive the device language once; reused for both the displayed entry and
+    // the toggle callback so the derivation is never duplicated (DRY).
+    final deviceLanguage = AppLanguage.fromLanguageCodeOrDefault(
+      Localizations.localeOf(context).languageCode,
+    );
 
     // When the system toggle is active, derive the displayed entry from the
     // actual device-resolved locale so the user can see what the system is
     // using — not the stale prior manual selection.
-    final deviceCode = Localizations.localeOf(context).languageCode;
-    final deviceLanguage = AppLanguage.values.firstWhere(
-      (lang) => lang.code == deviceCode,
-      orElse: () => AppLanguage.en,
-    );
     final displayedLanguage =
-        settings.useSystemLanguage ? deviceLanguage : settings.manualLanguage;
+        useSystemLanguage ? deviceLanguage : manualLanguage;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,23 +60,13 @@ class LanguageSelector extends ConsumerWidget {
         SwitchListTile(
           title: Text(l10n.settingsUseDeviceLanguage),
           subtitle: Text(l10n.settingsUseDeviceLanguageSub),
-          value: settings.useSystemLanguage,
+          value: useSystemLanguage,
           // Zero horizontal padding — the parent Padding widget already
           // provides the 16 px horizontal inset.
           contentPadding: EdgeInsets.zero,
           onChanged: (bool value) {
-            if (!value) {
-              // Switching to manual — pre-fill the matching device language
-              // so the visible UI doesn't lurch to a different language.
-              final deviceCode =
-                  Localizations.localeOf(context).languageCode;
-              final pre = AppLanguage.values.firstWhere(
-                (lang) => lang.code == deviceCode,
-                orElse: () => AppLanguage.en,
-              );
-              ref.read(settingsNotifierProvider.notifier).setManualLanguage(pre);
-            }
-            ref.read(settingsNotifierProvider.notifier).setUseSystemLanguage(value);
+            ref.read(settingsNotifierProvider.notifier)
+                .setUseSystemLanguage(value, currentDeviceLanguage: deviceLanguage);
           },
         ),
         const SizedBox(height: 8),
@@ -77,7 +75,7 @@ class LanguageSelector extends ConsumerWidget {
           child: DropdownButton<AppLanguage>(
             value: displayedLanguage,
             isExpanded: true,
-            onChanged: settings.useSystemLanguage
+            onChanged: useSystemLanguage
                 ? null
                 : (AppLanguage? selected) {
                     if (selected != null) {

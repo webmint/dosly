@@ -1,8 +1,11 @@
 /// Riverpod providers for application settings.
 ///
-/// Exposes [settingsRepositoryProvider] (wires the data layer) and
+/// Exposes [settingsRepositoryProvider] (wires the data layer), the five use
+/// case providers ([setThemeModeProvider], [setUseSystemThemeProvider],
+/// [setUseSystemLanguageProvider], [setManualLanguageProvider],
+/// [cycleThemeModeProvider]) that the notifier delegates through, and
 /// [settingsNotifierProvider] (the notifier that holds [AppSettings] state
-/// and persists changes through the repository).
+/// and persists changes via the use cases).
 library;
 
 import 'dart:async';
@@ -17,6 +20,11 @@ import '../../domain/entities/app_language.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/app_theme_mode.dart';
 import '../../domain/repositories/settings_repository.dart';
+import '../../domain/usecases/cycle_theme_mode.dart';
+import '../../domain/usecases/set_manual_language.dart';
+import '../../domain/usecases/set_theme_mode.dart';
+import '../../domain/usecases/set_use_system_language.dart';
+import '../../domain/usecases/set_use_system_theme.dart';
 
 part 'settings_provider.g.dart';
 
@@ -29,10 +37,37 @@ SettingsRepository settingsRepository(Ref ref) {
   return SettingsRepositoryImpl(dataSource);
 }
 
+/// Provides a [SetThemeMode] use case wired to the settings repository.
+@riverpod
+SetThemeMode setThemeMode(Ref ref) =>
+    SetThemeMode(ref.watch(settingsRepositoryProvider));
+
+/// Provides a [SetUseSystemTheme] use case wired to the settings repository.
+@riverpod
+SetUseSystemTheme setUseSystemTheme(Ref ref) =>
+    SetUseSystemTheme(ref.watch(settingsRepositoryProvider));
+
+/// Provides a [SetUseSystemLanguage] use case wired to the settings repository.
+@riverpod
+SetUseSystemLanguage setUseSystemLanguage(Ref ref) =>
+    SetUseSystemLanguage(ref.watch(settingsRepositoryProvider));
+
+/// Provides a [SetManualLanguage] use case wired to the settings repository.
+@riverpod
+SetManualLanguage setManualLanguage(Ref ref) =>
+    SetManualLanguage(ref.watch(settingsRepositoryProvider));
+
+/// Provides a [CycleThemeMode] use case wired to the settings repository.
+@riverpod
+CycleThemeMode cycleThemeMode(Ref ref) =>
+    CycleThemeMode(ref.watch(settingsRepositoryProvider));
+
 /// Notifier that manages [AppSettings] state.
 ///
 /// Reads initial settings synchronously from the repository cache and
 /// exposes methods to update individual preferences (theme and language).
+// `name:` is load-bearing — codegen would otherwise strip the `Notifier`
+// suffix and emit `settingsProvider`. Keep in sync with consumer call sites.
 @Riverpod(keepAlive: true, name: 'settingsNotifierProvider')
 class SettingsNotifier extends _$SettingsNotifier {
   late final StreamController<Failure> _errors;
@@ -63,8 +98,7 @@ class SettingsNotifier extends _$SettingsNotifier {
   /// On persistence failure the in-memory state is not updated and the
   /// failure is forwarded to [settingsErrorsProvider] so the UI can surface it.
   Future<void> setThemeMode(AppThemeMode mode) async {
-    final repo = ref.read(settingsRepositoryProvider);
-    final result = await repo.saveThemeMode(mode);
+    final result = await ref.read(setThemeModeProvider).call(mode);
     result.fold(
       (failure) => _errors.add(failure),
       (_) {
@@ -74,33 +108,59 @@ class SettingsNotifier extends _$SettingsNotifier {
   }
 
   /// Updates whether the app should follow the device system theme, persists
-  /// the choice, and notifies listeners.
+  /// the choice atomically (pre-filling the manual override from
+  /// [currentDeviceMode] when toggling OFF), and notifies listeners.
   ///
   /// On persistence failure the in-memory state is not updated and the
   /// failure is forwarded to [settingsErrorsProvider] so the UI can surface it.
-  Future<void> setUseSystemTheme(bool value) async {
-    final repo = ref.read(settingsRepositoryProvider);
-    final result = await repo.saveUseSystemTheme(value);
+  Future<void> setUseSystemTheme(
+    bool value, {
+    required AppThemeMode currentDeviceMode,
+  }) async {
+    final result = await ref.read(setUseSystemThemeProvider).call(
+          value: value,
+          currentDeviceMode: currentDeviceMode,
+        );
     result.fold(
       (failure) => _errors.add(failure),
       (_) {
-        state = state.copyWith(useSystemTheme: value);
+        if (!value) {
+          state = state.copyWith(
+            manualThemeMode: currentDeviceMode,
+            useSystemTheme: false,
+          );
+        } else {
+          state = state.copyWith(useSystemTheme: true);
+        }
       },
     );
   }
 
   /// Updates whether the app should follow the device language, persists the
-  /// choice, and notifies listeners.
+  /// choice atomically (pre-filling the manual override from
+  /// [currentDeviceLanguage] when toggling OFF), and notifies listeners.
   ///
   /// On persistence failure the in-memory state is not updated and the
   /// failure is forwarded to [settingsErrorsProvider] so the UI can surface it.
-  Future<void> setUseSystemLanguage(bool value) async {
-    final repo = ref.read(settingsRepositoryProvider);
-    final result = await repo.saveUseSystemLanguage(value);
+  Future<void> setUseSystemLanguage(
+    bool value, {
+    required AppLanguage currentDeviceLanguage,
+  }) async {
+    final result = await ref.read(setUseSystemLanguageProvider).call(
+          value: value,
+          currentDeviceLanguage: currentDeviceLanguage,
+        );
     result.fold(
       (failure) => _errors.add(failure),
       (_) {
-        state = state.copyWith(useSystemLanguage: value);
+        if (!value) {
+          state = state.copyWith(
+            manualLanguage: currentDeviceLanguage,
+            useSystemLanguage: false,
+          );
+        } else {
+          state = state.copyWith(useSystemLanguage: true);
+        }
       },
     );
   }
@@ -110,12 +170,33 @@ class SettingsNotifier extends _$SettingsNotifier {
   /// On persistence failure the in-memory state is not updated and the
   /// failure is forwarded to [settingsErrorsProvider] so the UI can surface it.
   Future<void> setManualLanguage(AppLanguage language) async {
-    final repo = ref.read(settingsRepositoryProvider);
-    final result = await repo.saveManualLanguage(language);
+    final result = await ref.read(setManualLanguageProvider).call(language);
     result.fold(
       (failure) => _errors.add(failure),
       (_) {
         state = state.copyWith(manualLanguage: language);
+      },
+    );
+  }
+
+  /// Cycles the theme one step forward (`system → light → dark → system`),
+  /// persists the change atomically through [cycleThemeModeProvider], and
+  /// applies the resulting state from the use case's returned record.
+  ///
+  /// On persistence failure the in-memory state is not updated and the
+  /// failure is forwarded to [settingsErrorsProvider] so the UI can surface it.
+  Future<void> cycleThemeMode() async {
+    final result = await ref.read(cycleThemeModeProvider).call(
+          currentUseSystemTheme: state.useSystemTheme,
+          currentManualMode: state.manualThemeMode,
+        );
+    result.fold(
+      (failure) => _errors.add(failure),
+      (next) {
+        state = state.copyWith(
+          useSystemTheme: next.useSystemTheme,
+          manualThemeMode: next.manualThemeMode,
+        );
       },
     );
   }

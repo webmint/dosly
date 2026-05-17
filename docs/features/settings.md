@@ -68,6 +68,18 @@ Native names are plain literals — they are never translated. This is the unive
 - `saveUseSystemLanguage(bool)` — persists the system-language toggle
 - `saveManualLanguage(AppLanguage)` — persists the manual language choice
 
+### Use cases
+
+Five callable classes in `lib/features/settings/domain/usecases/`, each with a `const` constructor taking exactly one `SettingsRepository`. All live in pure-Dart `domain/` and return `Future<Either<Failure, void>>` (except `CycleThemeMode` — see below). Each is exposed to the presentation layer via a `@riverpod` function provider in `settings_provider.dart`.
+
+| Use case | File | Behaviour |
+|---|---|---|
+| `SetThemeMode` | `set_theme_mode.dart` | Persists the manual `AppThemeMode` via `SettingsRepository.saveThemeMode`. Pure pass-through. |
+| `SetManualLanguage` | `set_manual_language.dart` | Persists the manual `AppLanguage` via `SettingsRepository.saveManualLanguage`. Pure pass-through. |
+| `SetUseSystemTheme` | `set_use_system_theme.dart` | Atomic toggle. When `value=false`, pre-fills `manualThemeMode` with the resolved device brightness first (short-circuit on write failure), then persists the toggle. When `value=true`, only the toggle write fires — the stored manual override is left untouched. |
+| `SetUseSystemLanguage` | `set_use_system_language.dart` | Symmetric atomic toggle for the language axis. Same two-write / short-circuit pattern with `AppLanguage`. |
+| `CycleThemeMode` | `cycle_theme_mode.dart` | Encodes the `system → light → dark → system` cycle for the dev-only `ThemePreviewScreen` icon button. Returns `Future<Either<Failure, ({bool useSystemTheme, AppThemeMode manualThemeMode})>>` — the `Right` carries the post-cycle state record so the notifier can apply `state.copyWith(...)` without re-deriving the cycle rule. Manual-dark-to-system-on intentionally preserves `manualThemeMode: dark` so the user's last manual choice survives the cycle. |
+
 ### Data
 
 `SettingsLocalDataSource` wraps `SharedPreferencesWithCache` — all reads are synchronous (cache hit), writes are async (flushes to platform storage).
@@ -78,12 +90,23 @@ Native names are plain literals — they are never translated. This is the unive
 
 `SettingsNotifier` (`lib/features/settings/presentation/providers/settings_provider.dart`) is a `Notifier<AppSettings>`. Its `build()` loads the initial state synchronously from the repository cache and initializes a broadcast `StreamController<Failure>` for surfacing persistence errors. The controller is closed via `ref.onDispose` when the notifier is disposed. Mutation methods follow an optimistic pattern: in-memory state is only updated if persistence succeeds; on failure the `Failure` is emitted into the stream instead.
 
+The notifier exposes five public methods — `setThemeMode`, `setUseSystemTheme`, `setUseSystemLanguage`, `setManualLanguage`, and `cycleThemeMode`. All four mutators delegate through use case providers (`setThemeModeProvider`, `setUseSystemThemeProvider`, etc.); `ref.read(settingsRepositoryProvider)` no longer appears in any mutator body.
+
 ```dart
-Future<void> setUseSystemTheme(bool value) async {
-  final result = await ref.read(settingsRepositoryProvider).saveUseSystemTheme(value);
+Future<void> setUseSystemTheme(bool value, {required AppThemeMode currentDeviceMode}) async {
+  final result = await ref.read(setUseSystemThemeProvider).call(
+    value: value,
+    currentDeviceMode: currentDeviceMode,
+  );
   result.fold(
     (failure) => _errors.add(failure),
-    (_) => state = state.copyWith(useSystemTheme: value),
+    (_) {
+      if (!value) {
+        state = state.copyWith(manualThemeMode: currentDeviceMode, useSystemTheme: false);
+      } else {
+        state = state.copyWith(useSystemTheme: true);
+      }
+    },
   );
 }
 ```
@@ -99,15 +122,7 @@ A top-level `settingsErrorsProvider` (`StreamProvider<Failure>`) exposes the err
 1. A `SwitchListTile` — "Use system theme" toggle. Default ON.
 2. A full-width `SegmentedButton<AppThemeMode>` — Light / Dark. Disabled (but visually reflecting the current system brightness) while the toggle is ON.
 
-When the user turns the toggle OFF, `ThemeSelector` pre-fills the manual segment with the current device brightness so the visual transition is seamless.
-
-```dart
-// Switching to manual: pre-select the segment that matches current system brightness
-final manualMode = systemBrightness == Brightness.dark
-    ? AppThemeMode.dark
-    : AppThemeMode.light;
-ref.read(settingsNotifierProvider.notifier).setThemeMode(manualMode);
-```
+On any toggle change, `ThemeSelector` resolves the device brightness once at the top of `build` (`MediaQuery.platformBrightnessOf(context)` → `AppThemeMode`) and passes the resolved value to `setUseSystemTheme(value, currentDeviceMode: deviceMode)`. The pre-fill rule lives entirely inside the `SetUseSystemTheme` use case — see the "Use cases" subsection above. When the user turns the toggle OFF, the use case persists the device-derived value as the manual override before flipping the toggle, atomically, in one notifier call.
 
 ## LanguageSelector widget
 
@@ -116,29 +131,7 @@ ref.read(settingsNotifierProvider.notifier).setThemeMode(manualMode);
 1. A `SwitchListTile` — "Use device language" toggle. Default ON.
 2. A full-width `DropdownButton<AppLanguage>` populated from `AppLanguage.values`. Disabled (`onChanged: null`) while the toggle is ON, active when it is OFF.
 
-When the toggle is ON, the dropdown still renders and shows the **device-resolved language** (not the stale prior manual selection), derived at build time from `Localizations.localeOf(context)`:
-
-```dart
-final deviceCode = Localizations.localeOf(context).languageCode;
-final deviceLanguage = AppLanguage.values.firstWhere(
-  (lang) => lang.code == deviceCode,
-  orElse: () => AppLanguage.en,
-);
-final displayedLanguage =
-    settings.useSystemLanguage ? deviceLanguage : settings.manualLanguage;
-```
-
-When the user turns the toggle OFF, `LanguageSelector` pre-fills `manualLanguage` with the device-resolved language so the visual transition is seamless:
-
-```dart
-// Switching to manual: pre-fill the matching device language
-final deviceCode = Localizations.localeOf(context).languageCode;
-final pre = AppLanguage.values.firstWhere(
-  (lang) => lang.code == deviceCode,
-  orElse: () => AppLanguage.en,
-);
-ref.read(settingsNotifierProvider.notifier).setManualLanguage(pre);
-```
+`LanguageSelector` derives `deviceLanguage` once at the top of `build` via `AppLanguage.fromLanguageCodeOrDefault(Localizations.localeOf(context).languageCode)`, reusing it for the disabled-state display value AND the toggle callback. Toggling forwards `setUseSystemLanguage(value, currentDeviceLanguage: deviceLanguage)` — the pre-fill rule lives in `SetUseSystemLanguage`. `AppLanguage.fromLanguageCodeOrDefault` mirrors `AppThemeMode.fromCodeOrDefault`: it matches the language code against `AppLanguage.values` and falls back to `AppLanguage.en` for unknown codes.
 
 Each dropdown menu item renders the language's `nativeName` — never a translated label.
 
@@ -201,3 +194,4 @@ The `allowList` in `main()` is fixed to these four keys — no other preferences
 - [`../../specs/009-theme-settings/spec.md`](../../specs/009-theme-settings/spec.md) — the spec that introduced the settings stack and theme control
 - [`../../specs/010-language-settings/spec.md`](../../specs/010-language-settings/spec.md) — the spec that added the language control
 - [`../../specs/014-surface-settings-errors/spec.md`](../../specs/014-surface-settings-errors/spec.md) — the spec that added the error-stream and SnackBar feedback
+- [`../../specs/016-settings-usecases/spec.md`](../../specs/016-settings-usecases/spec.md) — the spec that introduced the use case layer, `CycleThemeMode`, and `AppLanguage.fromLanguageCodeOrDefault`
