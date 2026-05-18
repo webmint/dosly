@@ -5,7 +5,7 @@
 ///
 /// Role:
 /// * Hosts the shared bottom navigation bar for the tabbed branches of
-///   [appRouter]'s `StatefulShellRoute`.
+///   [appRouterProvider]'s `StatefulShellRoute`.
 /// * Translates `StatefulNavigationShell.currentIndex` and
 ///   `StatefulNavigationShell.goBranch` into the plain `int`/`ValueChanged<int>`
 ///   parameters that [AppBottomNav] expects, keeping [AppBottomNav] itself

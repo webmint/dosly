@@ -1,10 +1,10 @@
 # Bug 007: Top-level `GoRouter` `ChangeNotifier` never disposed
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Critical
 **Source**: audit (audits/2026-04-30-audit.md) — RECURRING from spec 007
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-18
 
 ## Description
 
@@ -68,3 +68,9 @@ adopted, this fix is mechanical.
 Tests that need a fresh router can override the provider in their
 `ProviderScope`, eliminating the need for `_buildTestRouterWithSentinel()` over
 time.
+
+## Resolution
+
+Closed by [spec 018](../specs/018-gorouter-disposal/spec.md). `lib/core/routing/app_router.dart` now declares a function-form `@Riverpod(keepAlive: true) GoRouter appRouter(Ref ref)` provider that registers `ref.onDispose(router.dispose)`. The previous top-level `final GoRouter appRouter = ...` is gone; `lib/app.dart` reads `ref.watch(appRouterProvider)`. Test 4 of `test/core/routing/app_router_test.dart` uses `appRouterProvider.overrideWith((ref) { ... ref.onDispose(r.dispose); return r; })` instead of a manual `testRouter.dispose()` call — the `_buildTestRouterWithSentinel()` helper remains in place because its purpose is a different route topology (sentinel child route), not a lifecycle workaround.
+
+`docs/architecture.md` § Routing was updated in the same spec to describe the new pattern.

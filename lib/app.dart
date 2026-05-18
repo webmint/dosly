@@ -7,7 +7,7 @@
 /// `locale` for [MaterialApp.router] inline. This file is the single
 /// `Flutter SDK ↔ domain` mapping seam — `package:flutter`'s
 /// [ThemeMode] does not appear in `lib/features/settings/`. Routing is
-/// delegated to [appRouter] which currently exposes `/` ([HomeScreen])
+/// delegated to [appRouterProvider] which currently exposes `/` ([HomeScreen])
 /// and a temporary dev-only `/theme-preview` route — the preview route
 /// will be removed in the final development stages (see
 /// specs/002-main-screen/spec.md). When `useSystemLanguage` is `true`
@@ -88,7 +88,7 @@ class DoslyApp extends ConsumerWidget {
       themeMode: useSystemTheme
           ? ThemeMode.system
           : _toFlutterThemeMode(manualThemeMode),
-      routerConfig: appRouter,
+      routerConfig: ref.watch(appRouterProvider),
     );
   }
 }
