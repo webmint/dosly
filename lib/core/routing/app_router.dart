@@ -1,16 +1,18 @@
 /// Application routing composition root.
 ///
-/// Declares the top-level [appRouter] — a `StatefulShellRoute.indexedStack`
-/// with three branches (Home `/`, Meds `/meds`, History `/history`) sharing
-/// a single [AppShell] scaffold + [AppBottomNav], plus a sibling top-level
-/// [GoRoute] for `/theme-preview` that renders WITHOUT the shell (so the
-/// dev-preview screen has no bottom nav).
+/// Declares [appRouterProvider] — a keep-alive Riverpod provider
+/// that creates a `StatefulShellRoute.indexedStack` with three branches
+/// (Home `/`, Meds `/meds`, History `/history`) sharing a single [AppShell]
+/// scaffold + [AppBottomNav], plus a sibling top-level [GoRoute] for
+/// `/theme-preview` that renders WITHOUT the shell (so the dev-preview screen
+/// has no bottom nav).
 ///
 /// Branch order matches [AppBottomNav] destination order (0=Today, 1=Meds,
 /// 2=History). Do not reorder without updating the bottom nav.
 library;
 
 import 'package:go_router/go_router.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../features/history/presentation/screens/history_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
@@ -19,50 +21,62 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/theme_preview/presentation/screens/theme_preview_screen.dart';
 import 'app_shell.dart';
 
-/// Application singleton router instance.
+part 'app_router.g.dart';
+
+/// Application router provider.
 ///
-/// Consumed by `DoslyApp` via `MaterialApp.router`.
-final GoRouter appRouter = GoRouter(
-  routes: [
-    StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) =>
-          AppShell(navigationShell: navigationShell),
-      branches: [
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/',
-              builder: (context, state) => const HomeScreen(),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/meds',
-              builder: (context, state) => const MedsScreen(),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/history',
-              builder: (context, state) => const HistoryScreen(),
-            ),
-          ],
-        ),
-      ],
-    ),
-    GoRoute(
-      path: '/settings',
-      builder: (context, state) => const SettingsScreen(),
-    ),
-    // TODO(post-mvp): remove this route when lib/features/theme_preview/
-    // is deleted — see specs/002-main-screen/spec.md §6 and §8.
-    GoRoute(
-      path: '/theme-preview',
-      builder: (context, state) => const ThemePreviewScreen(),
-    ),
-  ],
-);
+/// Returns the single app-wide [GoRouter] instance and binds its
+/// [GoRouter.dispose] to the [ProviderScope] lifetime via `ref.onDispose`.
+/// Consumed by `DoslyApp` via `ref.watch(appRouterProvider)`.
+///
+/// Tests that need a different route topology override this provider with
+/// `appRouterProvider.overrideWith((ref) { final r = ...; ref.onDispose(r.dispose); return r; })`.
+@Riverpod(keepAlive: true)
+GoRouter appRouter(Ref ref) {
+  final router = GoRouter(
+    routes: [
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/meds',
+                builder: (context, state) => const MedsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/history',
+                builder: (context, state) => const HistoryScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      // TODO(post-mvp): remove this route when lib/features/theme_preview/
+      // is deleted — see specs/002-main-screen/spec.md §6 and §8.
+      GoRoute(
+        path: '/theme-preview',
+        builder: (context, state) => const ThemePreviewScreen(),
+      ),
+    ],
+  );
+  ref.onDispose(router.dispose);
+  return router;
+}

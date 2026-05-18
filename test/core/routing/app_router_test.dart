@@ -14,6 +14,7 @@ import 'package:dosly/features/settings/domain/repositories/settings_repository.
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
@@ -121,18 +122,24 @@ GoRouter _buildTestRouterWithSentinel() {
 // widgets using context.l10n do not crash. Locale is pinned to English so
 // bottom-nav label text is predictable across all test machines.
 // ---------------------------------------------------------------------------
-Future<void> _pumpRouter(WidgetTester tester, GoRouter router) async {
+Future<void> _pumpRouter(
+  WidgetTester tester, {
+  List<Override> overrides = const [],
+}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         settingsRepositoryProvider
             .overrideWithValue(_FakeSettingsRepository()),
+        ...overrides,
       ],
-      child: MaterialApp.router(
-        routerConfig: router,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        locale: const Locale('en'),
+      child: Consumer(
+        builder: (context, ref, _) => MaterialApp.router(
+          routerConfig: ref.watch(appRouterProvider),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+        ),
       ),
     ),
   );
@@ -150,7 +157,7 @@ void main() {
     testWidgets(
       'Test 1 (AC-1, AC-2, AC-9): tab taps navigate between branches',
       (tester) async {
-        await _pumpRouter(tester, appRouter);
+        await _pumpRouter(tester);
 
         // Initial route: HomeScreen should be visible.
         expect(find.byType(HomeScreen), findsOneWidget);
@@ -179,7 +186,7 @@ void main() {
     testWidgets(
       'Test 2 (AC-8): exactly one AppBottomNav across all shell branches',
       (tester) async {
-        await _pumpRouter(tester, appRouter);
+        await _pumpRouter(tester);
 
         // At /.
         expect(find.byType(AppBottomNav), findsOneWidget);
@@ -210,7 +217,7 @@ void main() {
     testWidgets(
       'Test 3 (AC-10): selectedIndex tracks direct-URL navigation',
       (tester) async {
-        await _pumpRouter(tester, appRouter);
+        await _pumpRouter(tester);
 
         // Helper: get the current selectedIndex from the NavigationBar.
         int selectedIndex() =>
@@ -247,8 +254,16 @@ void main() {
     testWidgets(
       'Test 4 (AC-11): branch stack is preserved when switching tabs',
       (tester) async {
-        final testRouter = _buildTestRouterWithSentinel();
-        await _pumpRouter(tester, testRouter);
+        await _pumpRouter(
+          tester,
+          overrides: [
+            appRouterProvider.overrideWith((ref) {
+              final r = _buildTestRouterWithSentinel();
+              ref.onDispose(r.dispose);
+              return r;
+            }),
+          ],
+        );
 
         // Push the sentinel sub-route inside the Meds branch.
         GoRouter.of(tester.element(find.byType(HomeScreen))).go('/meds/sentinel');
@@ -265,8 +280,6 @@ void main() {
         await tester.tap(find.text('Meds'));
         await tester.pumpAndSettle();
         expect(find.text('SENTINEL_MEDS_SUB'), findsOneWidget);
-
-        testRouter.dispose();
       },
     );
 
@@ -277,7 +290,7 @@ void main() {
     testWidgets(
       'Test 5 (AC-13): /theme-preview renders without the shell bottom nav',
       (tester) async {
-        await _pumpRouter(tester, appRouter);
+        await _pumpRouter(tester);
 
         // Start at /: bottom nav must be present.
         expect(find.byType(HomeScreen), findsOneWidget);
@@ -306,7 +319,7 @@ void main() {
     testWidgets(
       'Test 6 (AC-5, AC-7): /settings renders without the shell bottom nav and back returns to home',
       (tester) async {
-        await _pumpRouter(tester, appRouter);
+        await _pumpRouter(tester);
 
         // Start at /: bottom nav must be present.
         expect(find.byType(HomeScreen), findsOneWidget);

@@ -84,7 +84,7 @@ class DoslyApp extends ConsumerWidget {
       themeMode: useSystemTheme
           ? ThemeMode.system
           : _toFlutterThemeMode(manualThemeMode),
-      routerConfig: appRouter,
+      routerConfig: ref.watch(appRouterProvider),
     );
   }
 }
@@ -124,6 +124,7 @@ void main() async {
 | Provider | Type | Purpose |
 |---|---|---|
 | `sharedPreferencesProvider` | `@Riverpod(keepAlive: true)` function | App-wide prefs instance, override-injected at startup |
+| `appRouterProvider` | `@Riverpod(keepAlive: true)` function | App-wide `GoRouter` instance with `onDispose`-bound lifecycle |
 | `settingsRepositoryProvider` | `@riverpod` function (autoDispose) | Wires data source to repository |
 | `settingsNotifierProvider` | `@Riverpod(keepAlive: true, name: 'settingsNotifierProvider')` class form | Current settings + mutation API |
 | `settingsErrorsProvider` | `@riverpod` function (autoDispose) | Broadcast stream of persistence failures from `SettingsNotifier` (added by feature 014) |
@@ -172,7 +173,7 @@ See [`features/i18n.md`](features/i18n.md) for the full walkthrough, including h
 
 ## Routing
 
-dosly uses **`go_router`** as its routing foundation. The router is declared as a top-level singleton in `lib/core/routing/app_router.dart` and consumed by `DoslyApp` via `MaterialApp.router(routerConfig: appRouter)`.
+dosly uses **`go_router`** as its routing foundation. The router is declared as a function-form `@Riverpod(keepAlive: true)` provider in `lib/core/routing/app_router.dart` and consumed by `DoslyApp` via `MaterialApp.router(routerConfig: ref.watch(appRouterProvider))`. `ref.onDispose(router.dispose)` binds the router's `ChangeNotifier` lifecycle to the `ProviderScope`, so tests that override the provider (e.g., to inject a different route topology) get automatic teardown.
 
 ### Route topology
 
@@ -180,21 +181,26 @@ The router uses a `StatefulShellRoute.indexedStack` to wrap the three primary ta
 
 ```dart
 // lib/core/routing/app_router.dart
-final GoRouter appRouter = GoRouter(
-  routes: [
-    StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) =>
-          AppShell(navigationShell: navigationShell),
-      branches: [
-        StatefulShellBranch(routes: [GoRoute(path: '/',       builder: ...)]),
-        StatefulShellBranch(routes: [GoRoute(path: '/meds',   builder: ...)]),
-        StatefulShellBranch(routes: [GoRoute(path: '/history',builder: ...)]),
-      ],
-    ),
-    GoRoute(path: '/settings', builder: ...),
-    GoRoute(path: '/theme-preview', builder: ...),
-  ],
-);
+@Riverpod(keepAlive: true)
+GoRouter appRouter(Ref ref) {
+  final router = GoRouter(
+    routes: [
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(routes: [GoRoute(path: '/',       builder: ...)]),
+          StatefulShellBranch(routes: [GoRoute(path: '/meds',   builder: ...)]),
+          StatefulShellBranch(routes: [GoRoute(path: '/history',builder: ...)]),
+        ],
+      ),
+      GoRoute(path: '/settings', builder: ...),
+      GoRoute(path: '/theme-preview', builder: ...),
+    ],
+  );
+  ref.onDispose(router.dispose);
+  return router;
+}
 ```
 
 Branch order matches `AppBottomNav` destination order (0 = Today, 1 = Meds, 2 = History). Reordering either side without updating the other breaks tab highlighting.
@@ -239,7 +245,7 @@ class AppShell extends StatelessWidget {
 ### Conventions
 
 - **`lib/core/routing/` is the composition root for routes.** It is the only place in the app allowed to import from multiple feature folders simultaneously — the documented exception to the "feature A never imports feature B" rule.
-- **`appRouter` mirrors the `themeController` pattern** — a top-level `final` declared next to its module, not a Riverpod provider. Riverpod will arrive with the first real feature; the router was deliberately kept on plain primitives.
+- **`appRouter` is a function-form `@Riverpod(keepAlive: true)` provider.** The emitted symbol is `appRouterProvider`. Lifecycle is bound to the `ProviderScope` via `ref.onDispose(router.dispose)`. Tests that need a different route topology override with `appRouterProvider.overrideWith((ref) { final r = ...; ref.onDispose(r.dispose); return r; })` — the override callback's `Ref` mirrors the production lifecycle binding so tests do not call `dispose()` directly. The earlier rationale for keeping the router on plain primitives (Riverpod hadn't landed yet) was retired by spec 018.
 - **Navigation is `context.go(...)` / `context.push(...)`** from `package:go_router/go_router.dart`, not `Navigator.of(context)`.
 - **Full-screen modals over the shell use `Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(fullscreenDialog: true, ...))`** — the only sanctioned use of the imperative `Navigator` API. `rootNavigator: true` is required so the modal covers `AppShell`'s bottom nav bar. See [`features/meds.md`](features/meds.md) for the reference implementation.
 - **`AppBottomNav` is router-agnostic.** It accepts `int` + `ValueChanged<int>` — plain values, not a `StatefulNavigationShell`. `AppShell` is the only coupling point.
