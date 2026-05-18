@@ -15,5 +15,8 @@
   "settingsUseDeviceLanguageSub": "Geräteeinstellungen folgen",
   "settingsPersistenceError": "Einstellung konnte nicht gespeichert werden. Bitte erneut versuchen.",
   "medsAddFabTooltip": "Medikament hinzufügen",
-  "medsAddTitle": "Medikament hinzufügen"
+  "medsAddTitle": "Medikament hinzufügen",
+  "errorScreenTitle": "Seite nicht gefunden",
+  "errorScreenBody": "Wir konnten dieses Ziel nicht finden.",
+  "errorScreenGoHome": "Zur Startseite"
 }

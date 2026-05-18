@@ -1,30 +1,27 @@
 <!-- This file is a fixed-size sliding window. Always fully overwritten, never appended. Max ~40 lines. -->
 # Session State
 
-**Current Feature**: 018-gorouter-disposal
-**Branch**: spec/018-gorouter-disposal
-**Progress**: VERIFIED — 13/13 ACs PASS, APPROVED | Next: /summarize → /finalize
+**Current Feature**: 019-router-error-screen
+**Branch**: spec/019-router-error-screen
+**Progress**: All 3 tasks COMPLETE | Next: /review → /verify → /summarize → /finalize
 
 ## Recent Tasks
-- [x] 001 — Convert appRouter to @riverpod provider + rewire tests (mobile-engineer, 2026-05-18) — APPROVE
-- [x] 002 — Update docs/architecture.md and close bug 007 (tech-writer, 2026-05-18) — clean self-review
-- [x] /review — 0/0/0/8 security; 0/0/0 perf; tests ADEQUATE; verdict CLEAN
-- [x] /verify — APPROVED, 13/13 ACs PASS, dart analyze + flutter test + flutter build all green
+- [x] 001 — ARB keys + gen-l10n (mobile-engineer, 2026-05-18) — APPROVE (1 Info: uk translation nuance, spec-faithful)
+- [x] 002 — errorBuilder + _RouterErrorScreen + Test 7 (mobile-engineer, 2026-05-18) — APPROVE (11/11 checks, 0 Critical/Warning)
+- [x] 003 — bug 008 closure + docs/architecture.md bullet (tech-writer, 2026-05-18) — APPROVE (zero findings)
 
 ## Recently Modified Files
-- `lib/core/routing/app_router.dart` — function-form @Riverpod(keepAlive:true) provider with ref.onDispose
-- `lib/core/routing/app_router.g.dart` — NEW codegen (committed)
-- `lib/app.dart` — routerConfig: ref.watch(appRouterProvider)
-- `lib/core/routing/app_shell.dart` — dartdoc reference fix
-- `test/core/routing/app_router_test.dart` — _pumpRouter reshape; Test 4 overrideWith
-- `docs/architecture.md` — § Routing rewritten + provider wiring table extended
-- `bugs/007-gorouter-never-disposed.md` — Status: Fixed, Resolution section
-- `specs/018-gorouter-disposal/{spec,review,verify}.md` — verdict APPROVED
+- `lib/core/routing/app_router.dart` — added `errorBuilder:` + private `_RouterErrorScreen` widget + 2 imports
+- `test/core/routing/app_router_test.dart` — appended Test 7 (errorBuilder + recovery)
+- `lib/l10n/app_en.arb` / `app_de.arb` / `app_uk.arb` — 3 new error-screen keys
+- `lib/l10n/app_localizations*.dart` (×4) — auto-regenerated
+- `bugs/008-approuter-no-errorbuilder.md` — Status: Fixed; Resolution section appended
+- `docs/architecture.md` — 6th bullet in §"Routing" → "Conventions"
 
 ## Recent Decisions
-- 2-task surgical pattern (MEMORY L129) scaled cleanly to a 13-AC /specify-scale spec
-- /verify caught a shell-script bug (grep-count + && chain) that masked passing predicates — fixed and recorded in MEMORY
-- Bug 007 closed; entry removed from open-bug rotation
+- 3-task split (l10n → source+test → docs+bug) ran clean with zero repair attempts — pattern recorded in MEMORY
+- `errorBuilder` confirmed to render OUTSIDE `StatefulShellRoute` (AC-8 verified via Test 7's `findsNothing` for `AppBottomNav`) — recorded in MEMORY
+- Used `automaticallyImplyLeading: false` to make recovery deterministic (only path back is the explicit "Go to home" FilledButton)
 
 ## Next
-Run `/summarize` (PR-ready summary), then `/finalize` (squash WIP commits + feature-level docs).
+Run `/review` (specialist agents on the feature diff), then `/verify` (AC-by-AC verdict), `/summarize`, `/finalize`.

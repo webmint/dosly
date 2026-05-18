@@ -340,5 +340,40 @@ void main() {
         expect(find.byType(AppBottomNav), findsOneWidget);
       },
     );
+
+    // -----------------------------------------------------------------------
+    // Test 7 — AC-1, AC-2, AC-3, AC-8: errorBuilder renders a localized
+    // error screen for an unmatched path, outside the shell (no AppBottomNav),
+    // and the "Go to home" button recovers to HomeScreen.
+    // -----------------------------------------------------------------------
+    testWidgets(
+      'Test 7 (AC-1, AC-2, AC-3, AC-8): errorBuilder renders for unmatched route and recovers to home',
+      (tester) async {
+        await _pumpRouter(tester);
+
+        // Navigate to an unmatched path.
+        GoRouter.of(tester.element(find.byType(HomeScreen))).go('/nonexistent');
+        await tester.pumpAndSettle();
+
+        // Error screen is rendered with the localized title.
+        expect(find.text('Page not found'), findsOneWidget);
+
+        // Screen renders OUTSIDE the StatefulShellRoute — no bottom nav.
+        expect(find.byType(AppBottomNav), findsNothing);
+
+        // Recovery button is present.
+        expect(
+          find.widgetWithText(FilledButton, 'Go to home'),
+          findsOneWidget,
+        );
+
+        // Tap the button → navigate back to HomeScreen.
+        await tester.tap(find.widgetWithText(FilledButton, 'Go to home'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(HomeScreen), findsOneWidget);
+        expect(find.byType(AppBottomNav), findsOneWidget);
+      },
+    );
   });
 }

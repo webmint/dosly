@@ -56,4 +56,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get medsAddTitle => 'Medikament hinzufügen';
+
+  @override
+  String get errorScreenTitle => 'Seite nicht gefunden';
+
+  @override
+  String get errorScreenBody => 'Wir konnten dieses Ziel nicht finden.';
+
+  @override
+  String get errorScreenGoHome => 'Zur Startseite';
 }

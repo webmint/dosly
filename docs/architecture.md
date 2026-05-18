@@ -249,6 +249,7 @@ class AppShell extends StatelessWidget {
 - **Navigation is `context.go(...)` / `context.push(...)`** from `package:go_router/go_router.dart`, not `Navigator.of(context)`.
 - **Full-screen modals over the shell use `Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(fullscreenDialog: true, ...))`** — the only sanctioned use of the imperative `Navigator` API. `rootNavigator: true` is required so the modal covers `AppShell`'s bottom nav bar. See [`features/meds.md`](features/meds.md) for the reference implementation.
 - **`AppBottomNav` is router-agnostic.** It accepts `int` + `ValueChanged<int>` — plain values, not a `StatefulNavigationShell`. `AppShell` is the only coupling point.
+- **Unmatched paths render a localized error screen.** `appRouter.errorBuilder` produces a private `_RouterErrorScreen` (in `lib/core/routing/app_router.dart`) that shows a localized title/body and a "Go to home" `FilledButton` calling `context.go('/')`. This is the recovery path for malformed deep links and future notification-action payloads (constitution §5.2). The screen renders outside the `StatefulShellRoute`, so no `AppBottomNav` is visible.
 
 ## Entry point
 
