@@ -1,10 +1,10 @@
 # Bug 006: `Failure` hierarchy missing 6 of 7 mandated variants; not freezed
 
-**Status**: Open
+**Status**: Closed
 **Severity**: Critical
 **Source**: audit (audits/2026-04-30-audit.md)
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-17 (spec 017)
 
 ## Description
 
