@@ -195,6 +195,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add medication'**
   String get medsAddTitle;
+
+  /// Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link).
+  ///
+  /// In en, this message translates to:
+  /// **'Page not found'**
+  String get errorScreenTitle;
+
+  /// Body text on the router error screen explaining that the requested destination was not found.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t find that destination.'**
+  String get errorScreenBody;
+
+  /// Label for the FilledButton on the router error screen that returns the user to the home route ('/').
+  ///
+  /// In en, this message translates to:
+  /// **'Go to home'**
+  String get errorScreenGoHome;
 }
 
 class _AppLocalizationsDelegate

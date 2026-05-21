@@ -56,4 +56,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get medsAddTitle => 'Add medication';
+
+  @override
+  String get errorScreenTitle => 'Page not found';
+
+  @override
+  String get errorScreenBody => 'We couldn\'t find that destination.';
+
+  @override
+  String get errorScreenGoHome => 'Go to home';
 }

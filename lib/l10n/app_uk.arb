@@ -15,5 +15,8 @@
   "settingsUseDeviceLanguageSub": "Використовувати налаштування пристрою",
   "settingsPersistenceError": "Не вдалося зберегти налаштування. Спробуйте ще раз.",
   "medsAddFabTooltip": "Додати ліки",
-  "medsAddTitle": "Додати ліки"
+  "medsAddTitle": "Додати ліки",
+  "errorScreenTitle": "Сторінку не знайдено",
+  "errorScreenBody": "Не вдалося знайти цей маршрут.",
+  "errorScreenGoHome": "На головну"
 }

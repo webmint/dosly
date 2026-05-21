@@ -1,10 +1,10 @@
 # Bug 008: `appRouter` has no `errorBuilder` — malformed routes silently fail in release
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Critical
 **Source**: audit (audits/2026-04-30-audit.md) — RECURRING from spec 007
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-18
 
 ## Description
 
@@ -77,3 +77,12 @@ renders.
 
 Pairs naturally with bug 007 (router lifecycle) — both touch
 `lib/core/routing/app_router.dart`.
+
+## Resolution
+
+Fixed by spec 019 (`specs/019-router-error-screen/`).
+
+- `lib/core/routing/app_router.dart` now sets `errorBuilder: (context, state) => const _RouterErrorScreen()` on the `GoRouter` constructor.
+- `_RouterErrorScreen` is a private `StatelessWidget` in the same library. It renders a localized `Scaffold` (title, body, "Go to home" `FilledButton`) using `context.l10n`. The `FilledButton.onPressed` calls `context.go('/')`.
+- Three ARB keys (`errorScreenTitle`, `errorScreenBody`, `errorScreenGoHome`) added to `app_en.arb`, `app_de.arb`, `app_uk.arb` and codegen regenerated `lib/l10n/app_localizations*.dart`.
+- `test/core/routing/app_router_test.dart` adds Test 7 which pushes `/nonexistent`, asserts the error screen renders without `AppBottomNav`, and verifies the "Go to home" button recovers to `HomeScreen`.

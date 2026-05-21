@@ -63,5 +63,17 @@
   "medsAddTitle": "Add medication",
   "@medsAddTitle": {
     "description": "Title shown at the top of the placeholder Add-medication full-screen modal on the Meds screen."
+  },
+  "errorScreenTitle": "Page not found",
+  "@errorScreenTitle": {
+    "description": "Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link)."
+  },
+  "errorScreenBody": "We couldn't find that destination.",
+  "@errorScreenBody": {
+    "description": "Body text on the router error screen explaining that the requested destination was not found."
+  },
+  "errorScreenGoHome": "Go to home",
+  "@errorScreenGoHome": {
+    "description": "Label for the FilledButton on the router error screen that returns the user to the home route ('/')."
   }
 }

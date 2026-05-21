@@ -58,4 +58,13 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get medsAddTitle => 'Додати ліки';
+
+  @override
+  String get errorScreenTitle => 'Сторінку не знайдено';
+
+  @override
+  String get errorScreenBody => 'Не вдалося знайти цей маршрут.';
+
+  @override
+  String get errorScreenGoHome => 'На головну';
 }
