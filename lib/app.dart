@@ -7,10 +7,8 @@
 /// `locale` for [MaterialApp.router] inline. This file is the single
 /// `Flutter SDK ↔ domain` mapping seam — `package:flutter`'s
 /// [ThemeMode] does not appear in `lib/features/settings/`. Routing is
-/// delegated to [appRouterProvider] which currently exposes `/` ([HomeScreen])
-/// and a temporary dev-only `/theme-preview` route — the preview route
-/// will be removed in the final development stages (see
-/// specs/002-main-screen/spec.md). When `useSystemLanguage` is `true`
+/// delegated to [appRouterProvider] which exposes `/` ([HomeScreen]),
+/// `/meds`, `/history`, and `/settings`. When `useSystemLanguage` is `true`
 /// `MaterialApp.locale` is left `null` so [_resolveLocale] resolves the
 /// device locale against [AppLocalizations.supportedLocales] with
 /// English as the fallback.

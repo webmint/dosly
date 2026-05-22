@@ -1,10 +1,10 @@
 # Bug 009: Cross-feature import in `theme_preview_screen.dart`
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning
 **Source**: audit (audits/2026-04-30-audit.md)
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-22
 
 ## Description
 
@@ -60,3 +60,15 @@ the preview screen demonstrates theming without hooking into real app state.
 
 Spec 002 is the originating spec for this — confirm with the user whether the
 preview screen still has development utility before deleting.
+
+## Resolution
+
+Executed Option A (preferred — scheduled removal). The dev-only `theme_preview`
+feature was deleted in full: `lib/features/theme_preview/` (3 files —
+`theme_preview_screen.dart`, `color_swatch_card.dart`, `typography_sample.dart`)
+was removed along with the `/theme-preview` GoRoute in `app_router.dart`, the
+HomeScreen "Theme preview" dev button in `home_screen.dart`, and the related
+tests in `widget_test.dart` and `app_router_test.dart`. This eliminated BOTH
+cross-feature imports flagged and unflagged: the `settings_provider.dart`
+presentation import and the `settings/domain/entities/app_theme_mode.dart`
+import. Reference: `specs/020-remove-theme-preview/`.

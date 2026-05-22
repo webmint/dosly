@@ -1,6 +1,5 @@
 // Integration tests for [appRouter] — verifies StatefulShellRoute topology,
-// tab-tap navigation, selectedIndex tracking, branch stack preservation, and
-// /theme-preview rendering outside the shell.
+// tab-tap navigation, selectedIndex tracking, and branch stack preservation.
 //
 // Test 4 uses a test-only router that mirrors the production shape but adds a
 // sentinel child route under the Meds branch. This is the standard go_router
@@ -26,7 +25,6 @@ import 'package:dosly/features/home/presentation/screens/home_screen.dart';
 import 'package:dosly/core/widgets/app_bottom_nav.dart';
 import 'package:dosly/features/meds/presentation/screens/meds_screen.dart';
 import 'package:dosly/features/settings/presentation/screens/settings_screen.dart';
-import 'package:dosly/features/theme_preview/presentation/screens/theme_preview_screen.dart';
 import 'package:dosly/l10n/app_localizations.dart';
 
 /// Minimal fake that satisfies [SettingsRepository] for routing tests.
@@ -280,35 +278,6 @@ void main() {
         await tester.tap(find.text('Meds'));
         await tester.pumpAndSettle();
         expect(find.text('SENTINEL_MEDS_SUB'), findsOneWidget);
-      },
-    );
-
-    // -----------------------------------------------------------------------
-    // Test 5 — AC-13: /theme-preview renders outside the shell (no
-    // AppBottomNav). Navigating back to / restores the bottom nav.
-    // -----------------------------------------------------------------------
-    testWidgets(
-      'Test 5 (AC-13): /theme-preview renders without the shell bottom nav',
-      (tester) async {
-        await _pumpRouter(tester);
-
-        // Start at /: bottom nav must be present.
-        expect(find.byType(HomeScreen), findsOneWidget);
-        expect(find.byType(AppBottomNav), findsOneWidget);
-
-        // Tap the "Theme preview" OutlinedButton on HomeScreen.
-        await tester.tap(find.widgetWithText(OutlinedButton, 'Theme preview'));
-        await tester.pumpAndSettle();
-
-        // ThemePreviewScreen is shown; AppBottomNav must NOT be in the tree.
-        expect(find.byType(ThemePreviewScreen), findsOneWidget);
-        expect(find.byType(AppBottomNav), findsNothing);
-
-        // Navigate back to / — bottom nav must reappear.
-        GoRouter.of(tester.element(find.byType(ThemePreviewScreen))).go('/');
-        await tester.pumpAndSettle();
-        expect(find.byType(HomeScreen), findsOneWidget);
-        expect(find.byType(AppBottomNav), findsOneWidget);
       },
     );
 

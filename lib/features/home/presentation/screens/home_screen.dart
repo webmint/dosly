@@ -15,16 +15,8 @@ import '../../../../l10n/l10n_extensions.dart';
 ///
 /// Displays a Material 3 [AppBar] with the app title "Dosly", a settings
 /// gear [IconButton] that navigates to `/settings`, and an
-/// `outlineVariant`-coloured bottom [Divider] border.
-///
-/// The body renders a centered "Hello World" label with a temporary
-/// "Theme preview" [OutlinedButton] below it that navigates to the theme
-/// preview route via `context.push('/theme-preview')`.
-///
-/// The "Theme preview" button is temporary dev scaffolding and is scheduled
-/// for removal post-MVP together with the `lib/features/theme_preview/`
-/// feature — see `specs/002-main-screen/spec.md` §6 and §8 for the removal
-/// plan and rationale.
+/// `outlineVariant`-coloured bottom [Divider] border. The body renders a
+/// centered "Hello World" label.
 ///
 /// The bottom navigation bar is provided by the routing shell
 /// (`lib/core/routing/app_shell.dart`) at the app level, not by [HomeScreen].
@@ -49,22 +41,7 @@ class HomeScreen extends StatelessWidget {
           child: Divider(height: 1, thickness: 1),
         ),
       ),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Hello World'),
-            const SizedBox(height: 24),
-            // TODO(post-mvp): remove this dev entry point when
-            // lib/features/theme_preview/ is deleted —
-            // see specs/002-main-screen/spec.md §6 and §8.
-            OutlinedButton(
-              onPressed: () => context.push('/theme-preview'),
-              child: const Text('Theme preview'),
-            ),
-          ],
-        ),
-      ),
+      body: const Center(child: Text('Hello World')),
     );
   }
 }

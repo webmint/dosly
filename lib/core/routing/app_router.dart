@@ -4,8 +4,7 @@
 /// that creates a `StatefulShellRoute.indexedStack` with three branches
 /// (Home `/`, Meds `/meds`, History `/history`) sharing a single [AppShell]
 /// scaffold + [AppBottomNav], plus a sibling top-level [GoRoute] for
-/// `/theme-preview` that renders WITHOUT the shell (so the dev-preview screen
-/// has no bottom nav).
+/// `/settings`.
 ///
 /// Branch order matches [AppBottomNav] destination order (0=Today, 1=Meds,
 /// 2=History). Do not reorder without updating the bottom nav.
@@ -19,7 +18,6 @@ import '../../features/history/presentation/screens/history_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/meds/presentation/screens/meds_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
-import '../../features/theme_preview/presentation/screens/theme_preview_screen.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'app_shell.dart';
 
@@ -70,12 +68,6 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
-      ),
-      // TODO(post-mvp): remove this route when lib/features/theme_preview/
-      // is deleted — see specs/002-main-screen/spec.md §6 and §8.
-      GoRoute(
-        path: '/theme-preview',
-        builder: (context, state) => const ThemePreviewScreen(),
       ),
     ],
     errorBuilder: (context, state) => const _RouterErrorScreen(),
