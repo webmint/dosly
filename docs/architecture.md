@@ -177,7 +177,7 @@ dosly uses **`go_router`** as its routing foundation. The router is declared as 
 
 ### Route topology
 
-The router uses a `StatefulShellRoute.indexedStack` to wrap the three primary tab destinations inside a shared `AppShell` scaffold, plus sibling top-level `GoRoute`s for screens that render outside the shell (no bottom nav): `/settings` (the settings screen, pushed from the home gear icon) and the dev-only `/theme-preview`.
+The router uses a `StatefulShellRoute.indexedStack` to wrap the three primary tab destinations inside a shared `AppShell` scaffold, plus sibling top-level `GoRoute`s for screens that render outside the shell (no bottom nav): `/settings` (the settings screen, pushed from the home gear icon).
 
 ```dart
 // lib/core/routing/app_router.dart
@@ -195,7 +195,6 @@ GoRouter appRouter(Ref ref) {
         ],
       ),
       GoRoute(path: '/settings', builder: ...),
-      GoRoute(path: '/theme-preview', builder: ...),
     ],
   );
   ref.onDispose(router.dispose);
@@ -213,7 +212,6 @@ Branch order matches `AppBottomNav` destination order (0 = Today, 1 = Meds, 2 = 
 | `/meds` | `MedsScreen` | yes | Meds tab placeholder |
 | `/history` | `HistoryScreen` | yes | History tab placeholder |
 | `/settings` | `SettingsScreen` | no | Push destination from home gear icon |
-| `/theme-preview` | `ThemePreviewScreen` | no | Dev-only; scheduled for post-MVP removal |
 
 ### AppShell
 

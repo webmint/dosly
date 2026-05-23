@@ -76,21 +76,16 @@ Text('Card title', style: Theme.of(context).textTheme.titleMedium);
 1. Open `lib/core/theme/app_color_schemes.dart`.
 2. Edit the role's `Color(0xFF…)` literal in `lightColorScheme` and/or `darkColorScheme`. Keep the two schemes in sync when the change is semantic.
 3. Update the per-hex assertion in `test/core/theme/app_color_schemes_test.dart` — the tests pin every role, so a silent edit will fail CI.
-4. Re-run the preview to eyeball the result:
+4. Re-run the app to eyeball the result:
    ```bash
    flutter run
    ```
-5. If you added a brand-new role (rare — M3 only has a fixed set), also add a `ColorSwatchCard` for it in `theme_preview_screen.dart` so it shows up in the preview.
 
 ## How to change or add a text style
 
 1. Open `lib/core/theme/app_text_theme.dart`.
 2. Edit the style inside the `TextTheme(...)` literal — all 15 M3 slots are already declared, so usually you're tweaking one.
-3. If you want the change to appear in the preview, add a matching row to the typography section of `theme_preview_screen.dart`:
-   ```dart
-   TypographySample(styleName: 'titleLarge', style: textTheme.titleLarge),
-   ```
-4. Rebuild. Text consumers that read `Theme.of(context).textTheme.titleLarge` pick it up automatically.
+3. Rebuild. Text consumers that read `Theme.of(context).textTheme.titleLarge` pick it up automatically.
 
 Do not add a new `fontFamily`. The app bundles only Roboto (300 / 400 / 500 / 700); adding another family means adding more TTF assets to `assets/fonts/` and declaring them in `pubspec.yaml` under `flutter.fonts`.
 
@@ -110,22 +105,6 @@ ref.read(settingsNotifierProvider.notifier).setUseSystemTheme(true);
 `DoslyApp` in `lib/app.dart` watches `settingsNotifierProvider` with narrow selectors and passes the computed `ThemeMode` to `MaterialApp.router`. Changes are persisted to `SharedPreferencesWithCache` and survive restarts.
 
 See [`settings.md`](settings.md) for the full provider and persistence contract.
-
-## The preview screen
-
-`lib/features/theme_preview/` is a one-off "feature folder" containing `ThemePreviewScreen` plus two helper widgets (`ColorSwatchCard`, `TypographySample`). It is currently wired as `DoslyApp`'s `home`, so the app boots directly into it.
-
-What it shows:
-
-- **Color roles** — one swatch per role (primary / onPrimary / primaryContainer / …, all surface containers, outline, inverse, etc.), each rendered with its actual color as the background and hex label overlaid
-- **Typography** — one row per M3 style (`displayLarge` … `labelSmall`)
-- **Icons** — the 20 canonical Lucide glyphs used across the app design (`pill`, `house`, `settings`, `history`, `circlePlus`, `thermometer`, `syringe`, `glasses`, `droplets`, `activity`, `clock`, `check`, `chevronDown`, `chevronRight`, `arrowLeft`, `search`, `plus`, `eye`, `x`, `phone`), each shown with its `LucideIcons.*` field name as a label. See [`icons.md`](icons.md) for the icon-set rationale.
-- **Components** — one instance each of `FilledButton`, `FilledButton.tonal`, `OutlinedButton`, `TextButton`, `Chip`, `Icon`, `Switch`, `Card`, `TextField`, `FloatingActionButton`
-- **App-bar cycle action** — an `IconButton` whose icon reflects the current mode (`LucideIcons.sunMoon` / `sun` / `moon`). Pressing it cycles system → light → dark → system by writing to `settingsNotifierProvider.notifier` (`setUseSystemTheme` + `setThemeMode(AppThemeMode.*)`).
-
-All icons are sourced from `lucide_icons_flutter` — see [`icons.md`](icons.md).
-
-**When to delete**: once real screens ship and `DoslyApp.home` points at something non-preview, delete `lib/features/theme_preview/` entirely. The folder was built to be disposable — no other feature folder imports from it (its own imports into `lib/features/settings/` are the only cross-feature dependency, and those disappear with the folder).
 
 ## Related specs and references
 

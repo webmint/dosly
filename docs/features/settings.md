@@ -78,7 +78,7 @@ Five callable classes in `lib/features/settings/domain/usecases/`, each with a `
 | `SetManualLanguage` | `set_manual_language.dart` | Persists the manual `AppLanguage` via `SettingsRepository.saveManualLanguage`. Pure pass-through. |
 | `SetUseSystemTheme` | `set_use_system_theme.dart` | Atomic toggle. When `value=false`, pre-fills `manualThemeMode` with the resolved device brightness first (short-circuit on write failure), then persists the toggle. When `value=true`, only the toggle write fires — the stored manual override is left untouched. |
 | `SetUseSystemLanguage` | `set_use_system_language.dart` | Symmetric atomic toggle for the language axis. Same two-write / short-circuit pattern with `AppLanguage`. |
-| `CycleThemeMode` | `cycle_theme_mode.dart` | Encodes the `system → light → dark → system` cycle for the dev-only `ThemePreviewScreen` icon button. Returns `Future<Either<Failure, ({bool useSystemTheme, AppThemeMode manualThemeMode})>>` — the `Right` carries the post-cycle state record so the notifier can apply `state.copyWith(...)` without re-deriving the cycle rule. Manual-dark-to-system-on intentionally preserves `manualThemeMode: dark` so the user's last manual choice survives the cycle. |
+| `CycleThemeMode` | `cycle_theme_mode.dart` | Encodes the `system → light → dark → system` cycle used by the Settings theme controls. Returns `Future<Either<Failure, ({bool useSystemTheme, AppThemeMode manualThemeMode})>>` — the `Right` carries the post-cycle state record so the notifier can apply `state.copyWith(...)` without re-deriving the cycle rule. Manual-dark-to-system-on intentionally preserves `manualThemeMode: dark` so the user's last manual choice survives the cycle. |
 
 ### Data
 

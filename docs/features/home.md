@@ -143,7 +143,7 @@ If a future change breaks any of these, the failing test name will point directl
 
 ## Rules
 
-- **Do not add icons to the bar without updating the Lucide canonical set.** New icons belong in both `theme_preview_screen.dart`'s showcase and [`icons.md`](icons.md). The current three (`house`, `pill`, `activity`) are already on that list.
+- **Do not add icons to the bar without updating the Lucide canonical set.** New icons belong in [`icons.md`](icons.md). The current three (`house`, `pill`, `activity`) are already on that list.
 - **Do not construct `AppBottomNav` outside `AppShell`.** Although it lives in `lib/core/widgets/`, it is purpose-built for the routing shell. Adding a second call site would duplicate navigation state.
 - **Do not add a `NavigationBarThemeData` override until the user asks for one.** The M3 defaults match the design template; an override adds a second source of truth for something that is already right.
 

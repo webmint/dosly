@@ -12,19 +12,13 @@ import 'package:dosly/app.dart';
 
 /// Minimal fake that satisfies [SettingsRepository] for widget tests.
 ///
-/// Returns defaults from [load] and records saves in [lastSavedMode],
-/// [lastSavedUseSystemTheme], [savedUseSystemLanguage], and
-/// [savedManualLanguage]. Accepts an optional [initial] to pre-seed state.
+/// Returns defaults from [load] and accepts an optional [initial] to
+/// pre-seed state.
 class _FakeSettingsRepository implements SettingsRepository {
   AppSettings _settings;
 
   _FakeSettingsRepository({AppSettings? initial})
       : _settings = initial ?? const AppSettings();
-
-  AppThemeMode? get lastSavedMode => _settings.manualThemeMode;
-  bool get lastSavedUseSystemTheme => _settings.useSystemTheme;
-  bool get savedUseSystemLanguage => _settings.useSystemLanguage;
-  AppLanguage get savedManualLanguage => _settings.manualLanguage;
 
   @override
   AppSettings load() => _settings;
@@ -63,7 +57,7 @@ void main() {
 
 
   testWidgets(
-    'DoslyApp renders the home screen with app bar, Hello World, and Theme preview button',
+    'DoslyApp renders the home screen with app bar and Hello World',
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -76,52 +70,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Hello World'), findsOneWidget);
-      expect(
-        find.widgetWithText(OutlinedButton, 'Theme preview'),
-        findsOneWidget,
-      );
       expect(find.text('Dosly'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'tapping Theme preview navigates to the preview and cycling theme mode works',
-    (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            settingsRepositoryProvider.overrideWithValue(fakeRepo),
-          ],
-          child: const DoslyApp(),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Navigate from HomeScreen → ThemePreviewScreen via the dev button.
-      await tester.tap(
-        find.widgetWithText(OutlinedButton, 'Theme preview'),
-      );
-      await tester.pumpAndSettle();
-
-      // Confirm we arrived at the preview screen.
-      expect(find.text('dosly · M3 preview'), findsOneWidget);
-      expect(find.byTooltip('Cycle theme mode'), findsOneWidget);
-
-      // Cycle once: system → light (manual, useSystemTheme=false)
-      await tester.tap(find.byTooltip('Cycle theme mode'));
-      await tester.pumpAndSettle();
-      expect(fakeRepo.lastSavedUseSystemTheme, isFalse);
-      expect(fakeRepo.lastSavedMode, AppThemeMode.light);
-
-      // Cycle again: light → dark (still manual)
-      await tester.tap(find.byTooltip('Cycle theme mode'));
-      await tester.pumpAndSettle();
-      expect(fakeRepo.lastSavedMode, AppThemeMode.dark);
-
-      // Cycle again: dark → system (useSystemTheme=true)
-      await tester.tap(find.byTooltip('Cycle theme mode'));
-      await tester.pumpAndSettle();
-      expect(fakeRepo.lastSavedUseSystemTheme, isTrue);
     },
   );
 
