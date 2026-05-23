@@ -213,6 +213,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to home'**
   String get errorScreenGoHome;
+
+  /// Label shown on the startup splash screen while app preferences are being loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading…'**
+  String get splashLoading;
+
+  /// Message on the startup error screen shown when SharedPreferences hydration fails at app launch.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t load your preferences.'**
+  String get prefsLoadErrorMessage;
+
+  /// Label for the button on the startup error screen that retries loading preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get prefsLoadRetry;
 }
 
 class _AppLocalizationsDelegate

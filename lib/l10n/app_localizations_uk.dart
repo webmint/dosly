@@ -67,4 +67,14 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get errorScreenGoHome => 'На головну';
+
+  @override
+  String get splashLoading => 'Завантаження…';
+
+  @override
+  String get prefsLoadErrorMessage =>
+      'Не вдалося завантажити ваші налаштування.';
+
+  @override
+  String get prefsLoadRetry => 'Повторити';
 }

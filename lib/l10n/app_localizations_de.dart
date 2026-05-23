@@ -65,4 +65,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get errorScreenGoHome => 'Zur Startseite';
+
+  @override
+  String get splashLoading => 'Wird geladen…';
+
+  @override
+  String get prefsLoadErrorMessage =>
+      'Ihre Einstellungen konnten nicht geladen werden.';
+
+  @override
+  String get prefsLoadRetry => 'Erneut versuchen';
 }

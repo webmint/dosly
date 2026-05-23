@@ -9,7 +9,7 @@
 /// [ThemeMode] does not appear in `lib/features/settings/`. Routing is
 /// delegated to [appRouterProvider] which exposes `/` ([HomeScreen]),
 /// `/meds`, `/history`, and `/settings`. When `useSystemLanguage` is `true`
-/// `MaterialApp.locale` is left `null` so [_resolveLocale] resolves the
+/// `MaterialApp.locale` is left `null` so [resolveAppLocale] resolves the
 /// device locale against [AppLocalizations.supportedLocales] with
 /// English as the fallback.
 library;
@@ -17,31 +17,12 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/l10n/locale_resolver.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/settings/domain/entities/app_theme_mode.dart';
 import 'features/settings/presentation/providers/settings_provider.dart';
 import 'l10n/app_localizations.dart';
-
-/// Resolves the active [Locale] for [MaterialApp.router].
-///
-/// Matches [deviceLocale] against [supportedLocales] by `languageCode`; if
-/// no match is found, falls back to English (the project's designated
-/// fallback per spec §3.2). Flutter's default resolution instead returns
-/// the first entry of `supportedLocales`, which — because gen_l10n emits
-/// the list alphabetically (`de`, `en`, `uk`) — would incorrectly surface
-/// German to users on unsupported device locales. This callback pins the
-/// fallback to English regardless of list order.
-Locale _resolveLocale(Locale? deviceLocale, Iterable<Locale> supportedLocales) {
-  if (deviceLocale != null) {
-    for (final supported in supportedLocales) {
-      if (supported.languageCode == deviceLocale.languageCode) {
-        return supported;
-      }
-    }
-  }
-  return const Locale('en');
-}
 
 /// Maps the domain-owned [AppThemeMode] to Flutter's [ThemeMode].
 ///
@@ -78,7 +59,7 @@ class DoslyApp extends ConsumerWidget {
       title: 'dosly',
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      localeResolutionCallback: _resolveLocale,
+      localeResolutionCallback: resolveAppLocale,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

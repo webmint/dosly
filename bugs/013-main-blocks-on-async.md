@@ -1,10 +1,10 @@
 # Bug 013: `main()` blocks on async work before `runApp` (no splash)
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning
 **Source**: audit (audits/2026-04-30-audit.md)
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-23
 
 ## Description
 
@@ -58,3 +58,15 @@ Suggested approach (to be confirmed in `/fix`):
 
 Pairs with bug 004 (codegen) — if `sharedPreferencesProvider` is migrated to
 `@riverpod` first, the async initializer pattern is the natural shape.
+
+## Resolution
+
+Shipped as feature 021-async-startup-splash.
+
+`main()` was rewritten to be fully synchronous — `runApp(const ProviderScope(child: AppBootstrap()))` with no `await`. The async `SharedPreferencesWithCache.create(...)` call moved into a new `@riverpod` function provider, `sharedPreferencesInitProvider`, in `lib/core/providers/shared_preferences_provider.dart`.
+
+A new `AppBootstrap` widget (`lib/app_bootstrap.dart`, a `ConsumerWidget`) watches `sharedPreferencesInitProvider` and drives three startup branches: loading shows `SplashScreen` inside a themed `MaterialApp` shell; error shows `PrefsLoadErrorScreen` with a Retry button that calls `ref.invalidate(sharedPreferencesInitProvider)`; data wraps `DoslyApp` in a nested `ProviderScope` that overrides the synchronous `sharedPreferencesProvider` with the resolved instance.
+
+The synchronous-read contract used by `lib/features/settings/**` is preserved unchanged — only the location of the `sharedPreferencesProvider` override moved (from `main()` to `AppBootstrap`'s data branch).
+
+Structured logging of the prefs hydration failure was intentionally deferred to Bug 017 (the typed logger does not exist yet); the error branch is UI-only.

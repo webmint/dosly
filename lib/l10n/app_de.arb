@@ -18,5 +18,8 @@
   "medsAddTitle": "Medikament hinzufügen",
   "errorScreenTitle": "Seite nicht gefunden",
   "errorScreenBody": "Wir konnten dieses Ziel nicht finden.",
-  "errorScreenGoHome": "Zur Startseite"
+  "errorScreenGoHome": "Zur Startseite",
+  "splashLoading": "Wird geladen…",
+  "prefsLoadErrorMessage": "Ihre Einstellungen konnten nicht geladen werden.",
+  "prefsLoadRetry": "Erneut versuchen"
 }

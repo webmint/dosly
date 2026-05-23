@@ -92,38 +92,30 @@ class DoslyApp extends ConsumerWidget {
 
 ### Bootstrap: `SharedPreferencesWithCache`
 
-Settings are persisted via `SharedPreferencesWithCache`, which provides a synchronous in-memory cache backed by the platform `SharedPreferences` store. It is initialized in `main()` before `runApp()` and injected into the entire provider tree via a `ProviderScope` override:
+Settings are persisted via `SharedPreferencesWithCache`, which provides a synchronous in-memory cache backed by the platform `SharedPreferences` store. Startup is **non-blocking**: `main()` is synchronous and calls `runApp` immediately. The async prefs creation is delegated to the widget tree via `AppBootstrap` (spec 021-async-startup-splash):
 
 ```dart
 // lib/main.dart
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferencesWithCache.create(
-    cacheOptions: const SharedPreferencesWithCacheOptions(
-      allowList: <String>{
-        'themeMode',
-        'useSystemTheme',
-        'useSystemLanguage',
-        'manualLanguage',
-      },
-    ),
-  );
-  runApp(
-    ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      child: const DoslyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: AppBootstrap()));
 }
 ```
 
-`sharedPreferencesProvider` (in `lib/core/providers/shared_preferences_provider.dart`) is declared with a throwing placeholder — failing to provide the override at startup is a programmer error caught immediately.
+`AppBootstrap` (in `lib/app_bootstrap.dart`) is a `ConsumerWidget` mounted at the root `ProviderScope`. It watches `sharedPreferencesInitProvider` — a `@riverpod` function provider that calls `SharedPreferencesWithCache.create(...)` asynchronously — and maps each `AsyncValue` state to the appropriate child:
+
+- **loading** — renders `SplashScreen` inside a lightweight `MaterialApp` shell so the OS launch-screen hand-off is seamless.
+- **error** — renders `PrefsLoadErrorScreen` inside the same shell; its Retry button calls `ref.invalidate(sharedPreferencesInitProvider)` to re-trigger the async init. Structured failure logging is deferred to Bug 017 (typed logger not yet built) — the error branch is UI-only for now.
+- **data** — wraps `DoslyApp` in a nested `ProviderScope` that overrides the synchronous `sharedPreferencesProvider` with the resolved instance, preserving the settings tree's synchronous-read contract unchanged.
+
+`sharedPreferencesProvider` (in `lib/core/providers/shared_preferences_provider.dart`) is declared with a throwing placeholder — failing to inject the override is a programmer error surfaced immediately. The override now lives in `AppBootstrap`'s data branch rather than in `main()`.
 
 ### Provider wiring
 
 | Provider | Type | Purpose |
 |---|---|---|
-| `sharedPreferencesProvider` | `@Riverpod(keepAlive: true)` function | App-wide prefs instance, override-injected at startup |
+| `sharedPreferencesInitProvider` | `@riverpod` function (Future) | Async creation of the prefs instance; awaited by `AppBootstrap` before the sync provider is overridden |
+| `sharedPreferencesProvider` | `@Riverpod(keepAlive: true)` function | App-wide prefs instance, override-injected by `AppBootstrap`'s data branch; throwing placeholder until then |
 | `appRouterProvider` | `@Riverpod(keepAlive: true)` function | App-wide `GoRouter` instance with `onDispose`-bound lifecycle |
 | `settingsRepositoryProvider` | `@riverpod` function (autoDispose) | Wires data source to repository |
 | `settingsNotifierProvider` | `@Riverpod(keepAlive: true, name: 'settingsNotifierProvider')` class form | Current settings + mutation API |
@@ -165,7 +157,7 @@ Translation infrastructure lives under `lib/l10n/` at the `lib/` root, not under
 
 **Single-`!` rule**: `AppLocalizations.of(context)` returns nullable. The project's constitution §4.2.1 prohibits `!` in general, with one documented exception: `AppLocalizations.of(context)!`. That exception is exercised in exactly one place — the `context.l10n` getter in `lib/l10n/l10n_extensions.dart`. All widgets call `context.l10n.xxx`; no widget calls `AppLocalizations.of(context)` directly. This is the codebase pattern for any future "framework-nullable-but-guaranteed-non-null-in-practice" primitive: centralize the `!` in one extension, consumers stay clean.
 
-**Fallback locale**: `lib/app.dart` contains a private `_resolveLocale` function that overrides Flutter's default resolution. Flutter's default returns the alphabetically-first supported locale for unsupported devices — because `gen_l10n` emits `[de, en, uk]` alphabetically, the default would surface German as the fallback. `_resolveLocale` pins the fallback to English regardless of list order.
+**Fallback locale**: `lib/core/l10n/locale_resolver.dart` exports `resolveAppLocale`, the single production source of truth for the English-fallback locale policy. Flutter's default resolution returns the alphabetically-first supported locale for unsupported devices — because `gen_l10n` emits `[de, en, uk]` alphabetically, the default would surface German as the fallback. `resolveAppLocale` matches by `languageCode` and falls back to English regardless of list order. Both `lib/app.dart` and `lib/app_bootstrap.dart` pass it as `localeResolutionCallback`.
 
 **Generated files**: Generated `app_localizations*.dart` files are committed to `lib/l10n/` (not gitignored). With `synthetic-package: false` (modern Flutter default), they are normal source files. Committing them ensures fresh clones compile before `flutter pub get` runs — the same policy the project will apply to freezed/drift/riverpod codegen when those land.
 
@@ -251,9 +243,9 @@ class AppShell extends StatelessWidget {
 
 ## Entry point
 
-`lib/main.dart` bootstraps the app. It now contains async initialization code — currently `SharedPreferencesWithCache` creation — that runs before `runApp`. Future async work (database open, notification scheduler init) follows the same pattern: add to `main()` before `runApp`, per constitution §4.2.1.
+`lib/main.dart` bootstraps the app synchronously: it calls `WidgetsFlutterBinding.ensureInitialized()` and then `runApp` immediately — no `await`, no async work. Async initialization (currently SharedPreferences hydration) is delegated to `AppBootstrap` inside the widget tree, per constitution §4.2.1 ("Never block `main()` on async work"). Future async work (database open, notification scheduler init) follows the same pattern: add a new `@riverpod` init provider and gate the dependent UI on its `AsyncValue` in `AppBootstrap`.
 
-All UI wiring happens in `lib/app.dart`. `DoslyApp` is a `ConsumerWidget` rather than a plain `StatelessWidget`, and the entire widget tree is wrapped in a `ProviderScope` that overrides platform-specific providers (currently `sharedPreferencesProvider`). See [App-wide state](#app-wide-state-riverpod--sharedpreferences) above.
+All UI wiring happens in `lib/app.dart`. `DoslyApp` is a `ConsumerWidget` rather than a plain `StatelessWidget`. The `ProviderScope` override for `sharedPreferencesProvider` is now injected by `AppBootstrap`'s data branch (a nested `ProviderScope`), not by `main()`. See [App-wide state](#app-wide-state-riverpod--sharedpreferences) above.
 
 ## Related
 
