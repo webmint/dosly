@@ -8,6 +8,86 @@ part of 'shared_preferences_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Asynchronously creates the application-wide [SharedPreferencesWithCache]
+/// instance.
+///
+/// This is the async creation seam for the prefs instance. It is awaited (via
+/// `AsyncValue`) by the `AppBootstrap` widget, which then injects the resolved
+/// value as an override for the synchronous [sharedPreferences] provider. This
+/// keeps `main()` non-blocking — prefs creation moves out of `main()` and into
+/// the widget tree's startup phase.
+///
+/// The `allowList` mirrors the keys read by the settings feature: theme mode,
+/// the system-theme toggle, the system-language toggle, and the manual
+/// language selection.
+
+@ProviderFor(sharedPreferencesInit)
+final sharedPreferencesInitProvider = SharedPreferencesInitProvider._();
+
+/// Asynchronously creates the application-wide [SharedPreferencesWithCache]
+/// instance.
+///
+/// This is the async creation seam for the prefs instance. It is awaited (via
+/// `AsyncValue`) by the `AppBootstrap` widget, which then injects the resolved
+/// value as an override for the synchronous [sharedPreferences] provider. This
+/// keeps `main()` non-blocking — prefs creation moves out of `main()` and into
+/// the widget tree's startup phase.
+///
+/// The `allowList` mirrors the keys read by the settings feature: theme mode,
+/// the system-theme toggle, the system-language toggle, and the manual
+/// language selection.
+
+final class SharedPreferencesInitProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<SharedPreferencesWithCache>,
+          SharedPreferencesWithCache,
+          FutureOr<SharedPreferencesWithCache>
+        >
+    with
+        $FutureModifier<SharedPreferencesWithCache>,
+        $FutureProvider<SharedPreferencesWithCache> {
+  /// Asynchronously creates the application-wide [SharedPreferencesWithCache]
+  /// instance.
+  ///
+  /// This is the async creation seam for the prefs instance. It is awaited (via
+  /// `AsyncValue`) by the `AppBootstrap` widget, which then injects the resolved
+  /// value as an override for the synchronous [sharedPreferences] provider. This
+  /// keeps `main()` non-blocking — prefs creation moves out of `main()` and into
+  /// the widget tree's startup phase.
+  ///
+  /// The `allowList` mirrors the keys read by the settings feature: theme mode,
+  /// the system-theme toggle, the system-language toggle, and the manual
+  /// language selection.
+  SharedPreferencesInitProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'sharedPreferencesInitProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$sharedPreferencesInitHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<SharedPreferencesWithCache> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<SharedPreferencesWithCache> create(Ref ref) {
+    return sharedPreferencesInit(ref);
+  }
+}
+
+String _$sharedPreferencesInitHash() =>
+    r'1597ff03d9d3077eda4b849c663f048cd05eceef';
+
 /// Provides the application-wide [SharedPreferencesWithCache] instance.
 ///
 /// Override this provider in the root `ProviderScope`:

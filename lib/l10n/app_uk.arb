@@ -18,5 +18,8 @@
   "medsAddTitle": "Додати ліки",
   "errorScreenTitle": "Сторінку не знайдено",
   "errorScreenBody": "Не вдалося знайти цей маршрут.",
-  "errorScreenGoHome": "На головну"
+  "errorScreenGoHome": "На головну",
+  "splashLoading": "Завантаження…",
+  "prefsLoadErrorMessage": "Не вдалося завантажити ваші налаштування.",
+  "prefsLoadRetry": "Повторити"
 }

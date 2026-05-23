@@ -65,4 +65,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorScreenGoHome => 'Go to home';
+
+  @override
+  String get splashLoading => 'Loading…';
+
+  @override
+  String get prefsLoadErrorMessage => 'We couldn\'t load your preferences.';
+
+  @override
+  String get prefsLoadRetry => 'Retry';
 }

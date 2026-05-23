@@ -1,28 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import 'app.dart';
-import 'core/providers/shared_preferences_provider.dart';
+import 'app_bootstrap.dart';
 
-void main() async {
+/// Application entry point.
+///
+/// Synchronous: [WidgetsFlutterBinding.ensureInitialized] is called first
+/// (it is synchronous) and then [runApp] is called immediately — no `await`
+/// before [runApp]. The async work (SharedPreferences hydration) is delegated
+/// to [AppBootstrap] which runs inside the widget tree.
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferencesWithCache.create(
-    cacheOptions: const SharedPreferencesWithCacheOptions(
-      allowList: <String>{
-        'themeMode',
-        'useSystemTheme',
-        'useSystemLanguage',
-        'manualLanguage',
-      },
-    ),
-  );
-  runApp(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
-      child: const DoslyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: AppBootstrap()));
 }

@@ -1,8 +1,15 @@
-/// Riverpod provider for [SharedPreferencesWithCache].
+/// Riverpod providers for [SharedPreferencesWithCache].
 ///
-/// This provider is declared with a throwing placeholder so that it **must** be
-/// overridden in the root `ProviderScope` (inside `main()`). Failing to
-/// override it is a programmer error caught immediately at startup.
+/// This library exposes two providers that work together:
+///
+/// - [sharedPreferencesInit] — the async creation seam that builds the
+///   app-wide [SharedPreferencesWithCache] instance. It is awaited (via
+///   `AsyncValue`) by the `AppBootstrap` widget during startup.
+/// - [sharedPreferences] — a synchronous, throwing placeholder. It exists so
+///   the settings provider tree can read prefs synchronously. The
+///   `AppBootstrap` widget injects the resolved value from
+///   [sharedPreferencesInit] as an override for this provider; until then it
+///   throws to surface a missing-override programmer error immediately.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -10,11 +17,40 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 part 'shared_preferences_provider.g.dart';
 
+/// Asynchronously creates the application-wide [SharedPreferencesWithCache]
+/// instance.
+///
+/// This is the async creation seam for the prefs instance. It is awaited (via
+/// `AsyncValue`) by the `AppBootstrap` widget, which then injects the resolved
+/// value as an override for the synchronous [sharedPreferences] provider. This
+/// keeps `main()` non-blocking — prefs creation moves out of `main()` and into
+/// the widget tree's startup phase.
+///
+/// The `allowList` mirrors the keys read by the settings feature: theme mode,
+/// the system-theme toggle, the system-language toggle, and the manual
+/// language selection.
+@riverpod
+Future<SharedPreferencesWithCache> sharedPreferencesInit(Ref ref) =>
+    SharedPreferencesWithCache.create(
+      cacheOptions: const SharedPreferencesWithCacheOptions(
+        allowList: <String>{
+          'themeMode',
+          'useSystemTheme',
+          'useSystemLanguage',
+          'manualLanguage',
+        },
+      ),
+    );
+
 /// Provides the application-wide [SharedPreferencesWithCache] instance.
 ///
-/// Override this provider in the root `ProviderScope`:
+/// This provider uses a throwing placeholder — failing to inject an override
+/// is a programmer error that surfaces immediately at startup. The override is
+/// injected by `AppBootstrap`'s data branch (a nested [ProviderScope]) once
+/// [sharedPreferencesInit] resolves:
 ///
 /// ```dart
+/// // Inside AppBootstrap.build — data branch
 /// ProviderScope(
 ///   overrides: [
 ///     sharedPreferencesProvider.overrideWithValue(prefs),
@@ -25,5 +61,5 @@ part 'shared_preferences_provider.g.dart';
 @Riverpod(keepAlive: true)
 SharedPreferencesWithCache sharedPreferences(Ref ref) =>
     throw UnimplementedError(
-      'sharedPreferencesProvider must be overridden in main()',
+      'sharedPreferencesProvider must be overridden by AppBootstrap',
     );

@@ -1,10 +1,10 @@
 # Bug 012: `appRouter` dartdoc out of sync with code (`/settings` route undocumented)
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning
 **Source**: audit (audits/2026-04-30-audit.md)
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-23 (resolved incidentally by commits bd2a1fe and 631fd69 — see Resolution)
 
 ## Description
 
@@ -62,3 +62,19 @@ Update the library dartdoc to enumerate ALL top-level non-shell routes:
 
 Trivial one-comment fix. Bundle with bug 007 or bug 008 since they all touch
 `lib/core/routing/app_router.dart`.
+
+## Resolution
+
+Resolved incidentally by later work on the same file (as the Fix Notes
+anticipated):
+
+- `bd2a1fe` *fix(core/routing): bind GoRouter lifecycle via @Riverpod provider
+  (bug 007)* — rewrote the library dartdoc to describe `[appRouterProvider]`
+  and now enumerates the `/settings` sibling route (current lines 6–7).
+- `631fd69` *feat(theme_preview): remove dev-only theme preview feature* —
+  removed the `/theme-preview` route from the app and its dartdoc mention.
+
+As of 2026-05-23 the library dartdoc on `lib/core/routing/app_router.dart`
+accurately matches the code: three shell branches (Home `/`, Meds `/meds`,
+History `/history`) plus the `/settings` sibling route, with no stale
+`/theme-preview` reference. No remaining drift; no fix required.
