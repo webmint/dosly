@@ -1,31 +1,30 @@
 <!-- This file is a fixed-size sliding window. Always fully overwritten, never appended. Max ~40 lines. -->
 # Session State
-Last updated after Task 005: Update architecture docs and close Bug 013
+Last updated after Task 003: failure-path tests
 
 ## Current Feature
-021-async-startup-splash
+022-settings-error-containment
 
 ## Session Stats
-Tasks completed this session: 5
-Estimated context load: heavy (6+)
+Tasks completed this session: 3
+Estimated context load: heavy (7+)
 
 ## Progress
-- Last completed: Task 005 — Docs + bug closure
-- Next pending: none — ALL 5 tasks Complete
+- Last completed: Task 003 — failure-path tests (suite 230 → 241)
+- Next pending: none — ALL 3 tasks Complete
 - Tasks remaining in feature: 0
 
 ## Key Decisions This Session (last 3 only)
-- Nested ProviderScope (in AppBootstrap data branch) overrides the synchronous sharedPreferencesProvider — preserves the settings tree's sync-read contract unchanged; the override moved out of main()
-- Test SharedPreferencesWithCache without mocking the static create: drive the FutureProvider seam (sharedPreferencesInitProvider.overrideWith) + InMemorySharedPreferencesAsync for a real instance
-- Retry = ref.invalidate(sharedPreferencesInitProvider); function-form @riverpod Future provider needs no name:
-
-Older decisions are persisted in .claude/memory/MEMORY.md.
+- AC-5 emission untestable: build()'s broadcast _errors.add fires before any listener → dropped (spec OQ-2 accepted). Tested default-state fallback instead; logged to MEMORY Known Pitfalls
+- load() + all 4 save* now use broad `catch (e, st)` → Failure.unknown; CacheFailure no longer emitted by settings impl
+- Repo-impl/notifier tests unwrap Either via isLeft()/getOrElse((f)=>fail())/fold — never a partial extractor (§3.2)
 
 ## Files Modified Recently (last 3 tasks only)
-- lib/core/widgets/splash_screen.dart + prefs_load_error_screen.dart: new startup widgets (Task 003)
-- lib/app_bootstrap.dart (new), lib/main.dart (sync rewrite), test/app_bootstrap_test.dart (Task 004)
-- docs/architecture.md (Bootstrap section), bugs/013 closed (Task 005)
+- lib/features/settings/{domain/repositories,data/repositories,presentation/providers}: Either load() contract + impl + save* containment + fold (Tasks 001, 002)
+- test/.../data/repositories/settings_repository_impl_test.dart: throwing doubles + failure-path tests (Task 003)
+- test/.../presentation/providers/settings_provider_test.dart: failOnLoad + Left-on-load + UnknownFailure realignment (Tasks 001, 002, 003)
 
 ## Active Constraints
 - Feature complete. Next: /review → /verify → /summarize → /finalize
-- Pre-existing uncommitted bugs/012 doc-closure change got bundled into a feature-021 WIP commit — flag at /finalize
+- /verify must note AC-5 emission caveat (OQ-2): only default-state fallback is asserted, not the dropped startup emission
+- WIP commits accumulate; /finalize squashes into one feat() commit

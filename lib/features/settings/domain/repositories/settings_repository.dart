@@ -14,10 +14,12 @@ import '../entities/app_theme_mode.dart';
 /// secure storage, or any other persistence mechanism. Covers theme and
 /// language preferences.
 abstract interface class SettingsRepository {
-  /// Loads current settings synchronously from cache.
+  /// Reads current settings synchronously from cache.
   ///
-  /// Never fails — returns defaults if nothing is stored.
-  AppSettings load();
+  /// Returns `Right(settings)` on success, or `Left(Failure.unknown(...))` if
+  /// the underlying cache read throws. Stored-but-unrecognized values fall back
+  /// to their per-field defaults inside the data source.
+  Either<Failure, AppSettings> load();
 
   /// Persists the user's manual theme mode choice.
   ///

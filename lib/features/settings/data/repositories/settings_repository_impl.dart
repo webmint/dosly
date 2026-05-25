@@ -19,20 +19,28 @@ class SettingsRepositoryImpl implements SettingsRepository {
   final SettingsLocalDataSource _dataSource;
 
   @override
-  AppSettings load() => AppSettings(
-        useSystemTheme: _dataSource.getUseSystemTheme(),
-        manualThemeMode: _dataSource.getThemeMode(),
-        useSystemLanguage: _dataSource.getUseSystemLanguage(),
-        manualLanguage: _dataSource.getManualLanguage(),
+  Either<Failure, AppSettings> load() {
+    try {
+      return Right(
+        AppSettings(
+          useSystemTheme: _dataSource.getUseSystemTheme(),
+          manualThemeMode: _dataSource.getThemeMode(),
+          useSystemLanguage: _dataSource.getUseSystemLanguage(),
+          manualLanguage: _dataSource.getManualLanguage(),
+        ),
       );
+    } catch (e, st) {
+      return Left(Failure.unknown(e, st));
+    }
+  }
 
   @override
   Future<Either<Failure, void>> saveThemeMode(AppThemeMode mode) async {
     try {
       await _dataSource.setThemeMode(mode);
       return const Right(null);
-    } on Exception catch (e) {
-      return Left(CacheFailure(e.toString()));
+    } catch (e, st) {
+      return Left(Failure.unknown(e, st));
     }
   }
 
@@ -41,8 +49,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
     try {
       await _dataSource.setUseSystemTheme(value);
       return const Right(null);
-    } on Exception catch (e) {
-      return Left(CacheFailure(e.toString()));
+    } catch (e, st) {
+      return Left(Failure.unknown(e, st));
     }
   }
 
@@ -52,8 +60,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
     try {
       await _dataSource.setUseSystemLanguage(value);
       return const Right(null);
-    } on Exception catch (e) {
-      return Left(CacheFailure(e.toString()));
+    } catch (e, st) {
+      return Left(Failure.unknown(e, st));
     }
   }
 
@@ -63,8 +71,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
     try {
       await _dataSource.setManualLanguage(language);
       return const Right(null);
-    } on Exception catch (e) {
-      return Left(CacheFailure(e.toString()));
+    } catch (e, st) {
+      return Left(Failure.unknown(e, st));
     }
   }
 }

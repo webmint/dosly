@@ -9,6 +9,7 @@ import 'dart:async';
 
 import 'package:dosly/app.dart';
 import 'package:dosly/app_bootstrap.dart';
+import 'package:dosly/core/error/failures.dart';
 import 'package:dosly/core/providers/shared_preferences_provider.dart';
 import 'package:dosly/core/widgets/prefs_load_error_screen.dart';
 import 'package:dosly/core/widgets/splash_screen.dart';
@@ -34,7 +35,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// the settings provider tree.
 class _FakeSettingsRepository implements SettingsRepository {
   @override
-  AppSettings load() => const AppSettings();
+  Either<Failure, AppSettings> load() => const Right(AppSettings());
 
   @override
   Future<Either<Never, void>> saveThemeMode(AppThemeMode mode) async =>

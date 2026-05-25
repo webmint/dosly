@@ -72,14 +72,16 @@ CycleThemeMode cycleThemeMode(Ref ref) =>
 class SettingsNotifier extends _$SettingsNotifier {
   late final StreamController<Failure> _errors;
 
-  /// Broadcast stream of [Failure]s emitted by the four save mutators.
+  /// Broadcast stream of [Failure]s from the initial settings load and the
+  /// four save mutators.
   ///
-  /// Each Left from [SettingsRepository.saveX] is forwarded to this stream
-  /// so a UI surface (e.g. [SettingsScreen]) can react via
-  /// [settingsErrorsProvider]. The state itself stays consistent with what
-  /// was actually persisted — failures do not roll the in-memory state
-  /// back. The controller is closed automatically when the notifier is
-  /// disposed.
+  /// The Left branch of the [build] load fold (a `Failure.unknown` when the
+  /// cache read throws) and each Left from [SettingsRepository.saveX] are
+  /// forwarded to this stream so a UI surface (e.g. [SettingsScreen]) can
+  /// react via [settingsErrorsProvider]. The state itself stays consistent
+  /// with what was actually persisted (or the default fallback on load
+  /// failure) — failures do not roll the in-memory state back. The
+  /// controller is closed automatically when the notifier is disposed.
   Stream<Failure> get errors => _errors.stream;
 
   @override
@@ -87,7 +89,13 @@ class SettingsNotifier extends _$SettingsNotifier {
     _errors = StreamController<Failure>.broadcast();
     ref.onDispose(_errors.close);
     final repo = ref.watch(settingsRepositoryProvider);
-    return repo.load();
+    return repo.load().fold(
+      (failure) {
+        _errors.add(failure);
+        return const AppSettings();
+      },
+      (settings) => settings,
+    );
   }
 
   /// Updates the manual theme mode, persists it, and notifies listeners.
@@ -202,7 +210,8 @@ class SettingsNotifier extends _$SettingsNotifier {
   }
 }
 
-/// Broadcast stream of persistence failures from [SettingsNotifier].
+/// Broadcast stream of failures from [SettingsNotifier] — both the initial
+/// settings load and subsequent persistence (save) operations.
 ///
 /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
 /// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes
