@@ -1,5 +1,6 @@
 library;
 
+import 'package:dosly/core/error/failures.dart';
 import 'package:dosly/features/settings/data/datasources/settings_local_data_source.dart';
 import 'package:dosly/features/settings/data/repositories/settings_repository_impl.dart';
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
@@ -24,6 +25,76 @@ Future<SettingsRepositoryImpl> _buildRepository({
   return SettingsRepositoryImpl(dataSource);
 }
 
+/// Helper that builds an in-memory [SharedPreferencesWithCache] backed by an
+/// empty store, suitable for wiring throwing data-source doubles.
+Future<SharedPreferencesWithCache> _buildPrefs() async {
+  SharedPreferencesAsyncPlatform.instance =
+      InMemorySharedPreferencesAsync.empty();
+  return SharedPreferencesWithCache.create(
+    cacheOptions: const SharedPreferencesWithCacheOptions(
+      allowList: {'themeMode', 'useSystemTheme', 'useSystemLanguage', 'manualLanguage'},
+    ),
+  );
+}
+
+/// Subclass of [SettingsLocalDataSource] that overrides individual getters to
+/// throw a [StateError].
+///
+/// Used to prove that [SettingsRepositoryImpl.load()] converts any throwable
+/// from the data source into a [Left(UnknownFailure)] (AC-3).
+class _ThrowingGetterDataSource extends SettingsLocalDataSource {
+  _ThrowingGetterDataSource(super.prefs);
+
+  @override
+  bool getUseSystemTheme() => throw StateError('boom: getUseSystemTheme');
+}
+
+/// Subclass of [SettingsLocalDataSource] that overrides individual setters to
+/// throw a [StateError] (an [Error], not an [Exception]).
+///
+/// Used to prove that each [SettingsRepositoryImpl.save*()] method converts
+/// any [Error] thrown by the data source into a [Left(UnknownFailure)] (AC-7).
+/// Pass exactly one `throwOn*` flag as `true` per test instance.
+class _ThrowingSetterDataSource extends SettingsLocalDataSource {
+  _ThrowingSetterDataSource(
+    super.prefs, {
+    this.throwOnSetThemeMode = false,
+    this.throwOnSetUseSystemTheme = false,
+    this.throwOnSetUseSystemLanguage = false,
+    this.throwOnSetManualLanguage = false,
+  });
+
+  /// Which setter should throw; exactly one flag set to true per test instance.
+  final bool throwOnSetThemeMode;
+  final bool throwOnSetUseSystemTheme;
+  final bool throwOnSetUseSystemLanguage;
+  final bool throwOnSetManualLanguage;
+
+  @override
+  Future<void> setThemeMode(AppThemeMode mode) async {
+    if (throwOnSetThemeMode) throw StateError('boom: setThemeMode');
+    return super.setThemeMode(mode);
+  }
+
+  @override
+  Future<void> setUseSystemTheme(bool value) async {
+    if (throwOnSetUseSystemTheme) throw StateError('boom: setUseSystemTheme');
+    return super.setUseSystemTheme(value);
+  }
+
+  @override
+  Future<void> setUseSystemLanguage(bool value) async {
+    if (throwOnSetUseSystemLanguage) throw StateError('boom: setUseSystemLanguage');
+    return super.setUseSystemLanguage(value);
+  }
+
+  @override
+  Future<void> setManualLanguage(AppLanguage language) async {
+    if (throwOnSetManualLanguage) throw StateError('boom: setManualLanguage');
+    return super.setManualLanguage(language);
+  }
+}
+
 void main() {
   group('SettingsRepositoryImpl', () {
     group('load()', () {
@@ -31,7 +102,7 @@ void main() {
           () async {
         final repository = await _buildRepository();
 
-        final settings = repository.load();
+        final settings = repository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         expect(settings.useSystemTheme, isTrue);
         expect(settings.manualThemeMode, AppThemeMode.light);
@@ -42,7 +113,7 @@ void main() {
         final repository = await _buildRepository();
         await repository.saveUseSystemTheme(false);
 
-        final settings = repository.load();
+        final settings = repository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         expect(settings.useSystemTheme, isFalse);
       });
@@ -53,7 +124,7 @@ void main() {
         final repository = await _buildRepository();
         await repository.saveThemeMode(AppThemeMode.dark);
 
-        final settings = repository.load();
+        final settings = repository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         expect(settings.manualThemeMode, AppThemeMode.dark);
       });
@@ -65,7 +136,7 @@ void main() {
           initialData: {'themeMode': 'unknown'},
         );
 
-        final settings = repository.load();
+        final settings = repository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         expect(settings.manualThemeMode, AppThemeMode.light);
       });
@@ -82,7 +153,7 @@ void main() {
           initialData: {'themeMode': 1},
         );
 
-        final settings = repository.load();
+        final settings = repository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         expect(settings.manualThemeMode, AppThemeMode.light);
       });
@@ -91,7 +162,7 @@ void main() {
           () async {
         final repository = await _buildRepository();
 
-        final settings = repository.load();
+        final settings = repository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         expect(settings.useSystemLanguage, isTrue);
         expect(settings.manualLanguage, AppLanguage.en);
@@ -103,7 +174,7 @@ void main() {
         final repository = await _buildRepository();
         await repository.saveUseSystemLanguage(false);
 
-        final settings = repository.load();
+        final settings = repository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         expect(settings.useSystemLanguage, isFalse);
       });
@@ -113,7 +184,7 @@ void main() {
         final repository = await _buildRepository();
         await repository.saveManualLanguage(AppLanguage.uk);
 
-        final settings = repository.load();
+        final settings = repository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         expect(settings.manualLanguage, AppLanguage.uk);
       });
@@ -125,7 +196,7 @@ void main() {
           initialData: {'manualLanguage': 'xx'},
         );
 
-        final settings = repository.load();
+        final settings = repository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         expect(settings.manualLanguage, AppLanguage.en);
       });
@@ -134,7 +205,7 @@ void main() {
           () async {
         final repository = await _buildRepository();
 
-        final settings = repository.load();
+        final settings = repository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         expect(settings.useSystemLanguage, isTrue);
         expect(settings.manualLanguage, AppLanguage.en);
@@ -147,7 +218,7 @@ void main() {
         await repository.saveUseSystemLanguage(false);
         await repository.saveManualLanguage(AppLanguage.de);
 
-        final settings = repository.load();
+        final settings = repository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         expect(settings.useSystemLanguage, isFalse);
         expect(settings.manualLanguage, AppLanguage.de);
@@ -215,7 +286,7 @@ void main() {
         // Act — reconstruct a new repository from the same prefs instance.
         final secondRepository =
             SettingsRepositoryImpl(SettingsLocalDataSource(prefs));
-        final settings = secondRepository.load();
+        final settings = secondRepository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         // Assert — persisted values are visible to the new instance.
         expect(settings.manualThemeMode, AppThemeMode.dark);
@@ -242,11 +313,174 @@ void main() {
         // Act — reconstruct a new repository from the same prefs instance.
         final secondRepository =
             SettingsRepositoryImpl(SettingsLocalDataSource(prefs));
-        final settings = secondRepository.load();
+        final settings = secondRepository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
 
         // Assert — persisted values are visible to the new instance.
         expect(settings.useSystemLanguage, isFalse);
         expect(settings.manualLanguage, AppLanguage.uk);
+      });
+    });
+
+    // AC-2: wrong-type cache never throws out of load().
+    //
+    // SharedPreferencesWithCache raises a TypeError when a key was stored as
+    // one type (e.g. int, String) but the getter calls a mismatched accessor
+    // (e.g. getBool, getString). Because getUseSystemTheme(), getUseSystemLanguage(),
+    // and getManualLanguage() have no internal try/catch, the TypeError propagates
+    // to SettingsRepositoryImpl.load()'s outer try/catch, which converts it to
+    // Left(UnknownFailure). load() must therefore never throw — even with
+    // corrupt cache data — and must return Left (not Right) for these keys.
+    group('load() — wrong-type cache values return Left (AC-2)', () {
+      test(
+          'returns Left when useSystemTheme is stored as a String (not bool)',
+          () async {
+        // 'not-a-bool' is a String; getBool() raises a TypeError that is not
+        // caught inside getUseSystemTheme() — load()'s outer catch converts
+        // it into Left(UnknownFailure).
+        final repository = await _buildRepository(
+          initialData: {'useSystemTheme': 'not-a-bool'},
+        );
+
+        final result = repository.load();
+
+        expect(result.isLeft(), isTrue);
+        result.fold((f) => expect(f, isA<UnknownFailure>()), (_) => fail('expected Left'));
+      });
+
+      test(
+          'returns Left when useSystemLanguage is stored as a String (not bool)',
+          () async {
+        // Same TypeError path as useSystemTheme but for the language toggle.
+        final repository = await _buildRepository(
+          initialData: {'useSystemLanguage': 'not-a-bool'},
+        );
+
+        final result = repository.load();
+
+        expect(result.isLeft(), isTrue);
+        result.fold((f) => expect(f, isA<UnknownFailure>()), (_) => fail('expected Left'));
+      });
+
+      test(
+          'returns Left when manualLanguage is stored as an int (not String)',
+          () async {
+        // getString() on an int-cached value raises TypeError; getManualLanguage()
+        // is unguarded, so load()'s outer catch promotes it to Left(UnknownFailure).
+        final repository = await _buildRepository(
+          initialData: {'manualLanguage': 123},
+        );
+
+        final result = repository.load();
+
+        expect(result.isLeft(), isTrue);
+        result.fold((f) => expect(f, isA<UnknownFailure>()), (_) => fail('expected Left'));
+      });
+    });
+
+    // AC-3: a throwing data-source getter makes load() return Left(UnknownFailure).
+    group('load() — data-source getter throw → Left(UnknownFailure) (AC-3)', () {
+      test(
+          'returns Left(UnknownFailure) when the data source getter throws',
+          () async {
+        final prefs = await _buildPrefs();
+        final throwingSource = _ThrowingGetterDataSource(prefs);
+        final repository = SettingsRepositoryImpl(throwingSource);
+
+        final result = repository.load();
+
+        expect(result.isLeft(), isTrue);
+        // Fold to extract the failure and assert its runtime type.
+        result.fold(
+          (failure) => expect(failure, isA<UnknownFailure>()),
+          (_) => fail('expected Left, got Right'),
+        );
+      });
+    });
+
+    // AC-7: each save* method catches Error (not just Exception) and returns
+    // Left(UnknownFailure) — proven here with StateError, a subtype of Error.
+    //
+    // AC-8: the failure is UnknownFailure, NOT CacheFailure, proving the
+    // legacy raw-toString / CacheFailure path is gone.
+    group('save*() — StateError from setter → Left(UnknownFailure), not CacheFailure (AC-7, AC-8)', () {
+      test(
+          'saveThemeMode returns Left(UnknownFailure) when setter throws StateError',
+          () async {
+        final prefs = await _buildPrefs();
+        final repository = SettingsRepositoryImpl(
+          _ThrowingSetterDataSource(prefs, throwOnSetThemeMode: true),
+        );
+
+        final result = await repository.saveThemeMode(AppThemeMode.dark);
+
+        expect(result.isLeft(), isTrue);
+        result.fold(
+          (failure) {
+            expect(failure, isA<UnknownFailure>());
+            expect(failure, isNot(isA<CacheFailure>()));
+          },
+          (_) => fail('expected Left, got Right'),
+        );
+      });
+
+      test(
+          'saveUseSystemTheme returns Left(UnknownFailure) when setter throws StateError',
+          () async {
+        final prefs = await _buildPrefs();
+        final repository = SettingsRepositoryImpl(
+          _ThrowingSetterDataSource(prefs, throwOnSetUseSystemTheme: true),
+        );
+
+        final result = await repository.saveUseSystemTheme(false);
+
+        expect(result.isLeft(), isTrue);
+        result.fold(
+          (failure) {
+            expect(failure, isA<UnknownFailure>());
+            expect(failure, isNot(isA<CacheFailure>()));
+          },
+          (_) => fail('expected Left, got Right'),
+        );
+      });
+
+      test(
+          'saveUseSystemLanguage returns Left(UnknownFailure) when setter throws StateError',
+          () async {
+        final prefs = await _buildPrefs();
+        final repository = SettingsRepositoryImpl(
+          _ThrowingSetterDataSource(prefs, throwOnSetUseSystemLanguage: true),
+        );
+
+        final result = await repository.saveUseSystemLanguage(false);
+
+        expect(result.isLeft(), isTrue);
+        result.fold(
+          (failure) {
+            expect(failure, isA<UnknownFailure>());
+            expect(failure, isNot(isA<CacheFailure>()));
+          },
+          (_) => fail('expected Left, got Right'),
+        );
+      });
+
+      test(
+          'saveManualLanguage returns Left(UnknownFailure) when setter throws StateError',
+          () async {
+        final prefs = await _buildPrefs();
+        final repository = SettingsRepositoryImpl(
+          _ThrowingSetterDataSource(prefs, throwOnSetManualLanguage: true),
+        );
+
+        final result = await repository.saveManualLanguage(AppLanguage.uk);
+
+        expect(result.isLeft(), isTrue);
+        result.fold(
+          (failure) {
+            expect(failure, isA<UnknownFailure>());
+            expect(failure, isNot(isA<CacheFailure>()));
+          },
+          (_) => fail('expected Left, got Right'),
+        );
       });
     });
   });

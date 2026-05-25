@@ -1,5 +1,6 @@
 library;
 
+import 'package:dosly/core/error/failures.dart';
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
@@ -28,7 +29,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   AppLanguage get savedManualLanguage => _settings.manualLanguage;
 
   @override
-  AppSettings load() => _settings;
+  Either<Failure, AppSettings> load() => Right(_settings);
 
   @override
   Future<Either<Never, void>> saveThemeMode(AppThemeMode mode) async {

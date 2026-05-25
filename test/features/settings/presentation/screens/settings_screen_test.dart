@@ -24,7 +24,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   bool failOnSaveManualLanguage = false;
 
   @override
-  AppSettings load() => _settings;
+  Either<Failure, AppSettings> load() => Right(_settings);
 
   @override
   Future<Either<Failure, void>> saveThemeMode(AppThemeMode mode) async {

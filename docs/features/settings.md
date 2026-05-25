@@ -61,8 +61,9 @@ return MaterialApp.router(
 
 Native names are plain literals — they are never translated. This is the universal convention for language pickers so that users can find their language regardless of the app's current display language.
 
-`SettingsRepository` (`lib/features/settings/domain/repositories/settings_repository.dart`) is the abstract contract consumed by the presentation layer. It exposes synchronous `load()` and async save operations, all returning `Either<Failure, T>`:
+`SettingsRepository` (`lib/features/settings/domain/repositories/settings_repository.dart`) is the abstract contract consumed by the presentation layer. It exposes one synchronous read and four async writes, all returning `Either<Failure, T>`:
 
+- `load()` — synchronously reads all four settings fields from the cache. Returns `Right(AppSettings)` on success, or `Left(Failure.unknown(error, stack))` if the cache read throws (e.g. a wrong-type stored value). Never throws.
 - `saveThemeMode(AppThemeMode)` — persists the manual theme choice
 - `saveUseSystemTheme(bool)` — persists the system-theme toggle
 - `saveUseSystemLanguage(bool)` — persists the system-language toggle
@@ -84,11 +85,13 @@ Five callable classes in `lib/features/settings/domain/usecases/`, each with a `
 
 `SettingsLocalDataSource` wraps `SharedPreferencesWithCache` — all reads are synchronous (cache hit), writes are async (flushes to platform storage).
 
-`SettingsRepositoryImpl` implements the contract: catches platform exceptions, converts them to `CacheFailure`, and wraps results in `Either`.
+`SettingsRepositoryImpl` implements the contract: wraps `load()`'s four-getter chain in a single `try/catch (e, st)` and all four `save*` methods in their own `catch (e, st)` blocks. Any throwable — including `Error` subtypes such as `TypeError` that the platform bridge can raise on wrong-type cached values — is caught and returned as `Left(Failure.unknown(e, st))`. The raw exception message is never forwarded to `CacheFailure` (avoids a potential filesystem-path leak in the failure message — CWE-209).
 
 ### Presentation
 
-`SettingsNotifier` (`lib/features/settings/presentation/providers/settings_provider.dart`) is a `Notifier<AppSettings>`. Its `build()` loads the initial state synchronously from the repository cache and initializes a broadcast `StreamController<Failure>` for surfacing persistence errors. The controller is closed via `ref.onDispose` when the notifier is disposed. Mutation methods follow an optimistic pattern: in-memory state is only updated if persistence succeeds; on failure the `Failure` is emitted into the stream instead.
+`SettingsNotifier` (`lib/features/settings/presentation/providers/settings_provider.dart`) is a `Notifier<AppSettings>`. Its `build()` calls `repo.load()` synchronously and folds the `Either` result: on `Right(settings)` it returns those settings as the initial state; on `Left(failure)` it returns `const AppSettings()` (safe defaults from the entity's `@Default` annotations) and emits the `Failure` to the `_errors` broadcast stream. The controller is initialized in `build()` and closed via `ref.onDispose` when the notifier is disposed.
+
+Note on startup emission: `build()` runs during notifier construction, before any UI subscriber can attach to `settingsErrorsProvider`. Because the controller is a broadcast stream, a `Left` emitted here is dropped rather than buffered. The observable guarantee is the safe-default state — the failure is not shown to the user at startup (this is accepted design per spec 022, OQ-2). Mutation methods follow the same optimistic pattern: in-memory state is only updated if persistence succeeds; on failure the `Failure` is emitted into the stream instead.
 
 The notifier exposes five public methods — `setThemeMode`, `setUseSystemTheme`, `setUseSystemLanguage`, `setManualLanguage`, and `cycleThemeMode`. All four mutators delegate through use case providers (`setThemeModeProvider`, `setUseSystemThemeProvider`, etc.); `ref.read(settingsRepositoryProvider)` no longer appears in any mutator body.
 
@@ -195,3 +198,4 @@ The `allowList` in `main()` is fixed to these four keys — no other preferences
 - [`../../specs/010-language-settings/spec.md`](../../specs/010-language-settings/spec.md) — the spec that added the language control
 - [`../../specs/014-surface-settings-errors/spec.md`](../../specs/014-surface-settings-errors/spec.md) — the spec that added the error-stream and SnackBar feedback
 - [`../../specs/016-settings-usecases/spec.md`](../../specs/016-settings-usecases/spec.md) — the spec that introduced the use case layer, `CycleThemeMode`, and `AppLanguage.fromLanguageCodeOrDefault`
+- [`../../specs/022-settings-error-containment/spec.md`](../../specs/022-settings-error-containment/spec.md) — the spec that changed `load()` to return `Either<Failure, AppSettings>` and hardened all `save*` catch blocks to `catch (e, st)`

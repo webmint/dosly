@@ -6,6 +6,7 @@
 // approach for verifying branch-stack preservation (AC-11) without polluting
 // production routes.
 
+import 'package:dosly/core/error/failures.dart';
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
@@ -30,7 +31,7 @@ import 'package:dosly/l10n/app_localizations.dart';
 /// Minimal fake that satisfies [SettingsRepository] for routing tests.
 class _FakeSettingsRepository implements SettingsRepository {
   @override
-  AppSettings load() => const AppSettings();
+  Either<Failure, AppSettings> load() => const Right(AppSettings());
 
   @override
   Future<Either<Never, void>> saveThemeMode(AppThemeMode mode) async =>
