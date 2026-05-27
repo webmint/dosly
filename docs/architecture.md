@@ -211,7 +211,7 @@ Branch order matches `AppBottomNav` destination order (0 = Today, 1 = Meds, 2 = 
 
 ### AppShell
 
-`AppShell` (in `lib/core/routing/app_shell.dart`) is the adapter between go_router's `StatefulNavigationShell` and the core `AppBottomNav` widget (in `lib/core/widgets/app_bottom_nav.dart`). It renders a `Scaffold` with `navigationShell` as the `body` and `AppBottomNav` as the `bottomNavigationBar`:
+`AppShell` (in `lib/core/routing/app_shell.dart`) is the adapter between go_router's `StatefulNavigationShell` and the core `AppBottomNav` widget (in `lib/core/routing/app_bottom_nav.dart`). It renders a `Scaffold` with `navigationShell` as the `body` and `AppBottomNav` as the `bottomNavigationBar`:
 
 ```dart
 // lib/core/routing/app_shell.dart

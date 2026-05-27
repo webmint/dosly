@@ -1,4 +1,4 @@
-import 'package:dosly/core/widgets/app_bottom_nav.dart';
+import 'package:dosly/core/routing/app_bottom_nav.dart';
 import 'package:dosly/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

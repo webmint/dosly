@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **home feature** owns the app's root screen — `HomeScreen`. `HomeScreen` renders the top `AppBar` and a placeholder body for the Today tab. The shared bottom navigation bar (`AppBottomNav`) lives in `lib/core/widgets/` — not inside this feature — and is hosted by the routing shell at `lib/core/routing/app_shell.dart`, which wires it to go_router's `StatefulShellRoute` and supplies real `selectedIndex` / `onDestinationSelected` values.
+The **home feature** owns the app's root screen — `HomeScreen`. `HomeScreen` renders the top `AppBar` and a placeholder body for the Today tab. The shared bottom navigation bar (`AppBottomNav`) lives in `lib/core/routing/` — not inside this feature — and is hosted by the routing shell at `lib/core/routing/app_shell.dart`, which wires it to go_router's `StatefulShellRoute` and supplies real `selectedIndex` / `onDestinationSelected` values.
 
 Everything in this feature lives under `lib/features/home/presentation/`. There is no `domain/` or `data/` layer yet — the home screen is pure UI sitting on top of the core theme.
 
@@ -37,7 +37,7 @@ AppBar(
 
 ## The bottom navigation bar
 
-`AppBottomNav` (in `lib/core/widgets/app_bottom_nav.dart`) is a thin wrapper around Flutter's built-in M3 `NavigationBar`, with a 1-px `Divider` pinned to its top edge to match the HTML design template's `.bot-nav { border-top: 1px solid var(--md-outline-variant) }` rule. The widget was moved from `lib/features/home/presentation/widgets/` to `lib/core/widgets/` because it is shared across all three tab screens (Today, Meds, History) and belongs in `lib/core/` per constitution §2.1 — feature A must not own cross-feature code. The `NavigationBar` itself declares exactly three `NavigationDestination`s in a fixed order:
+`AppBottomNav` (in `lib/core/routing/app_bottom_nav.dart`) is a thin wrapper around Flutter's built-in M3 `NavigationBar`, with a 1-px `Divider` pinned to its top edge to match the HTML design template's `.bot-nav { border-top: 1px solid var(--md-outline-variant) }` rule. Although shared across all three tab screens (Today, Meds, History), the widget lives in `lib/core/routing/` rather than `lib/core/widgets/` because it is feature-aware — it hardcodes the Today/Meds/History destinations — and belongs beside `app_shell.dart`/`app_router.dart`, the composition root that already imports the feature screens. Constitution §2.1 reserves `lib/core/widgets/` for genuinely feature-agnostic widgets. The `NavigationBar` itself declares exactly three `NavigationDestination`s in a fixed order:
 
 | Index | Label     | Icon                    |
 |------:|-----------|-------------------------|
@@ -48,7 +48,7 @@ AppBar(
 The widget is a `StatelessWidget` whose active state and tap handling are entirely external — both `selectedIndex` and `onDestinationSelected` are required constructor parameters:
 
 ```dart
-// lib/core/widgets/app_bottom_nav.dart
+// lib/core/routing/app_bottom_nav.dart
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
     required this.selectedIndex,
@@ -128,7 +128,7 @@ The **destination set itself** (Today / Meds / History, in that order) is the st
 
 ## Testing
 
-Widget tests live at `test/core/widgets/app_bottom_nav_test.dart`. The test harness wraps `AppBottomNav` in a `MaterialApp` + `Scaffold`, accepting `selectedIndex` and an optional `onDestinationSelected` callback (defaults to a no-op). Tests cover six invariants:
+Widget tests live at `test/core/routing/app_bottom_nav_test.dart`. The test harness wraps `AppBottomNav` in a `MaterialApp` + `Scaffold`, accepting `selectedIndex` and an optional `onDestinationSelected` callback (defaults to a no-op). Tests cover six invariants:
 
 - Exactly three `NavigationDestination`s are rendered, with labels `Today` / `Meds` / `History` in order.
 - The three icons resolve to `LucideIcons.house`, `LucideIcons.pill`, `LucideIcons.activity`.
@@ -137,14 +137,14 @@ Widget tests live at `test/core/widgets/app_bottom_nav_test.dart`. The test harn
 - `labelBehavior == NavigationDestinationLabelBehavior.alwaysShow`.
 - A 1-px `Divider` is rendered above the `NavigationBar` — regression guard for the HTML template's top border.
 
-Locale-specific tests live at `test/core/widgets/app_bottom_nav_l10n_test.dart`. They pump the widget under `Locale('de')`, `Locale('uk')`, and `Locale('fr')` (unsupported — verifies English fallback).
+Locale-specific tests live at `test/core/routing/app_bottom_nav_l10n_test.dart`. They pump the widget under `Locale('de')`, `Locale('uk')`, and `Locale('fr')` (unsupported — verifies English fallback).
 
 If a future change breaks any of these, the failing test name will point directly at the invariant that slipped.
 
 ## Rules
 
 - **Do not add icons to the bar without updating the Lucide canonical set.** New icons belong in [`icons.md`](icons.md). The current three (`house`, `pill`, `activity`) are already on that list.
-- **Do not construct `AppBottomNav` outside `AppShell`.** Although it lives in `lib/core/widgets/`, it is purpose-built for the routing shell. Adding a second call site would duplicate navigation state.
+- **Do not construct `AppBottomNav` outside `AppShell`.** Although it lives in `lib/core/routing/`, it is purpose-built for the routing shell. Adding a second call site would duplicate navigation state.
 - **Do not add a `NavigationBarThemeData` override until the user asks for one.** The M3 defaults match the design template; an override adds a second source of truth for something that is already right.
 
 ## Related
