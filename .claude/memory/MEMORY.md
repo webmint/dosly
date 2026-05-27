@@ -47,6 +47,7 @@ Greenfield Flutter app — `flutter create .` has run, scaffolding is in place. 
 - **Maximum strictness lint mode** (`strict-casts`, `strict-inference`, `strict-raw-types`, no `dynamic`, no `!`) — chosen during `/constitute`. Rationale: medication tracking is safety-relevant; type-system bugs can cause real harm.
 - **All timestamps in UTC, displayed in local** — Rationale: prevents DST and time-zone bugs in adherence calculations.
 - **`Clock` injection over `DateTime.now()`** — Rationale: scheduling and adherence logic is the heart of the app; tests must control time.
+- **`lib/core/routing/` is the sanctioned composition-root exception to "core must be feature-agnostic" (§2.1)** _(Feature 023, Bug 015)_: Feature-aware shell widgets (the bottom nav with hardcoded Today/Meds/History destinations) belong beside `app_shell.dart`/`app_router.dart` in `core/routing/`, NOT in `core/widgets/`. `app_router.dart` already imports all four feature screens to build the `StatefulShellRoute`, so routing inherently knows the feature IA — that's the accepted layering exception. `core/widgets/` must hold only genuinely feature-agnostic widgets (e.g. `splash_screen.dart`, `prefs_load_error_screen.dart`). Rejected alternatives: a new `lib/app/` layer (not in the §2.2 directory layout) and parameterizing the nav's `destinations` (speculative generality — no second nav composition exists). When relocating between same-depth dirs under `lib/core/X/`, relative imports like `../../l10n/...` stay UNCHANGED.
 
 ## Naming Conventions
 

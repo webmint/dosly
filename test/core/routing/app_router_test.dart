@@ -23,7 +23,7 @@ import 'package:dosly/core/routing/app_router.dart';
 import 'package:dosly/core/routing/app_shell.dart';
 import 'package:dosly/features/history/presentation/screens/history_screen.dart';
 import 'package:dosly/features/home/presentation/screens/home_screen.dart';
-import 'package:dosly/core/widgets/app_bottom_nav.dart';
+import 'package:dosly/core/routing/app_bottom_nav.dart';
 import 'package:dosly/features/meds/presentation/screens/meds_screen.dart';
 import 'package:dosly/features/settings/presentation/screens/settings_screen.dart';
 import 'package:dosly/l10n/app_localizations.dart';
