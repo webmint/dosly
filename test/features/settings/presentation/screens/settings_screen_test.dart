@@ -1,4 +1,5 @@
 import 'package:dosly/core/error/failures.dart';
+import 'package:dosly/core/l10n/locale_resolver.dart';
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
@@ -63,24 +64,6 @@ class _FakeSettingsRepository implements SettingsRepository {
   }
 }
 
-/// Resolves the active [Locale] for the harness [MaterialApp].
-///
-/// Mirrors the production resolution policy in `lib/app.dart`: match by
-/// `languageCode`, else fall back to English. Declared as a top-level
-/// function so tests exercise the same fallback behaviour the running app
-/// uses, not Flutter's default (which would fall back to the first entry
-/// of `supportedLocales` — currently German — and quietly mask regressions).
-Locale _resolveLocale(Locale? deviceLocale, Iterable<Locale> supportedLocales) {
-  if (deviceLocale != null) {
-    for (final supported in supportedLocales) {
-      if (supported.languageCode == deviceLocale.languageCode) {
-        return supported;
-      }
-    }
-  }
-  return const Locale('en');
-}
-
 /// Builds a widget tree wrapping [SettingsScreen] under the requested [locale].
 ///
 /// Registers the full `AppLocalizations` delegate chain plus the project's
@@ -102,7 +85,7 @@ Widget _harness({
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      localeResolutionCallback: _resolveLocale,
+      localeResolutionCallback: resolveAppLocale,
       home: const SettingsScreen(),
     ),
   );

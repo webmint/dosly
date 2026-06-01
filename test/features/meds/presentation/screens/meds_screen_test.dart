@@ -1,27 +1,10 @@
+import 'package:dosly/core/l10n/locale_resolver.dart';
 import 'package:dosly/features/meds/presentation/screens/meds_screen.dart';
 import 'package:dosly/features/meds/presentation/widgets/add_medication_modal.dart';
 import 'package:dosly/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-
-/// Resolves the active [Locale] for the harness [MaterialApp].
-///
-/// Mirrors the production resolution policy in `lib/app.dart`: match by
-/// `languageCode`, else fall back to English. Declared as a top-level
-/// function so tests exercise the same fallback behaviour the running app
-/// uses, not Flutter's default (which would fall back to the first entry
-/// of `supportedLocales` — currently German — and quietly mask regressions).
-Locale _resolveLocale(Locale? deviceLocale, Iterable<Locale> supportedLocales) {
-  if (deviceLocale != null) {
-    for (final supported in supportedLocales) {
-      if (supported.languageCode == deviceLocale.languageCode) {
-        return supported;
-      }
-    }
-  }
-  return const Locale('en');
-}
 
 /// Builds a widget tree wrapping [MedsScreen] under the requested [locale].
 ///
@@ -33,7 +16,7 @@ Widget _harness({required Locale locale}) {
     locale: locale,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    localeResolutionCallback: _resolveLocale,
+    localeResolutionCallback: resolveAppLocale,
     home: const MedsScreen(),
   );
 }

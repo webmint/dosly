@@ -78,6 +78,9 @@ class LanguageSelector extends ConsumerWidget {
             onChanged: useSystemLanguage
                 ? null
                 : (AppLanguage? selected) {
+                    // DropdownButton.onChanged is typed ValueChanged<T?>? but only fires
+                    // with a non-null value on selection; this guard is defensive and
+                    // not reachable via the UI.
                     if (selected != null) {
                       ref
                           .read(settingsNotifierProvider.notifier)
