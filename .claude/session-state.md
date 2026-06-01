@@ -1,30 +1,31 @@
 <!-- This file is a fixed-size sliding window. Always fully overwritten, never appended. Max ~40 lines. -->
 # Session State
-Last updated after Task 001: relocate bottom nav
+Last updated after Task 005: guard doc + bug bookkeeping
 
 ## Current Feature
-023-bottom-nav-relocate
+024-test-coverage-bug016
 
 ## Session Stats
-Tasks completed this session: 1
-Estimated context load: moderate (4)
+Tasks completed this session: 5
+Estimated context load: moderate (5)
 
 ## Progress
-- Last completed: Task 001 — relocate AppBottomNav core/widgets → core/routing (Bug 015)
-- Next pending: none — the feature's only task is Complete
+- Last completed: Task 005 — document language_selector guard + update Bug 016 record
+- Next pending: none — all 5 tasks Complete
 - Tasks remaining in feature: 0
 
 ## Key Decisions This Session (last 3 only)
-- Option C chosen (relocate to core/routing beside app_shell, the composition root) over Option A (new lib/app/ layer) and Option B (parameterize destinations)
-- l10n import left unchanged (../../l10n/l10n_extensions.dart) — core/routing same depth as core/widgets; app_router.dart:21 precedent
-- core/widgets/ NOT deleted — still holds feature-agnostic splash_screen + prefs_load_error_screen; AC-8 satisfied (no feature-aware widget remains)
+- Legacy-int `catch` branch in getThemeMode() is untestable via InMemorySharedPreferencesAsync (no throw); covered the degrade OUTCOME via unrecognized string code instead (Task 001)
+- Home-nav test mounts the REAL SettingsScreen via a minimal 2-route GoRouter + fake repo (OQ-1 resolved; no route-observer fallback needed) (Task 002)
+- _resolveLocale duplication was 7-way (not 4-way as the bug claimed); all 7 harnesses now call production resolveAppLocale (Task 004)
 
 ## Files Modified Recently (last 3 tasks only)
-- lib/core/routing/app_bottom_nav.dart (moved from core/widgets, verbatim via git mv)
-- lib/core/routing/app_shell.dart (import → same-dir)
-- test/core/routing/{app_bottom_nav_test,app_bottom_nav_l10n_test}.dart (moved from test/core/widgets) + app_router_test.dart (import)
+- test/core/l10n/locale_resolver_test.dart (new, Task 003)
+- 7 harness test files: dropped local _resolveLocale → import resolveAppLocale (Task 004)
+- lib/features/settings/presentation/widgets/language_selector.dart (3-line guard comment) + bugs/016-...md (Status: Fixed) (Task 005)
 
 ## Active Constraints
 - Feature complete. Next: /review → /verify → /summarize → /finalize
-- Verification already green: dart analyze clean; flutter test 241 passed; code review APPROVE
-- WIP commits accumulate on branch spec/023-bottom-nav-relocate; /finalize squashes into one refactor() commit
+- Verification green: dart analyze clean; flutter test 261 passed (241 baseline + 20 new)
+- WIP commits accumulate on branch spec/024-test-coverage-bug016; /finalize squashes into clean commit(s)
+- 20 new tests across 3 files; 7-file DRY dedup; 1 lib comment; no production logic change

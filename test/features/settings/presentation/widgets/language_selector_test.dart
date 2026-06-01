@@ -1,6 +1,7 @@
 library;
 
 import 'package:dosly/core/error/failures.dart';
+import 'package:dosly/core/l10n/locale_resolver.dart';
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
@@ -56,21 +57,6 @@ class _FakeSettingsRepository implements SettingsRepository {
   }
 }
 
-/// Mirrors the production locale resolution policy.
-Locale _resolveLocale(
-  Locale? deviceLocale,
-  Iterable<Locale> supportedLocales,
-) {
-  if (deviceLocale != null) {
-    for (final supported in supportedLocales) {
-      if (supported.languageCode == deviceLocale.languageCode) {
-        return supported;
-      }
-    }
-  }
-  return const Locale('en');
-}
-
 /// Builds a widget tree wrapping [LanguageSelector] under the given [locale].
 ///
 /// [repo] can be supplied to pre-configure repository state or to inspect
@@ -88,7 +74,7 @@ Widget _harness({
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      localeResolutionCallback: _resolveLocale,
+      localeResolutionCallback: resolveAppLocale,
       home: const Scaffold(body: LanguageSelector()),
     ),
   );
@@ -181,7 +167,7 @@ void main() {
             manualLanguage: AppLanguage.de,
           ),
         );
-        // Locale fr is unsupported. The harness's _resolveLocale falls back
+        // Locale fr is unsupported. resolveAppLocale falls back
         // to en, so Localizations.localeOf(context).languageCode = 'en'.
         await tester.pumpWidget(
           _harness(locale: const Locale('fr'), repo: repo),

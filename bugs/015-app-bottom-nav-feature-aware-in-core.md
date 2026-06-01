@@ -1,10 +1,10 @@
 # Bug 015: `AppBottomNav` is feature-aware but lives in `core/widgets/`
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning
 **Source**: audit (audits/2026-04-30-audit.md)
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-27 (feature 023-bottom-nav-relocate, commit eb1d0a4 — relocate variant: moved `app_bottom_nav.dart` to `lib/core/routing/` beside `app_shell.dart`, the composition root that already imports the feature screens. Not the Fix-Notes "Option A" `lib/app/` layer nor "Option B" parameterize; see research/2026-05-26-bottom-nav-core-placement.md "Option C")
 
 ## Description
 

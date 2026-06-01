@@ -1,10 +1,22 @@
 # Bug 016: Consolidated test-coverage gaps (10 sub-items)
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning
 **Source**: audit (audits/2026-04-30-audit.md)
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-27 (spec 024)
+
+## Resolution (2026-05-27, spec 024)
+
+All 10 sub-items are now dispositioned:
+
+- **Sub-items 1, 2, 10** — FIXED by `test/features/settings/data/datasources/settings_local_data_source_test.dart` (Task 001).
+  Caveat for sub-item 1: the literal legacy-`int` `catch (_)` branch is NOT reachable via `InMemorySharedPreferencesAsync` (it does not throw a TypeError on a type-mismatched key), so the test exercises the same graceful-degrade outcome (`AppThemeMode.light`) through `fromCodeOrDefault`'s `orElse` using an unrecognized string code. The `catch` branch itself remains uncovered by design (harness limitation), but the degrade behavior it guards is fully covered.
+- **Sub-item 3** — FIXED by `test/features/home/presentation/screens/home_screen_test.dart` (Task 002) — taps the gear icon and asserts navigation to `SettingsScreen`.
+- **Sub-item 9** — FIXED: `resolveAppLocale` (extracted to `lib/core/l10n/locale_resolver.dart` in a prior spec) now has a direct unit test `test/core/l10n/locale_resolver_test.dart` (Task 003). The duplicated fallback logic was eliminated from all **7** test harnesses (Task 004) — note the original bug cited "4-way" duplication; it was actually 7-way.
+- **Sub-item 8** — ADDRESSED by documenting the `if (selected != null)` defensive guard in `language_selector.dart` with an explanatory comment (Task 005). The guard is kept (not removed) because removing it would require a `!` null-assertion, which the constitution forbids. The false branch is unreachable via the UI, so no test is possible.
+- **Sub-items 4, 7** — ALREADY-CLOSED before this spec: sub-item 4 (`copyWith`) is covered by `test/features/settings/domain/entities/app_settings_test.dart`; sub-item 7 (repository exception-catch path) is covered by `test/features/settings/data/repositories/settings_repository_impl_test.dart`'s throwing data-source doubles.
+- **Sub-items 5, 6** — MOOT: the `theme_preview` feature they referenced was removed in spec 020 (`lib/features/theme_preview/` no longer exists).
 
 ## Description
 

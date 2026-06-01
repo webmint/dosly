@@ -1,21 +1,10 @@
 // Tests enforce AC-4, AC-5, AC-9, AC-12 from spec 011-meds-add-fab.
+import 'package:dosly/core/l10n/locale_resolver.dart';
 import 'package:dosly/features/meds/presentation/widgets/add_medication_modal.dart';
 import 'package:dosly/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-
-// Mirrors production resolver to avoid alphabetical-fallback to German (MEMORY.md, Feature 006).
-Locale _resolveLocale(Locale? deviceLocale, Iterable<Locale> supportedLocales) {
-  if (deviceLocale != null) {
-    for (final supported in supportedLocales) {
-      if (supported.languageCode == deviceLocale.languageCode) {
-        return supported;
-      }
-    }
-  }
-  return const Locale('en');
-}
 
 /// Builds a widget tree rendering [AddMedicationModal] directly as [home].
 ///
@@ -25,7 +14,7 @@ Widget _harness({required Locale locale}) {
     locale: locale,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    localeResolutionCallback: _resolveLocale,
+    localeResolutionCallback: resolveAppLocale,
     home: const AddMedicationModal(),
   );
 }
