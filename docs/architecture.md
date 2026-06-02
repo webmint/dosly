@@ -105,7 +105,7 @@ void main() {
 `AppBootstrap` (in `lib/app_bootstrap.dart`) is a `ConsumerWidget` mounted at the root `ProviderScope`. It watches `sharedPreferencesInitProvider` — a `@riverpod` function provider that calls `SharedPreferencesWithCache.create(...)` asynchronously — and maps each `AsyncValue` state to the appropriate child:
 
 - **loading** — renders `SplashScreen` inside a lightweight `MaterialApp` shell so the OS launch-screen hand-off is seamless.
-- **error** — renders `PrefsLoadErrorScreen` inside the same shell; its Retry button calls `ref.invalidate(sharedPreferencesInitProvider)` to re-trigger the async init. Structured failure logging is deferred to Bug 017 (typed logger not yet built) — the error branch is UI-only for now.
+- **error** — renders `PrefsLoadErrorScreen` inside the same shell; its Retry button calls `ref.invalidate(sharedPreferencesInitProvider)` to re-trigger the async init. The typed logger (`lib/core/logging/`, feature 025) now exists; the router error path logs routing failures through it (sanitized, debug-only). This bootstrap error branch remains UI-only — its failure surfacing is tracked separately (bug 003).
 - **data** — wraps `DoslyApp` in a nested `ProviderScope` that overrides the synchronous `sharedPreferencesProvider` with the resolved instance, preserving the settings tree's synchronous-read contract unchanged.
 
 `sharedPreferencesProvider` (in `lib/core/providers/shared_preferences_provider.dart`) is declared with a throwing placeholder — failing to inject the override is a programmer error surfaced immediately. The override now lives in `AppBootstrap`'s data branch rather than in `main()`.
@@ -120,6 +120,7 @@ void main() {
 | `settingsRepositoryProvider` | `@riverpod` function (autoDispose) | Wires data source to repository |
 | `settingsNotifierProvider` | `@Riverpod(keepAlive: true, name: 'settingsNotifierProvider')` class form | Current settings + mutation API |
 | `settingsErrorsProvider` | `@riverpod` function (autoDispose) | Broadcast stream of persistence failures from `SettingsNotifier` (added by feature 014) |
+| `loggerProvider` | `@Riverpod(keepAlive: true)` function | App-wide `Logger('dosly')` instance; configures the sanitizing `Logger.root` listener on first read (feature 025) |
 
 ### Failure handling
 
@@ -152,6 +153,27 @@ Sealed classes let callers pattern-match exhaustively. `SettingsNotifier` follow
 Provider declarations use `@riverpod` / `@Riverpod(...)` codegen (constitution §4.1.1). Run `dart run build_runner build --delete-conflicting-outputs` after editing any annotated provider; generated `*.g.dart` files sit next to their source and are committed (§2.2). The two existing exemplars are `lib/core/providers/shared_preferences_provider.dart` (function form, `@Riverpod(keepAlive: true)`) and `lib/features/settings/presentation/providers/settings_provider.dart` (mixed function and class forms).
 
 One quirk worth knowing when adding new class-form notifiers: codegen derives the provider symbol by stripping a trailing `Notifier` from the class name and appending `Provider`. So `class FooNotifier extends _$FooNotifier` emits `fooProvider`, not `fooNotifierProvider`. Pass `name: 'fooNotifierProvider'` on the annotation to keep the canonical codegen class-form naming idiom — `settings_provider.dart` does this for `SettingsNotifier`.
+
+### Logging
+
+Structured logging lives in `lib/core/logging/` (`logger.dart`, `log_sanitizer.dart`), introduced by feature 025.
+
+**Pipeline**: call site → `ref.read(loggerProvider)` → `Logger('dosly')` → single `Logger.root.onRecord` listener → `sanitizeRecord(record, includeErrorDetail: kDebugMode)` → `dart:developer log()` sink.
+
+**Single sanitize choke point**: exactly one root listener is registered (idempotent — cancels any prior listener; cancelled on `ref.onDispose`). Every `LogRecord` passes through `sanitizeRecord` before reaching any sink, so PHI cannot reach a sink by bypassing this layer.
+
+**PHI / `Failure`-aware sanitization** (`log_sanitizer.dart`): redact-by-default — medication names, dosages, filesystem paths, and raw `e.toString()` are stripped (CWE-209/532 mitigation). Safe structural fields are kept — e.g. `PermissionDeniedFailure.permission`, `ValidationFailure.field`. Full error `toString()` is included only when `includeErrorDetail` is `true` (= `kDebugMode`).
+
+**Release no-op**: `levelFor(isRelease: kReleaseMode)` sets `Level.OFF` in release builds. dosly has no backend or telemetry endpoint (constitution §1/§5.3), so there is nowhere to ship logs; this single constant is the migration point if that ever changes.
+
+**Consumption**:
+
+```dart
+final log = ref.read(loggerProvider);
+log.warning('router error', state.error);
+```
+
+`AppBootstrap` reads `loggerProvider` once at startup so the `Logger.root` listener is registered before any route can fail. The first consumer is the `errorBuilder` in `lib/core/routing/app_router.dart`, which logs routing failures sanitized; they are suppressed in release builds via `Level.OFF`.
 
 ## Internationalization (i18n)
 
