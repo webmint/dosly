@@ -1,10 +1,10 @@
 # Bug 014: `SettingsRepository.load()` claims "Never fails" but cannot honor the contract
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning
 **Source**: audit (audits/2026-04-30-audit.md)
 **Reported**: 2026-04-30
-**Fixed**:
+**Fixed**: 2026-05-24 (feature 022-settings-error-containment, commit a0eb160) — Option A: `load()` now returns `Either<Failure, AppSettings>` with a full try/catch in the impl; `SettingsNotifier.build()` consumes via `.fold(...)`.
 
 ## Description
 
