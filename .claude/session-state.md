@@ -2,25 +2,24 @@
 # Session State
 
 ## Current Feature
-025-typed-logger — Typed logger with PHI sanitize layer
+None active. Last shipped: 025-typed-logger. Most recent work: bug 018 /fix (settings screen test fidelity).
 
 ## Progress
-ALL 7 tasks Complete. Feature implementation done; ready for /review → /verify → /summarize → /finalize.
+Bug 018 fixed on branch `fix/018-settings-screen-test-stale-cachefailure` — 1 clean commit (2c1446a), local-only, not yet pushed/merged. Feature 025 complete.
 
 ## Recently Completed (last 3)
-- Task 5: logger pipeline tests (levelFor, release suppression, idempotent single-emit, provider) — 6 tests
-- Task 6: router pilot — errorBuilder logs state.error via loggerProvider (once-guarded); AppBootstrap reads loggerProvider at startup
-- Task 7: docs/architecture.md — removed stale "deferred to Bug 017", added Logging subsection + loggerProvider row
+- Bug 018 /fix: realigned `_FakeSettingsRepository` save methods to `Failure.unknown` (was stale `CacheFailure`) — test-only, 4 lines, 285/285 green, review APPROVE
+- Feature 025 Task 7: docs/architecture.md logging subsection
+- Feature 025 Task 6: router errorBuilder logs via loggerProvider
 
 ## Recent Decisions
-- package:logging (not dart:developer wrapper) — single Logger.root.onRecord listener = structural sanitize choke point
-- Release no-op via levelFor(isRelease: kReleaseMode) → Level.OFF; debug → Level.ALL
-- onException UNUSABLE (asserts-conflicts with errorBuilder) → logged in errorBuilder instead
+- Bug 018: type-compatible variant drift in test doubles is invisible to `dart analyze` AND assertions — only review catches it; on a variant change grep all `implements <Repo>` fakes for the old variant
+- Filed bug 020 — only 1 of 4 save-error SnackBar paths is exercised (pre-existing gap)
+- (025) package:logging single `Logger.root.onRecord` listener = sanitize choke point
 
 ## Recently Modified Files
-- lib/core/logging/logger.dart, logger.g.dart, log_sanitizer.dart
-- lib/core/routing/app_router.dart, lib/app_bootstrap.dart, pubspec.yaml
-- test/core/logging/log_sanitizer_test.dart, logger_test.dart
+- test/features/settings/presentation/screens/settings_screen_test.dart
+- bugs/018-...md (→ Fixed), bugs/020-...md (new), research/2026-06-07-bug-018-...md
 
 ## Verification
 dart analyze: clean | flutter test: 285 pass
