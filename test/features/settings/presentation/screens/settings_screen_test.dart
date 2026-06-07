@@ -30,7 +30,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   @override
   Future<Either<Failure, void>> saveThemeMode(AppThemeMode mode) async {
     if (failOnSaveThemeMode) {
-      return const Left(CacheFailure('mock failure'));
+      return Left(Failure.unknown(Exception('mock failure'), StackTrace.empty));
     }
     _settings = _settings.copyWith(manualThemeMode: mode);
     return const Right(null);
@@ -39,7 +39,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   @override
   Future<Either<Failure, void>> saveUseSystemTheme(bool value) async {
     if (failOnSaveUseSystemTheme) {
-      return const Left(CacheFailure('mock failure'));
+      return Left(Failure.unknown(Exception('mock failure'), StackTrace.empty));
     }
     _settings = _settings.copyWith(useSystemTheme: value);
     return const Right(null);
@@ -48,7 +48,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   @override
   Future<Either<Failure, void>> saveUseSystemLanguage(bool value) async {
     if (failOnSaveUseSystemLanguage) {
-      return const Left(CacheFailure('mock failure'));
+      return Left(Failure.unknown(Exception('mock failure'), StackTrace.empty));
     }
     _settings = _settings.copyWith(useSystemLanguage: value);
     return const Right(null);
@@ -57,7 +57,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   @override
   Future<Either<Failure, void>> saveManualLanguage(AppLanguage language) async {
     if (failOnSaveManualLanguage) {
-      return const Left(CacheFailure('mock failure'));
+      return Left(Failure.unknown(Exception('mock failure'), StackTrace.empty));
     }
     _settings = _settings.copyWith(manualLanguage: language);
     return const Right(null);

@@ -1,12 +1,12 @@
 # Bug 018: `settings_screen_test.dart` fake injects `CacheFailure`, which production no longer emits
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning
 **Source**: verify (feature 022)
 **Feature**: specs/022-settings-error-containment/spec.md
 **AC**: N/A (test-fidelity issue, not an AC failure)
 **Reported**: 2026-05-25
-**Fixed**:
+**Fixed**: 2026-06-07
 
 ## Description
 
@@ -47,6 +47,17 @@ change the screen test's `_FakeSettingsRepository` save methods to return
 doc comments / test names that reference `CacheFailure`. Since the screen ignores
 the payload, no assertion change is required — this is purely fake-to-production
 fidelity. Trivial, single-file `/fix`.
+
+**Resolved 2026-06-07** (commit `fix(settings): realign settings screen test fake to Failure.unknown`):
+the four `_FakeSettingsRepository` save methods now return
+`Left(Failure.unknown(Exception('mock failure'), StackTrace.empty))` (lines 33,
+42, 51, 60), with `const` dropped on each (`Exception(...)` has no const
+constructor). No assertions, test names, harness, imports, or doc comments
+changed — none referenced `CacheFailure`. `dart analyze` clean; full suite 285/285
+green; code-review APPROVE, no findings. The three other `CacheFailure` test
+references (repo-impl regression guard, two use-case pass-through sentinels,
+logger sanitizer test) were verified legitimate and left untouched. A pre-existing
+coverage gap surfaced during test assessment was spun off as bug 020.
 
 ## Related Issues
 
