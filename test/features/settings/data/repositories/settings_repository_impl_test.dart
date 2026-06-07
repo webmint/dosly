@@ -375,6 +375,25 @@ void main() {
         expect(result.isLeft(), isTrue);
         result.fold((f) => expect(f, isA<UnknownFailure>()), (_) => fail('expected Left'));
       });
+
+      // themeMode is the deliberate EXCEPTION to the AC-2 wrong-type→Left rule.
+      // getThemeMode() wraps _prefs.getString('themeMode') in its own try/catch
+      // and falls back to AppThemeMode.light, so the TypeError never reaches
+      // load()'s outer catch — load() returns Right(light), not Left.
+      test(
+          'returns Right(manualThemeMode=light) when themeMode is wrong-type — the guarded exception to the AC-2 wrong-type→Left rule',
+          () async {
+        // 2.5 (double) is distinct from the legacy-int(1) test; getString() on a
+        // double-cached value raises TypeError, which getThemeMode()'s internal
+        // catch absorbs, yielding AppThemeMode.light as the default.
+        final repository = await _buildRepository(
+          initialData: {'themeMode': 2.5},
+        );
+
+        final settings = repository.load().getOrElse((f) => fail('expected Right, got Left: $f'));
+
+        expect(settings.manualThemeMode, AppThemeMode.light);
+      });
     });
 
     // AC-3: a throwing data-source getter makes load() return Left(UnknownFailure).

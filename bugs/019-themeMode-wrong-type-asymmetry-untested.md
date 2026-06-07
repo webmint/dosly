@@ -1,12 +1,12 @@
 # Bug 019: `themeMode` wrong-type read returns `Right(default)`, not `Left` — asymmetry untested
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning (low)
 **Source**: verify (feature 022)
 **Feature**: specs/022-settings-error-containment/spec.md
 **AC**: AC-2
 **Reported**: 2026-05-25
-**Fixed**:
+**Fixed**: 2026-06-07
 
 ## Description
 
@@ -55,6 +55,18 @@ non-matching string) makes `load()` return `Right` with
 exception to the AC-2 "wrong type → Left" rule. Pure test addition, single file,
 no production change. Optionally add a one-line comment on `getThemeMode()`
 cross-referencing this guaranteed-fallback contract.
+
+**Resolved 2026-06-07** (commit `fix(settings): name themeMode AC-2 wrong-type guarded exception`):
+added one test to the `load() — wrong-type cache values return Left (AC-2)` group
+of `settings_repository_impl_test.dart` asserting `{'themeMode': 2.5}` (a `double`,
+distinct from the existing legacy-int(1) test) returns `Right(manualThemeMode ==
+AppThemeMode.light)`, explicitly named as the guarded exception to AC-2. No
+production change — the `getThemeMode()` dartdoc already documented the wrong-type
+fallback, so no source comment was needed. `dart analyze` clean; full suite 286/286
+(was 285); code-review APPROVE, no findings. qa-engineer noted one low-priority,
+corroborative-only adjacent idea (a `useSystemTheme`-as-int wrong-type probe), now
+tracked as bug 021 (that unguarded path is already proven by the existing
+String-as-bool test, so it is belt-and-suspenders only).
 
 ## Related Issues
 

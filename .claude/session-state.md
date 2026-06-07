@@ -2,24 +2,24 @@
 # Session State
 
 ## Current Feature
-None active. Last shipped: 025-typed-logger. Most recent work: bug 018 /fix (settings screen test fidelity).
+None active. Last shipped: 025-typed-logger. Most recent work: bug 019 /fix (themeMode AC-2 guarded-exception test).
 
 ## Progress
-Bug 018 fixed on branch `fix/018-settings-screen-test-stale-cachefailure` — 1 clean commit (2c1446a), local-only, not yet pushed/merged. Feature 025 complete.
+Bug 019 fixed on branch `fix/019-thememode-asymmetry-test` — 1 clean commit (0672bb0), local-only, not yet pushed/merged. Bug 018 merged to main (PR #30). Feature-022 follow-ups: 018 ✅, 019 ✅, 020 open, 021 open (spun off from 019).
 
 ## Recently Completed (last 3)
-- Bug 018 /fix: realigned `_FakeSettingsRepository` save methods to `Failure.unknown` (was stale `CacheFailure`) — test-only, 4 lines, 285/285 green, review APPROVE
+- Bug 019 /fix: added a test in the AC-2 group naming `themeMode` as the guarded exception (wrong-type → Right(light), not Left) — test-only, 286/286 green, review APPROVE
+- Bug 018 /fix: realigned settings screen test fake to `Failure.unknown` — merged via PR #30
 - Feature 025 Task 7: docs/architecture.md logging subsection
-- Feature 025 Task 6: router errorBuilder logs via loggerProvider
 
 ## Recent Decisions
-- Bug 018: type-compatible variant drift in test doubles is invisible to `dart analyze` AND assertions — only review catches it; on a variant change grep all `implements <Repo>` fakes for the old variant
-- Filed bug 020 — only 1 of 4 save-error SnackBar paths is exercised (pre-existing gap)
-- (025) package:logging single `Logger.root.onRecord` listener = sanitize choke point
+- Bug 019: co-locate a named exception test in the group named for the majority rule (test discoverability is a regression contract); use a wrong-type value distinct from the existing probe (`double 2.5` vs `int 1`)
+- Bug 019: no production change — `getThemeMode()` dartdoc already documents the fallback
+- Filed bug 021 (low/corroborative): a `useSystemTheme`-as-int wrong-type probe
 
 ## Recently Modified Files
-- test/features/settings/presentation/screens/settings_screen_test.dart
-- bugs/018-...md (→ Fixed), bugs/020-...md (new), research/2026-06-07-bug-018-...md
+- test/features/settings/data/repositories/settings_repository_impl_test.dart
+- bugs/019-...md (→ Fixed), research/2026-06-07-bug-019-thememode-asymmetry.md
 
 ## Verification
-dart analyze: clean | flutter test: 285 pass
+dart analyze: clean | flutter test: 286 pass
