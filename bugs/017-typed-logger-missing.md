@@ -1,10 +1,10 @@
 # Bug 017: Typed logger from `core/logging/` does not exist
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Medium
 **Source**: spec 013 spin-off (originally flagged inside bug 002 description)
 **Reported**: 2026-05-01
-**Fixed**:
+**Fixed**: 2026-06-07 (feature 025-typed-logger, commit 58381a7 — created `lib/core/logging/logger.dart` + `log_sanitizer.dart`: `package:logging` pipeline with a single `Logger.root.onRecord` sanitize choke point, `@riverpod loggerProvider`, exhaustive `Failure`-aware variant redactor per the table in this report, `kDebugMode`-gated error detail, release no-op via `Level.OFF`, router error-path pilot. Per-variant + 3 mandatory leak tests pass. Retrofitting deferred call sites (settings_provider, getThemeMode catch) explicitly out of scope — see spec §6)
 
 ## Description
 
