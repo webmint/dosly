@@ -90,9 +90,13 @@ String _$sharedPreferencesInitHash() =>
 
 /// Provides the application-wide [SharedPreferencesWithCache] instance.
 ///
-/// Override this provider in the root `ProviderScope`:
+/// This provider uses a throwing placeholder — failing to inject an override
+/// is a programmer error that surfaces immediately at startup. The override is
+/// injected by `AppBootstrap`'s data branch (a nested [ProviderScope]) once
+/// [sharedPreferencesInit] resolves:
 ///
 /// ```dart
+/// // Inside AppBootstrap.build — data branch
 /// ProviderScope(
 ///   overrides: [
 ///     sharedPreferencesProvider.overrideWithValue(prefs),
@@ -106,9 +110,13 @@ final sharedPreferencesProvider = SharedPreferencesProvider._();
 
 /// Provides the application-wide [SharedPreferencesWithCache] instance.
 ///
-/// Override this provider in the root `ProviderScope`:
+/// This provider uses a throwing placeholder — failing to inject an override
+/// is a programmer error that surfaces immediately at startup. The override is
+/// injected by `AppBootstrap`'s data branch (a nested [ProviderScope]) once
+/// [sharedPreferencesInit] resolves:
 ///
 /// ```dart
+/// // Inside AppBootstrap.build — data branch
 /// ProviderScope(
 ///   overrides: [
 ///     sharedPreferencesProvider.overrideWithValue(prefs),
@@ -127,9 +135,13 @@ final class SharedPreferencesProvider
     with $Provider<SharedPreferencesWithCache> {
   /// Provides the application-wide [SharedPreferencesWithCache] instance.
   ///
-  /// Override this provider in the root `ProviderScope`:
+  /// This provider uses a throwing placeholder — failing to inject an override
+  /// is a programmer error that surfaces immediately at startup. The override is
+  /// injected by `AppBootstrap`'s data branch (a nested [ProviderScope]) once
+  /// [sharedPreferencesInit] resolves:
   ///
   /// ```dart
+  /// // Inside AppBootstrap.build — data branch
   /// ProviderScope(
   ///   overrides: [
   ///     sharedPreferencesProvider.overrideWithValue(prefs),
@@ -171,4 +183,4 @@ final class SharedPreferencesProvider
   }
 }
 
-String _$sharedPreferencesHash() => r'096a40d2628bdefcedff617244ae5f485ac33047';
+String _$sharedPreferencesHash() => r'f2b43e76162afdd7d5e9308c20f0f0cefde90913';

@@ -19,6 +19,7 @@ import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/meds/presentation/screens/meds_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../logging/logger.dart';
 import 'app_shell.dart';
 
 part 'app_router.g.dart';
@@ -33,6 +34,15 @@ part 'app_router.g.dart';
 /// `appRouterProvider.overrideWith((ref) { final r = ...; ref.onDispose(r.dispose); return r; })`.
 @Riverpod(keepAlive: true)
 GoRouter appRouter(Ref ref) {
+  // Capture the logger once at construction time so the provider dependency
+  // is explicit here in the provider body, not buried inside a closure.
+  final logger = ref.read(loggerProvider);
+
+  // Guard that prevents duplicate log entries when [errorBuilder] is
+  // re-invoked for the same routing exception (e.g. on rebuild). Captured by
+  // the closure below; reset whenever a new [GoRouter] instance is created.
+  Object? lastLoggedError;
+
   final router = GoRouter(
     routes: [
       StatefulShellRoute.indexedStack(
@@ -70,7 +80,14 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const SettingsScreen(),
       ),
     ],
-    errorBuilder: (context, state) => const _RouterErrorScreen(),
+    errorBuilder: (context, state) {
+      final Object? error = state.error;
+      if (error != null && !identical(error, lastLoggedError)) {
+        lastLoggedError = error;
+        logger.warning('Route resolution failed', error);
+      }
+      return const _RouterErrorScreen();
+    },
   );
   ref.onDispose(router.dispose);
   return router;

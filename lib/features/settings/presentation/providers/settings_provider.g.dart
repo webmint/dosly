@@ -364,7 +364,7 @@ final class SettingsNotifierProvider
   }
 }
 
-String _$settingsNotifierHash() => r'50119c679c2c6bf613caff1296d7d71a904c9676';
+String _$settingsNotifierHash() => r'6c8dd3843ee15a0aaf7b8cc727798d4def739346';
 
 /// Notifier that manages [AppSettings] state.
 ///
@@ -391,7 +391,8 @@ abstract class _$SettingsNotifier extends $Notifier<AppSettings> {
   }
 }
 
-/// Broadcast stream of persistence failures from [SettingsNotifier].
+/// Broadcast stream of failures from [SettingsNotifier] — both the initial
+/// settings load and subsequent persistence (save) operations.
 ///
 /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
 /// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes
@@ -403,7 +404,8 @@ abstract class _$SettingsNotifier extends $Notifier<AppSettings> {
 @ProviderFor(settingsErrors)
 final settingsErrorsProvider = SettingsErrorsProvider._();
 
-/// Broadcast stream of persistence failures from [SettingsNotifier].
+/// Broadcast stream of failures from [SettingsNotifier] — both the initial
+/// settings load and subsequent persistence (save) operations.
 ///
 /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
 /// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes
@@ -415,7 +417,8 @@ final settingsErrorsProvider = SettingsErrorsProvider._();
 final class SettingsErrorsProvider
     extends $FunctionalProvider<AsyncValue<Failure>, Failure, Stream<Failure>>
     with $FutureModifier<Failure>, $StreamProvider<Failure> {
-  /// Broadcast stream of persistence failures from [SettingsNotifier].
+  /// Broadcast stream of failures from [SettingsNotifier] — both the initial
+  /// settings load and subsequent persistence (save) operations.
   ///
   /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
   /// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes
