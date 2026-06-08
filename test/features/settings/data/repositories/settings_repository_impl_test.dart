@@ -376,6 +376,38 @@ void main() {
         result.fold((f) => expect(f, isA<UnknownFailure>()), (_) => fail('expected Left'));
       });
 
+      test(
+          'returns Left when useSystemTheme is stored as an int (not bool)',
+          () async {
+        // getBool() casts the cached int to bool? and throws TypeError (same as
+        // the String case); getUseSystemTheme() is unguarded, so load()'s outer
+        // catch promotes it to Left(UnknownFailure).
+        final repository = await _buildRepository(
+          initialData: {'useSystemTheme': 1},
+        );
+
+        final result = repository.load();
+
+        expect(result.isLeft(), isTrue);
+        result.fold((f) => expect(f, isA<UnknownFailure>()), (_) => fail('expected Left'));
+      });
+
+      test(
+          'returns Left when useSystemLanguage is stored as an int (not bool)',
+          () async {
+        // getBool() casts the cached int to bool? and throws TypeError (same as
+        // the String case); getUseSystemLanguage() is unguarded, so load()'s outer
+        // catch promotes it to Left(UnknownFailure).
+        final repository = await _buildRepository(
+          initialData: {'useSystemLanguage': 1},
+        );
+
+        final result = repository.load();
+
+        expect(result.isLeft(), isTrue);
+        result.fold((f) => expect(f, isA<UnknownFailure>()), (_) => fail('expected Left'));
+      });
+
       // themeMode is the deliberate EXCEPTION to the AC-2 wrong-type→Left rule.
       // getThemeMode() wraps _prefs.getString('themeMode') in its own try/catch
       // and falls back to AppThemeMode.light, so the TypeError never reaches
