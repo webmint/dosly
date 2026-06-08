@@ -1,12 +1,12 @@
 # Bug 020: `settings_screen_test.dart` exercises only 1 of 4 save-error SnackBar paths
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning
 **Source**: fix (bug 018 — Phase 7 test assessment)
 **Feature**: specs/014-surface-settings-errors/spec.md (error-SnackBar feature)
 **AC**: N/A (test-coverage gap, not an AC failure)
 **Reported**: 2026-06-07
-**Fixed**:
+**Fixed**: 2026-06-08
 
 ## Description
 
@@ -57,6 +57,24 @@ right control per path:
 - `failOnSaveManualLanguage` → the manual language selector
 
 Trivial, single-file. Candidate for `/fix` or a small coverage task.
+
+**Resolved 2026-06-08** (commit `fix(settings): cover remaining 3 save-error SnackBar paths`):
+added three `testWidgets` to the `SettingsScreen error SnackBar` group of
+`settings_screen_test.dart`. The group now has one test per mutator
+(`setUseSystemTheme` pre-existing + `setUseSystemLanguage`, `setThemeMode`,
+`setManualLanguage` added). Two needed multi-step interaction: `setThemeMode`
+toggles "use system theme" OFF (succeeds) to enable the `SegmentedButton` then
+taps Dark; `setManualLanguage` toggles "use device language" OFF then selects
+Deutsch from the `DropdownButton`. Each sets only its target `failOnSaveX` flag,
+so the test is self-validating (the SnackBar can only appear if the target
+mutator failed). No production change; full suite 289/289 (was 286);
+`dart analyze` clean; code-review APPROVE-with-warnings (the one warning — prefer
+idiomatic `pumpAndSettle` for the dropdown — was investigated and **rejected**:
+`pumpAndSettle` + on-stage `find.text('Deutsch')` throws "Bad state: No element"
+because the menu renders off-stage in this harness, so the `skipOffstage: false`
+finder is load-bearing and now documented inline). Happy-path interactive
+coverage already lives in `theme_selector_test.dart` / `language_selector_test.dart`,
+so no further follow-up filed.
 
 ## Related Issues
 

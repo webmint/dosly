@@ -227,5 +227,97 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+        'shows localized error SnackBar when setUseSystemLanguage fails',
+        (tester) async {
+      final fakeRepo = _FakeSettingsRepository()
+        ..failOnSaveUseSystemLanguage = true;
+      await tester.pumpWidget(
+        _harness(locale: const Locale('en'), fakeRepo: fakeRepo),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap the "Use device language" SwitchListTile (the 2nd/last switch).
+      await tester.tap(find.byType(SwitchListTile).last);
+      await tester.pump(); // mutator runs
+      await tester.pump(const Duration(milliseconds: 100)); // SnackBar enters
+
+      expect(
+        find.text("Couldn't save your preference. Please try again."),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'shows localized error SnackBar when setThemeMode fails',
+        (tester) async {
+      // Only the ThemeMode save fails; the toggle-off save must succeed so the
+      // SegmentedButton becomes enabled.
+      final fakeRepo = _FakeSettingsRepository()
+        ..failOnSaveThemeMode = true;
+      await tester.pumpWidget(
+        _harness(locale: const Locale('en'), fakeRepo: fakeRepo),
+      );
+      await tester.pumpAndSettle();
+
+      // Turn "Use system theme" OFF (save succeeds) so the SegmentedButton
+      // becomes interactive.
+      await tester.tap(find.byType(SwitchListTile).first);
+      await tester.pumpAndSettle();
+
+      // The default manual mode is Light; tap Dark to fire setThemeMode.
+      await tester.tap(find.text('Dark').last);
+      await tester.pump(); // mutator runs
+      await tester.pump(const Duration(milliseconds: 100)); // SnackBar enters
+
+      expect(
+        find.text("Couldn't save your preference. Please try again."),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'shows localized error SnackBar when setManualLanguage fails',
+        (tester) async {
+      // Only the manual language save fails; the toggle-off save must succeed
+      // so the DropdownButton becomes enabled.
+      final fakeRepo = _FakeSettingsRepository()
+        ..failOnSaveManualLanguage = true;
+      await tester.pumpWidget(
+        _harness(locale: const Locale('en'), fakeRepo: fakeRepo),
+      );
+      await tester.pumpAndSettle();
+
+      // Turn "Use device language" OFF (save succeeds) so the DropdownButton
+      // becomes interactive.
+      await tester.tap(find.byType(SwitchListTile).last);
+      await tester.pumpAndSettle();
+
+      // Open the dropdown to fire setManualLanguage. In this harness the menu
+      // items render OFF-STAGE in the overlay route even after pumpAndSettle,
+      // so the idiomatic `pumpAndSettle()` + on-stage `find.text('Deutsch')`
+      // throws "Bad state: No element" (verified). Use skipOffstage: false to
+      // locate the Deutsch DropdownMenuItem.
+      await tester.tap(find.byType(DropdownButton<AppLanguage>));
+      await tester.pump();
+
+      final deutschMenuItem = find.descendant(
+        of: find.byType(DropdownMenuItem<AppLanguage>, skipOffstage: false),
+        matching: find.text('Deutsch', skipOffstage: false),
+      );
+      // warnIfMissed: false — the off-stage overlay route means the tap
+      // coordinates hit-test the underlying widget rather than the menu item
+      // render box; the gesture still dispatches to the item's onTap, so the
+      // SnackBar assertion below self-validates that setManualLanguage fired.
+      await tester.tap(deutschMenuItem.last, warnIfMissed: false);
+      await tester.pump(); // mutator runs
+      await tester.pump(const Duration(milliseconds: 100)); // SnackBar enters
+
+      expect(
+        find.text("Couldn't save your preference. Please try again."),
+        findsOneWidget,
+      );
+    });
   });
 }
