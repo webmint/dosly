@@ -1,12 +1,12 @@
 # Bug 021: bool settings keys' wrong-type AC-2 coverage tests only the String variant, not int
 
-**Status**: Open
+**Status**: Fixed
 **Severity**: Warning (low — corroborative coverage only)
 **Source**: fix (bug 019 — Phase 7 test assessment)
 **Feature**: specs/022-settings-error-containment/spec.md
 **AC**: AC-2
 **Reported**: 2026-06-07
-**Fixed**:
+**Fixed**: 2026-06-08
 
 ## Description
 
@@ -50,6 +50,16 @@ Optional: add one (or two) `test(...)` cases to the AC-2 group storing
 String-stored cases. Pure test addition, single file, no production change.
 Lowest-priority of the feature-022 verify follow-ups — defer or skip unless
 doing a settings test-coverage sweep.
+
+**Resolved 2026-06-08** (commit `test(settings): cover int wrong-type for bool keys (AC-2)`):
+added two tests to the `load() — wrong-type cache values return Left (AC-2)`
+group of `settings_repository_impl_test.dart` — `{'useSystemTheme': 1}` and
+`{'useSystemLanguage': 1}`, each asserting `Left(UnknownFailure)`. The wrong-type
+input matrix is now complete (both bool keys: String + int; `manualLanguage`: int;
+`themeMode`: guarded-Right exception). Corroborative only (same
+`getBool`→TypeError→outer-catch→`Left` path as the String probes); chosen to close
+the tracker cleanly. No production change; full suite 291/291 (was 289);
+`dart analyze` clean; code-review APPROVE, no findings.
 
 ## Related Issues
 

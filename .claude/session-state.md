@@ -2,24 +2,24 @@
 # Session State
 
 ## Current Feature
-None active. Last shipped: 025-typed-logger. Most recent work: bug 020 /fix (settings save-error SnackBar coverage).
+None active. Last shipped: 025-typed-logger. Most recent work: bug 021 /fix (AC-2 int wrong-type for bool keys).
 
 ## Progress
-Bug 020 fixed on branch `fix/020-settings-save-error-snackbar-tests` — 1 clean commit (65a9102), local-only, not yet pushed/merged. Feature-022 follow-ups: 018 ✅ (PR #30), 019 ✅ (PR #31), 020 ✅ (this), 021 open (low/corroborative).
+Bug 021 fixed on branch `fix/021-bool-keys-int-wrongtype-test` — 1 clean commit (353d98e), local-only, not yet pushed/merged. Feature-022 follow-up batch now COMPLETE: 018 ✅ (PR #30), 019 ✅ (PR #31), 020 ✅ (PR #32), 021 ✅ (this).
 
 ## Recently Completed (last 3)
-- Bug 020 /fix: +3 widget tests covering setUseSystemLanguage/setThemeMode/setManualLanguage save-error SnackBars — test-only, 289/289 green, review APPROVE-with-warnings (warning investigated + rejected)
+- Bug 021 /fix: +2 corroborative tests — int wrong-type for useSystemTheme/useSystemLanguage (AC-2 matrix complete) — test-only, 291/291 green, review APPROVE
+- Bug 020 /fix: +3 save-error SnackBar widget tests (PR #32)
 - Bug 019 /fix: themeMode AC-2 guarded-exception test (PR #31)
-- Bug 018 /fix: realigned settings screen test fake to Failure.unknown (PR #30)
 
 ## Recent Decisions
-- Bug 020: DropdownButton menu items render off-stage in flutter_test even after pumpAndSettle → find.text throws "No element"; use skipOffstage:false descendant + warnIfMissed:false, with a self-validating assertion (see MEMORY)
-- Bug 020: code-reviewer's "prefer pumpAndSettle" warning was empirically rejected via controlled experiment
-- Bug 020 fully closed; happy-path interactive coverage already in theme_selector_test/language_selector_test
+- Bug 021: chosen to close the tracker cleanly despite being corroborative-only (same getBool→TypeError→Left path as the String probes)
+- AC-2 wrong-type matrix now complete: bool keys String+int, manualLanguage int, themeMode guarded-Right exception
+- All four feature-022 /verify Warning follow-ups now resolved
 
 ## Recently Modified Files
-- test/features/settings/presentation/screens/settings_screen_test.dart
-- bugs/020-...md (→ Fixed), research/2026-06-07-bug-020-save-error-snackbar-coverage.md
+- test/features/settings/data/repositories/settings_repository_impl_test.dart
+- bugs/021-...md (→ Fixed)
 
 ## Verification
-dart analyze: clean | flutter test: 289 pass
+dart analyze: clean | flutter test: 291 pass
