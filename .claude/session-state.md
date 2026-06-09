@@ -2,24 +2,25 @@
 # Session State
 
 ## Current Feature
-None active. Last shipped: 025-typed-logger. Most recent work: bug 021 /fix (AC-2 int wrong-type for bool keys).
+None active. Last shipped: 025-typed-logger. Most recent work: `/audit --full` (2026-06-08 report) then a `/fix` batch resolving all 18 audit findings.
 
 ## Progress
-Bug 021 fixed on branch `fix/021-bool-keys-int-wrongtype-test` — 1 clean commit (353d98e), local-only, not yet pushed/merged. Feature-022 follow-up batch now COMPLETE: 018 ✅ (PR #30), 019 ✅ (PR #31), 020 ✅ (PR #32), 021 ✅ (this).
+Ran `/audit --full` → `audits/2026-06-08-audit.md` (confirmed all 21 prior-audit bugs still resolved; surfaced 18 new refactor-residue findings). Then `/fix` batch resolved all 18 across 7 clean commits on `main` (715c62c..333c742, local-only, not pushed). Critical was a constitution §2.1↔§7.2 self-contradiction → resolved by amending the constitution (user-approved).
 
 ## Recently Completed (last 3)
-- Bug 021 /fix: +2 corroborative tests — int wrong-type for useSystemTheme/useSystemLanguage (AC-2 matrix complete) — test-only, 291/291 green, review APPROVE
-- Bug 020 /fix: +3 save-error SnackBar widget tests (PR #32)
-- Bug 019 /fix: themeMode AC-2 guarded-exception test (PR #31)
+- /fix audit batch: removed dead CycleThemeMode cluster + dead bottomNavigationBarTheme; `late final _errors`→`late`; single-sourced prefs keys; allowBackup=false; dartdoc fixes; +2 re-enable-branch tests
+- constitution §2.1 amended: @riverpod provider files may import data/ (composition seam)
+- Bug 021 /fix: +2 corroborative AC-2 int wrong-type tests
 
 ## Recent Decisions
-- Bug 021: chosen to close the tracker cleanly despite being corroborative-only (same getBool→TypeError→Left path as the String probes)
-- AC-2 wrong-type matrix now complete: bool keys String+int, manualLanguage int, themeMode guarded-Right exception
-- All four feature-022 /verify Warning follow-ups now resolved
+- §2.1 composition-seam exception sanctions provider→data imports — future audits must NOT re-flag it (see MEMORY)
+- `late final` in Riverpod build() is a LateInitializationError trap on rebuild → use `late` (see MEMORY)
+- Dead-cluster detection: grep lib/ for the method-INVOCATION; test-only callers = dead code
 
 ## Recently Modified Files
-- test/features/settings/data/repositories/settings_repository_impl_test.dart
-- bugs/021-...md (→ Fixed)
+- constitution.md, lib/features/settings/presentation/providers/settings_provider.dart
+- lib/core/providers/settings_prefs_keys.dart (new), lib/core/theme/app_theme.dart
+- android/app/src/main/AndroidManifest.xml, docs/{features/settings,architecture}.md
 
 ## Verification
-dart analyze: clean | flutter test: 291 pass
+dart analyze: clean | flutter test: 286 pass | code-review: APPROVE w/ warnings (addressed)
