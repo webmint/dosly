@@ -1,7 +1,7 @@
 # Project Constitution — dosly
 
 Generated: 2026-04-11
-Last updated: 2026-04-11
+Last updated: 2026-06-09
 Mode: Greenfield
 
 > Sections marked `[universal]` are copied verbatim from the AIDevTeamForge template and apply to all projects.
@@ -67,6 +67,8 @@ Contents:
 - `view_models/` — optional, for screens with complex state shaping.
 
 **FORBIDDEN in `presentation/`**: importing directly from any `data/` directory. Always go through a `domain/` use case via a Riverpod provider.
+
+> **Exception — composition seam** _(added 2026-06-09)_: a `@riverpod` provider file may import `data/` **solely to construct** the repository/data-source implementation it exposes as a `domain/`-typed provider (the dependency-injection seam shown in §7.2's Pattern Reference, mirroring the `core/routing/` composition-root carve-out). Screens, widgets, and view-models still NEVER import `data/` — they depend only on the provider's `domain/` abstraction. This resolves the prior §2.1↔§7.2 contradiction in favour of the codegen-DI idiom the project already follows.
 
 #### Cross-feature rules
 - A widget in `features/A/presentation/` may NOT import from `features/B/`. If feature A needs feature B's data, expose it through a `domain/` interface in `lib/core/` or via the public domain API of B.
