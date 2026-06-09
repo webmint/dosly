@@ -71,7 +71,7 @@ Native names are plain literals — they are never translated. This is the unive
 
 ### Use cases
 
-Five callable classes in `lib/features/settings/domain/usecases/`, each with a `const` constructor taking exactly one `SettingsRepository`. All live in pure-Dart `domain/` and return `Future<Either<Failure, void>>` (except `CycleThemeMode` — see below). Each is exposed to the presentation layer via a `@riverpod` function provider in `settings_provider.dart`.
+Four callable classes in `lib/features/settings/domain/usecases/`, each with a `const` constructor taking exactly one `SettingsRepository`. All live in pure-Dart `domain/` and return `Future<Either<Failure, void>>`. Each is exposed to the presentation layer via a `@riverpod` function provider in `settings_provider.dart`.
 
 | Use case | File | Behaviour |
 |---|---|---|
@@ -79,7 +79,6 @@ Five callable classes in `lib/features/settings/domain/usecases/`, each with a `
 | `SetManualLanguage` | `set_manual_language.dart` | Persists the manual `AppLanguage` via `SettingsRepository.saveManualLanguage`. Pure pass-through. |
 | `SetUseSystemTheme` | `set_use_system_theme.dart` | Atomic toggle. When `value=false`, pre-fills `manualThemeMode` with the resolved device brightness first (short-circuit on write failure), then persists the toggle. When `value=true`, only the toggle write fires — the stored manual override is left untouched. |
 | `SetUseSystemLanguage` | `set_use_system_language.dart` | Symmetric atomic toggle for the language axis. Same two-write / short-circuit pattern with `AppLanguage`. |
-| `CycleThemeMode` | `cycle_theme_mode.dart` | Encodes the `system → light → dark → system` cycle used by the Settings theme controls. Returns `Future<Either<Failure, ({bool useSystemTheme, AppThemeMode manualThemeMode})>>` — the `Right` carries the post-cycle state record so the notifier can apply `state.copyWith(...)` without re-deriving the cycle rule. Manual-dark-to-system-on intentionally preserves `manualThemeMode: dark` so the user's last manual choice survives the cycle. |
 
 ### Data
 
@@ -93,7 +92,7 @@ Five callable classes in `lib/features/settings/domain/usecases/`, each with a `
 
 Note on startup emission: `build()` runs during notifier construction, before any UI subscriber can attach to `settingsErrorsProvider`. Because the controller is a broadcast stream, a `Left` emitted here is dropped rather than buffered. The observable guarantee is the safe-default state — the failure is not shown to the user at startup (this is accepted design per spec 022, OQ-2). Mutation methods follow the same optimistic pattern: in-memory state is only updated if persistence succeeds; on failure the `Failure` is emitted into the stream instead.
 
-The notifier exposes five public methods — `setThemeMode`, `setUseSystemTheme`, `setUseSystemLanguage`, `setManualLanguage`, and `cycleThemeMode`. All four mutators delegate through use case providers (`setThemeModeProvider`, `setUseSystemThemeProvider`, etc.); `ref.read(settingsRepositoryProvider)` no longer appears in any mutator body.
+The notifier exposes four public methods — `setThemeMode`, `setUseSystemTheme`, `setUseSystemLanguage`, and `setManualLanguage`. All four delegate through use case providers (`setThemeModeProvider`, `setUseSystemThemeProvider`, etc.); `ref.read(settingsRepositoryProvider)` no longer appears in any mutator body.
 
 ```dart
 Future<void> setUseSystemTheme(bool value, {required AppThemeMode currentDeviceMode}) async {
@@ -163,14 +162,14 @@ Use `push` (not `go`) to preserve the back stack. The entry point is `HomeScreen
 
 Settings are stored in `SharedPreferencesWithCache` under four keys:
 
-| Key | Type | Default |
-|---|---|---|
-| `themeMode` | `String` (`'light'` / `'dark'`) | `'light'` |
-| `useSystemTheme` | `bool` | `true` |
-| `useSystemLanguage` | `bool` | `true` |
-| `manualLanguage` | `String` (IETF code, e.g. `'en'`) | `'en'` |
+| Key | Constant | Type | Default |
+|---|---|---|---|
+| `themeMode` | `themeModePrefsKey` | `String` (`'light'` / `'dark'`) | `'light'` |
+| `useSystemTheme` | `useSystemThemePrefsKey` | `bool` | `true` |
+| `useSystemLanguage` | `useSystemLanguagePrefsKey` | `bool` | `true` |
+| `manualLanguage` | `manualLanguagePrefsKey` | `String` (IETF code, e.g. `'en'`) | `'en'` |
 
-The `allowList` in `main()` is fixed to these four keys — no other preferences are accidentally cached.
+The key string literals are defined once in `lib/core/providers/settings_prefs_keys.dart` (as `themeModePrefsKey`, `useSystemThemePrefsKey`, `useSystemLanguagePrefsKey`, `manualLanguagePrefsKey`) and collected in the `settingsPrefsKeys` set. Both `shared_preferences_provider.dart`'s cache `allowList` and `settings_local_data_source.dart` derive from that set — no other preferences are accidentally cached, and a rename cannot silently split the two sites.
 
 ## Localized strings
 
