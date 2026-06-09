@@ -100,13 +100,6 @@ class AppTheme {
         space: 1,
         thickness: 1,
       ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: scheme.surfaceContainer,
-        selectedItemColor: scheme.onSurface,
-        unselectedItemColor: scheme.onSurfaceVariant,
-        type: BottomNavigationBarType.fixed,
-        elevation: 0,
-      ),
     );
   }
 }
