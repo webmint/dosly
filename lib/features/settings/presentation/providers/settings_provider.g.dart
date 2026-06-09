@@ -267,52 +267,6 @@ final class SetManualLanguageProvider
 
 String _$setManualLanguageHash() => r'7aee4de463e8216e8cb1cf28eb2252da72c51ae3';
 
-/// Provides a [CycleThemeMode] use case wired to the settings repository.
-
-@ProviderFor(cycleThemeMode)
-final cycleThemeModeProvider = CycleThemeModeProvider._();
-
-/// Provides a [CycleThemeMode] use case wired to the settings repository.
-
-final class CycleThemeModeProvider
-    extends $FunctionalProvider<CycleThemeMode, CycleThemeMode, CycleThemeMode>
-    with $Provider<CycleThemeMode> {
-  /// Provides a [CycleThemeMode] use case wired to the settings repository.
-  CycleThemeModeProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'cycleThemeModeProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$cycleThemeModeHash();
-
-  @$internal
-  @override
-  $ProviderElement<CycleThemeMode> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  CycleThemeMode create(Ref ref) {
-    return cycleThemeMode(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(CycleThemeMode value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<CycleThemeMode>(value),
-    );
-  }
-}
-
-String _$cycleThemeModeHash() => r'af6776358f8d2af82d13cbb8d16805de4cdfb773';
-
 /// Notifier that manages [AppSettings] state.
 ///
 /// Reads initial settings synchronously from the repository cache and
@@ -364,7 +318,7 @@ final class SettingsNotifierProvider
   }
 }
 
-String _$settingsNotifierHash() => r'6c8dd3843ee15a0aaf7b8cc727798d4def739346';
+String _$settingsNotifierHash() => r'24db1c69a664cd355d35e5643f5b497865c32dec';
 
 /// Notifier that manages [AppSettings] state.
 ///
@@ -391,8 +345,12 @@ abstract class _$SettingsNotifier extends $Notifier<AppSettings> {
   }
 }
 
-/// Broadcast stream of failures from [SettingsNotifier] — both the initial
-/// settings load and subsequent persistence (save) operations.
+/// Broadcast stream of failures from [SettingsNotifier]'s save operations.
+///
+/// Surfaces the Left from each `saveX` mutator. The initial-load failure
+/// emitted during [SettingsNotifier.build] is NOT delivered here — it is added
+/// before any listener subscribes, and broadcast streams do not buffer
+/// pre-subscription events (accepted — see spec 022 OQ-2).
 ///
 /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
 /// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes
@@ -404,8 +362,12 @@ abstract class _$SettingsNotifier extends $Notifier<AppSettings> {
 @ProviderFor(settingsErrors)
 final settingsErrorsProvider = SettingsErrorsProvider._();
 
-/// Broadcast stream of failures from [SettingsNotifier] — both the initial
-/// settings load and subsequent persistence (save) operations.
+/// Broadcast stream of failures from [SettingsNotifier]'s save operations.
+///
+/// Surfaces the Left from each `saveX` mutator. The initial-load failure
+/// emitted during [SettingsNotifier.build] is NOT delivered here — it is added
+/// before any listener subscribes, and broadcast streams do not buffer
+/// pre-subscription events (accepted — see spec 022 OQ-2).
 ///
 /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
 /// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes
@@ -417,8 +379,12 @@ final settingsErrorsProvider = SettingsErrorsProvider._();
 final class SettingsErrorsProvider
     extends $FunctionalProvider<AsyncValue<Failure>, Failure, Stream<Failure>>
     with $FutureModifier<Failure>, $StreamProvider<Failure> {
-  /// Broadcast stream of failures from [SettingsNotifier] — both the initial
-  /// settings load and subsequent persistence (save) operations.
+  /// Broadcast stream of failures from [SettingsNotifier]'s save operations.
+  ///
+  /// Surfaces the Left from each `saveX` mutator. The initial-load failure
+  /// emitted during [SettingsNotifier.build] is NOT delivered here — it is added
+  /// before any listener subscribes, and broadcast streams do not buffer
+  /// pre-subscription events (accepted — see spec 022 OQ-2).
   ///
   /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
   /// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes

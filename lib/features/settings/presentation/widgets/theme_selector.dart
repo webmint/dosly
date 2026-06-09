@@ -89,6 +89,10 @@ class ThemeSelector extends ConsumerWidget {
           onSelectionChanged: useSystemTheme
               ? null
               : (Set<AppThemeMode> selection) {
+                  // M3 single-select never emits an empty set, but the type
+                  // allows it — guard so an empty selection is a no-op rather
+                  // than a `StateError` from `.first`.
+                  if (selection.isEmpty) return;
                   ref
                       .read(settingsNotifierProvider.notifier)
                       .setThemeMode(selection.first);

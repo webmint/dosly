@@ -1,11 +1,10 @@
 /// Riverpod providers for application settings.
 ///
-/// Exposes [settingsRepositoryProvider] (wires the data layer), the five use
+/// Exposes [settingsRepositoryProvider] (wires the data layer), the four use
 /// case providers ([setThemeModeProvider], [setUseSystemThemeProvider],
-/// [setUseSystemLanguageProvider], [setManualLanguageProvider],
-/// [cycleThemeModeProvider]) that the notifier delegates through, and
-/// [settingsNotifierProvider] (the notifier that holds [AppSettings] state
-/// and persists changes via the use cases).
+/// [setUseSystemLanguageProvider], [setManualLanguageProvider]) that the
+/// notifier delegates through, and [settingsNotifierProvider] (the notifier
+/// that holds [AppSettings] state and persists changes via the use cases).
 library;
 
 import 'dart:async';
@@ -20,7 +19,6 @@ import '../../domain/entities/app_language.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/app_theme_mode.dart';
 import '../../domain/repositories/settings_repository.dart';
-import '../../domain/usecases/cycle_theme_mode.dart';
 import '../../domain/usecases/set_manual_language.dart';
 import '../../domain/usecases/set_theme_mode.dart';
 import '../../domain/usecases/set_use_system_language.dart';
@@ -57,11 +55,6 @@ SetUseSystemLanguage setUseSystemLanguage(Ref ref) =>
 SetManualLanguage setManualLanguage(Ref ref) =>
     SetManualLanguage(ref.watch(settingsRepositoryProvider));
 
-/// Provides a [CycleThemeMode] use case wired to the settings repository.
-@riverpod
-CycleThemeMode cycleThemeMode(Ref ref) =>
-    CycleThemeMode(ref.watch(settingsRepositoryProvider));
-
 /// Notifier that manages [AppSettings] state.
 ///
 /// Reads initial settings synchronously from the repository cache and
@@ -70,18 +63,24 @@ CycleThemeMode cycleThemeMode(Ref ref) =>
 // suffix and emit `settingsProvider`. Keep in sync with consumer call sites.
 @Riverpod(keepAlive: true, name: 'settingsNotifierProvider')
 class SettingsNotifier extends _$SettingsNotifier {
-  late final StreamController<Failure> _errors;
+  // Not `late final`: Riverpod re-runs build() on the same notifier instance
+  // when a watched dependency changes, and build() reassigns this field — a
+  // `final` would throw LateInitializationError on the second build.
+  late StreamController<Failure> _errors;
 
-  /// Broadcast stream of [Failure]s from the initial settings load and the
-  /// four save mutators.
+  /// Broadcast stream of [Failure]s from the four save mutators.
   ///
-  /// The Left branch of the [build] load fold (a `Failure.unknown` when the
-  /// cache read throws) and each Left from [SettingsRepository.saveX] are
-  /// forwarded to this stream so a UI surface (e.g. [SettingsScreen]) can
-  /// react via [settingsErrorsProvider]. The state itself stays consistent
-  /// with what was actually persisted (or the default fallback on load
-  /// failure) — failures do not roll the in-memory state back. The
-  /// controller is closed automatically when the notifier is disposed.
+  /// Each Left returned by [SettingsRepository] `saveX` is forwarded here so a
+  /// UI surface (e.g. [SettingsScreen]) can react via [settingsErrorsProvider].
+  /// The state itself stays consistent with what was actually persisted (or the
+  /// default fallback on load failure) — failures do not roll the in-memory
+  /// state back. The controller is closed automatically when the notifier is
+  /// disposed.
+  ///
+  /// NOTE: the initial-load failure emitted by [build] is NOT observable here.
+  /// `build()` adds it before any listener can subscribe, and a broadcast
+  /// stream does not buffer pre-subscription events (accepted behaviour — see
+  /// spec 022 OQ-2). Only post-startup save failures reach a mounted listener.
   Stream<Failure> get errors => _errors.stream;
 
   @override
@@ -186,32 +185,14 @@ class SettingsNotifier extends _$SettingsNotifier {
       },
     );
   }
-
-  /// Cycles the theme one step forward (`system → light → dark → system`),
-  /// persists the change atomically through [cycleThemeModeProvider], and
-  /// applies the resulting state from the use case's returned record.
-  ///
-  /// On persistence failure the in-memory state is not updated and the
-  /// failure is forwarded to [settingsErrorsProvider] so the UI can surface it.
-  Future<void> cycleThemeMode() async {
-    final result = await ref.read(cycleThemeModeProvider).call(
-          currentUseSystemTheme: state.useSystemTheme,
-          currentManualMode: state.manualThemeMode,
-        );
-    result.fold(
-      (failure) => _errors.add(failure),
-      (next) {
-        state = state.copyWith(
-          useSystemTheme: next.useSystemTheme,
-          manualThemeMode: next.manualThemeMode,
-        );
-      },
-    );
-  }
 }
 
-/// Broadcast stream of failures from [SettingsNotifier] — both the initial
-/// settings load and subsequent persistence (save) operations.
+/// Broadcast stream of failures from [SettingsNotifier]'s save operations.
+///
+/// Surfaces the Left from each `saveX` mutator. The initial-load failure
+/// emitted during [SettingsNotifier.build] is NOT delivered here — it is added
+/// before any listener subscribes, and broadcast streams do not buffer
+/// pre-subscription events (accepted — see spec 022 OQ-2).
 ///
 /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
 /// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes

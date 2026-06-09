@@ -25,7 +25,8 @@ import '../widgets/theme_selector.dart';
 /// SnackBar each time a preference fails to persist (e.g. SharedPreferences
 /// write failure).
 ///
-/// The body contains an Appearance section with a [ThemeSelector] widget.
+/// The body contains an Appearance section with a [ThemeSelector] widget
+/// and a Language section with a [LanguageSelector] widget.
 /// Flutter automatically renders a back button in the leading slot because
 /// this screen is pushed onto the navigator stack; no manual `leading:` is
 /// needed.
