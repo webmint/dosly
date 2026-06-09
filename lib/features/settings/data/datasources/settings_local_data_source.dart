@@ -4,20 +4,24 @@ library;
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/providers/settings_prefs_keys.dart';
 import '../../domain/entities/app_language.dart';
 import '../../domain/entities/app_theme_mode.dart';
 
 /// Key used to persist the user's manual theme-mode preference.
-const String _kThemeModeKey = 'themeMode';
+///
+/// Aliases the canonical [themeModePrefsKey] so the literal string lives in
+/// exactly one place (shared with the prefs cache `allowList`).
+const String _kThemeModeKey = themeModePrefsKey;
 
 /// Key used to persist whether the app follows the system theme.
-const String _kUseSystemThemeKey = 'useSystemTheme';
+const String _kUseSystemThemeKey = useSystemThemePrefsKey;
 
 /// Key used to persist whether the app follows the system language.
-const String _kUseSystemLanguageKey = 'useSystemLanguage';
+const String _kUseSystemLanguageKey = useSystemLanguagePrefsKey;
 
 /// Key used to persist the user's manual language choice (IETF code).
-const String _kManualLanguageKey = 'manualLanguage';
+const String _kManualLanguageKey = manualLanguagePrefsKey;
 
 /// Thin wrapper around [SharedPreferencesWithCache] for raw read/write of
 /// individual settings keys.

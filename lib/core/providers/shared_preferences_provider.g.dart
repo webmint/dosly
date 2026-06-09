@@ -86,7 +86,7 @@ final class SharedPreferencesInitProvider
 }
 
 String _$sharedPreferencesInitHash() =>
-    r'1597ff03d9d3077eda4b849c663f048cd05eceef';
+    r'f5b6b158bfb3cf4e72457d71bdb30c74a27e829c';
 
 /// Provides the application-wide [SharedPreferencesWithCache] instance.
 ///

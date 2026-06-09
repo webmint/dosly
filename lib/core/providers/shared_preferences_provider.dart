@@ -15,6 +15,8 @@ library;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'settings_prefs_keys.dart';
+
 part 'shared_preferences_provider.g.dart';
 
 /// Asynchronously creates the application-wide [SharedPreferencesWithCache]
@@ -33,12 +35,7 @@ part 'shared_preferences_provider.g.dart';
 Future<SharedPreferencesWithCache> sharedPreferencesInit(Ref ref) =>
     SharedPreferencesWithCache.create(
       cacheOptions: const SharedPreferencesWithCacheOptions(
-        allowList: <String>{
-          'themeMode',
-          'useSystemTheme',
-          'useSystemLanguage',
-          'manualLanguage',
-        },
+        allowList: settingsPrefsKeys,
       ),
     );
 
