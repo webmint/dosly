@@ -2,25 +2,25 @@
 # Session State
 
 ## Current Feature
-None active. Last shipped: 025-typed-logger. Most recent work: `/audit --full` (2026-06-08 report) then a `/fix` batch resolving all 18 audit findings.
+None active. Last shipped: 025-typed-logger. Most recent work: `/audit` (2026-06-10 report) then a `/fix` batch resolving the audit's actionable findings.
 
 ## Progress
-Ran `/audit --full` → `audits/2026-06-08-audit.md` (confirmed all 21 prior-audit bugs still resolved; surfaced 18 new refactor-residue findings). Then `/fix` batch resolved all 18 across 7 clean commits on `main` (715c62c..333c742, local-only, not pushed). Critical was a constitution §2.1↔§7.2 self-contradiction → resolved by amending the constitution (user-approved).
+Ran `/audit` (full) → `audits/2026-06-10-audit.md`: 0 Critical, 0 High, 8 Medium, 17 Info (1 finding discarded by validation). Then `/fix` batch on branch `fix/audit-2026-06-10` (commit 5003000, local-only, NOT pushed; audit report left untracked). Resolved 11 code/doc/format findings + 6 new tests + app-id rename. No-action by design: AR4, SR2, QA8. Deferred: SR1 (release keystore).
 
 ## Recently Completed (last 3)
-- /fix audit batch: removed dead CycleThemeMode cluster + dead bottomNavigationBarTheme; `late final _errors`→`late`; single-sourced prefs keys; allowBackup=false; dartdoc fixes; +2 re-enable-branch tests
-- constitution §2.1 amended: @riverpod provider files may import data/ (composition seam)
-- Bug 021 /fix: +2 corroborative AC-2 int wrong-type tests
+- /fix audit-2026-06-10 batch: dart format lib+test (CR1); dartdoc/comment accuracy (CR2/3/4/5/6/7, AR2/3/5/6/7); drop Roboto 300/700 fonts (CR8); applicationId→dev.webmint.dosly (SR3); +6 coverage tests (QA1-5)
+- AR1 attempted then REVERTED — guarding getManualLanguage broke a deliberate spec-022 AC-2 test (see MEMORY); kept unguarded, documented the asymmetry
+- /audit 2026-06-10 full codebase review (4 adversarial agents, stream-validated)
 
 ## Recent Decisions
-- §2.1 composition-seam exception sanctions provider→data imports — future audits must NOT re-flag it (see MEMORY)
-- `late final` in Riverpod build() is a LateInitializationError trap on rebuild → use `late` (see MEMORY)
-- Dead-cluster detection: grep lib/ for the method-INVOCATION; test-only callers = dead code
+- Unguarded settings getters (except getThemeMode) are by-design; repo-level catch is the boundary — future audits/fixes must NOT add guards (see MEMORY 2026-06-10)
+- SR3: changed applicationId only, left namespace=com.example.dosly (avoids MainActivity.kt package move)
+- SR1 (debug-keystore release signing) deferred to release-prep (personal-use app, no release yet)
 
 ## Recently Modified Files
-- constitution.md, lib/features/settings/presentation/providers/settings_provider.dart
-- lib/core/providers/settings_prefs_keys.dart (new), lib/core/theme/app_theme.dart
-- android/app/src/main/AndroidManifest.xml, docs/{features/settings,architecture}.md
+- lib/features/settings/data/datasources/settings_local_data_source.dart (AR1 revert+doc), .../repositories/settings_repository_impl.dart, .../providers/settings_provider.dart
+- pubspec.yaml, lib/core/theme/app_text_theme.dart, lib/core/{logging/logger,routing/app_router}.dart, android/app/build.gradle.kts
+- docs/{features/home,features/theme,overview}.md; +6 tests (logger, log_sanitizer, settings_provider, app_router)
 
 ## Verification
-dart analyze: clean | flutter test: 286 pass | code-review: APPROVE w/ warnings (addressed)
+dart analyze: clean | flutter test: 292 pass | flutter build apk --debug: built | code-review: APPROVE (1 warning addressed)
