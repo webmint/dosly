@@ -37,26 +37,28 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('release suppression', () {
-    test('should deliver zero records to sink when configured with Level.OFF',
-        () {
-      final captured = <SanitizedLog>[];
-      void sink(SanitizedLog log, Level level) => captured.add(log);
+    test(
+      'should deliver zero records to sink when configured with Level.OFF',
+      () {
+        final captured = <SanitizedLog>[];
+        void sink(SanitizedLog log, Level level) => captured.add(log);
 
-      final sub = configureLogging(
-        level: Level.OFF,
-        includeErrorDetail: false,
-        sink: sink,
-      );
-      addTearDown(sub.cancel);
+        final sub = configureLogging(
+          level: Level.OFF,
+          includeErrorDetail: false,
+          sink: sink,
+        );
+        addTearDown(sub.cancel);
 
-      // Emit at every standard level — all must be suppressed at root.
-      final log = Logger('dosly');
-      log.info('should be suppressed');
-      log.warning('should be suppressed too');
-      log.severe('even severe is suppressed');
+        // Emit at every standard level — all must be suppressed at root.
+        final log = Logger('dosly');
+        log.info('should be suppressed');
+        log.warning('should be suppressed too');
+        log.severe('even severe is suppressed');
 
-      expect(captured, isEmpty);
-    });
+        expect(captured, isEmpty);
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -64,8 +66,7 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('idempotent single-emit', () {
-    test(
-        'should emit exactly one entry after two configureLogging calls '
+    test('should emit exactly one entry after two configureLogging calls '
         'and the captured entry must pass through sanitization (AC-3)', () {
       final captured = <SanitizedLog>[];
       void sink(SanitizedLog log, Level level) => captured.add(log);
@@ -111,6 +112,69 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // default _developerLogSink — exercises both format branches without a
+  // custom capturing sink so the real default sink path runs
+  // ---------------------------------------------------------------------------
+
+  group('default _developerLogSink', () {
+    // The default sink calls dart:developer.log, which never throws under the
+    // test runner. We verify that configureLogging with NO custom sink argument
+    // and then logging via Logger('dosly') completes normally for both branches
+    // inside _developerLogSink:
+    //   branch (a): record.error is empty  → dart:developer.log(message, ...)
+    //   branch (b): record.error is present → dart:developer.log(msg|err, ...,
+    //               stackTrace: StackTrace.fromString(stack))
+    // Both calls must return normally (no throw) — confirming the default sink
+    // handles both branches and the StackTrace.fromString path without crashing.
+
+    test(
+      'default sink handles a record with no error without throwing (bare-message branch)',
+      () {
+        final sub = configureLogging(
+          level: Level.ALL,
+          includeErrorDetail: false,
+          // No sink: argument — exercises the real _developerLogSink default.
+        );
+        addTearDown(sub.cancel);
+
+        final log = Logger('dosly');
+
+        // Branch (a): no error attached → log.error.isEmpty == true
+        // → developer.log(message, ...) with no stackTrace.
+        expect(() => log.info('bare message, no error'), returnsNormally);
+      },
+    );
+
+    test(
+      'default sink handles a record with error and stack without throwing (join + StackTrace.fromString branch)',
+      () {
+        final sub = configureLogging(
+          level: Level.ALL,
+          includeErrorDetail: true,
+          // No sink: argument — exercises the real _developerLogSink default.
+        );
+        addTearDown(sub.cancel);
+
+        final log = Logger('dosly');
+        final inner = Exception('some error');
+        final stack = StackTrace.current;
+
+        // Branch (b): error present → log.error.isEmpty == false
+        // → developer.log('msg | error', ..., stackTrace: StackTrace.fromString(stack))
+        // The UnknownFailure carries its own StackTrace so _sanitizeStack picks
+        // it up and _developerLogSink wraps it in StackTrace.fromString.
+        expect(
+          () => log.warning(
+            'message with error and stack',
+            Failure.unknown(inner, stack),
+          ),
+          returnsNormally,
+        );
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------------
   // loggerProvider — provider builds, returns a Logger, and survives logging
   // ---------------------------------------------------------------------------
 
@@ -124,8 +188,7 @@ void main() {
       expect(result, isA<Logger>());
     });
 
-    test(
-        'should not throw when logging at info, warning, and severe levels '
+    test('should not throw when logging at info, warning, and severe levels '
         'via the provider-returned Logger', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);

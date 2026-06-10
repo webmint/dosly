@@ -12,19 +12,21 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('AppSettings.copyWith', () {
-    test('all-null copyWith() returns an equal instance (preserves all fields)',
-        () {
-      const original = AppSettings(
-        useSystemTheme: false,
-        manualThemeMode: AppThemeMode.dark,
-        useSystemLanguage: false,
-        manualLanguage: AppLanguage.uk,
-      );
+    test(
+      'all-null copyWith() returns an equal instance (preserves all fields)',
+      () {
+        const original = AppSettings(
+          useSystemTheme: false,
+          manualThemeMode: AppThemeMode.dark,
+          useSystemLanguage: false,
+          manualLanguage: AppLanguage.uk,
+        );
 
-      final copy = original.copyWith();
+        final copy = original.copyWith();
 
-      expect(copy, equals(original));
-    });
+        expect(copy, equals(original));
+      },
+    );
 
     test('copyWith(useSystemTheme: false) replaces only useSystemTheme', () {
       const original = AppSettings();
@@ -50,18 +52,20 @@ void main() {
       expect(copy.manualLanguage, AppLanguage.en);
     });
 
-    test('copyWith(useSystemLanguage: false) replaces only useSystemLanguage',
-        () {
-      const original = AppSettings();
+    test(
+      'copyWith(useSystemLanguage: false) replaces only useSystemLanguage',
+      () {
+        const original = AppSettings();
 
-      final copy = original.copyWith(useSystemLanguage: false);
+        final copy = original.copyWith(useSystemLanguage: false);
 
-      expect(copy.useSystemLanguage, isFalse);
-      // All other fields stay at their defaults.
-      expect(copy.useSystemTheme, isTrue);
-      expect(copy.manualThemeMode, AppThemeMode.light);
-      expect(copy.manualLanguage, AppLanguage.en);
-    });
+        expect(copy.useSystemLanguage, isFalse);
+        // All other fields stay at their defaults.
+        expect(copy.useSystemTheme, isTrue);
+        expect(copy.manualThemeMode, AppThemeMode.light);
+        expect(copy.manualLanguage, AppLanguage.en);
+      },
+    );
 
     test('copyWith(manualLanguage: uk) replaces only manualLanguage', () {
       const original = AppSettings();
@@ -84,12 +88,14 @@ void main() {
       expect(a, equals(b));
     });
 
-    test('AppSettings(useSystemTheme: false) is not equal to AppSettings()',
-        () {
-      const a = AppSettings(useSystemTheme: false);
-      const b = AppSettings();
+    test(
+      'AppSettings(useSystemTheme: false) is not equal to AppSettings()',
+      () {
+        const a = AppSettings(useSystemTheme: false);
+        const b = AppSettings();
 
-      expect(a, isNot(equals(b)));
-    });
+        expect(a, isNot(equals(b)));
+      },
+    );
   });
 }

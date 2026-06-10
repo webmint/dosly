@@ -13,10 +13,9 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 Future<SettingsLocalDataSource> _buildDataSource({
   Map<String, Object> initialData = const {},
 }) async {
-  SharedPreferencesAsyncPlatform.instance =
-      initialData.isEmpty
-          ? InMemorySharedPreferencesAsync.empty()
-          : InMemorySharedPreferencesAsync.withData(initialData);
+  SharedPreferencesAsyncPlatform.instance = initialData.isEmpty
+      ? InMemorySharedPreferencesAsync.empty()
+      : InMemorySharedPreferencesAsync.withData(initialData);
   // allowList must stay in sync with SettingsLocalDataSource's key constants.
   final prefs = await SharedPreferencesWithCache.create(
     cacheOptions: const SharedPreferencesWithCacheOptions(
@@ -37,22 +36,23 @@ void main() {
     // getThemeMode
     // -------------------------------------------------------------------------
     group('getThemeMode', () {
-      test('should return AppThemeMode.dark when stored code is "dark"',
-          () async {
-        final ds = await _buildDataSource(
-          initialData: {'themeMode': 'dark'},
-        );
+      test(
+        'should return AppThemeMode.dark when stored code is "dark"',
+        () async {
+          final ds = await _buildDataSource(initialData: {'themeMode': 'dark'});
 
-        expect(ds.getThemeMode(), AppThemeMode.dark);
-      });
+          expect(ds.getThemeMode(), AppThemeMode.dark);
+        },
+      );
 
       test(
-          'should return AppThemeMode.light (default) when key is absent',
-          () async {
-        final ds = await _buildDataSource();
+        'should return AppThemeMode.light (default) when key is absent',
+        () async {
+          final ds = await _buildDataSource();
 
-        expect(ds.getThemeMode(), AppThemeMode.light);
-      });
+          expect(ds.getThemeMode(), AppThemeMode.light);
+        },
+      );
 
       // The in-memory platform does not replicate the real prefs' String cast
       // TypeError when an int is stored, so the catch(_) branch cannot be
@@ -60,16 +60,17 @@ void main() {
       // the same graceful-fallback path with an unrecognised string code that
       // reaches fromCodeOrDefault and returns the default.
       test(
-          'should return AppThemeMode.light via fromCodeOrDefault orElse '
-          'when stored code is unrecognised (catch branch unreachable via '
-          'InMemorySharedPreferencesAsync — exercises the orElse default instead)',
-          () async {
-        final ds = await _buildDataSource(
-          initialData: {'themeMode': 'legacy'},
-        );
+        'should return AppThemeMode.light via fromCodeOrDefault orElse '
+        'when stored code is unrecognised (catch branch unreachable via '
+        'InMemorySharedPreferencesAsync — exercises the orElse default instead)',
+        () async {
+          final ds = await _buildDataSource(
+            initialData: {'themeMode': 'legacy'},
+          );
 
-        expect(ds.getThemeMode(), AppThemeMode.light);
-      });
+          expect(ds.getThemeMode(), AppThemeMode.light);
+        },
+      );
     });
 
     // -------------------------------------------------------------------------
@@ -159,23 +160,27 @@ void main() {
         expect(ds.getManualLanguage(), AppLanguage.en);
       });
 
-      test('should return AppLanguage.en when stored code is unknown ("zz")',
-          () async {
-        final ds = await _buildDataSource(
-          initialData: {'manualLanguage': 'zz'},
-        );
+      test(
+        'should return AppLanguage.en when stored code is unknown ("zz")',
+        () async {
+          final ds = await _buildDataSource(
+            initialData: {'manualLanguage': 'zz'},
+          );
 
-        expect(ds.getManualLanguage(), AppLanguage.en);
-      });
+          expect(ds.getManualLanguage(), AppLanguage.en);
+        },
+      );
 
-      test('should return AppLanguage.en when stored code is empty string',
-          () async {
-        final ds = await _buildDataSource(
-          initialData: {'manualLanguage': ''},
-        );
+      test(
+        'should return AppLanguage.en when stored code is empty string',
+        () async {
+          final ds = await _buildDataSource(
+            initialData: {'manualLanguage': ''},
+          );
 
-        expect(ds.getManualLanguage(), AppLanguage.en);
-      });
+          expect(ds.getManualLanguage(), AppLanguage.en);
+        },
+      );
 
       test('should return AppLanguage.uk when stored code is "uk"', () async {
         final ds = await _buildDataSource(

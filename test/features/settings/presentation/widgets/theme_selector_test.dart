@@ -19,7 +19,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   AppSettings _settings;
 
   _FakeSettingsRepository({AppSettings? initial})
-      : _settings = initial ?? const AppSettings();
+    : _settings = initial ?? const AppSettings();
 
   bool get savedUseSystemTheme => _settings.useSystemTheme;
   AppThemeMode get savedManualThemeMode => _settings.manualThemeMode;
@@ -63,8 +63,9 @@ Widget _harness({
 }) {
   return ProviderScope(
     overrides: [
-      settingsRepositoryProvider
-          .overrideWithValue(repo ?? _FakeSettingsRepository()),
+      settingsRepositoryProvider.overrideWithValue(
+        repo ?? _FakeSettingsRepository(),
+      ),
     ],
     child: MediaQuery(
       data: MediaQueryData(platformBrightness: platformBrightness),
@@ -82,26 +83,31 @@ Widget _harness({
 void main() {
   group('ThemeSelector', () {
     group('English labels', () {
-      testWidgets('renders SwitchListTile and two segments with English labels',
-          (tester) async {
-        await tester.pumpWidget(_harness(locale: const Locale('en')));
-        await tester.pumpAndSettle();
+      testWidgets(
+        'renders SwitchListTile and two segments with English labels',
+        (tester) async {
+          await tester.pumpWidget(_harness(locale: const Locale('en')));
+          await tester.pumpAndSettle();
 
-        expect(find.text('Use system theme'), findsOneWidget);
-        expect(find.text('Follow your device settings'), findsOneWidget);
-        expect(find.text('Light'), findsOneWidget);
-        expect(find.text('Dark'), findsOneWidget);
-      });
+          expect(find.text('Use system theme'), findsOneWidget);
+          expect(find.text('Follow your device settings'), findsOneWidget);
+          expect(find.text('Light'), findsOneWidget);
+          expect(find.text('Dark'), findsOneWidget);
+        },
+      );
 
-      testWidgets('no "System" segment is rendered (removed from design)',
-          (tester) async {
+      testWidgets('no "System" segment is rendered (removed from design)', (
+        tester,
+      ) async {
         await tester.pumpWidget(_harness(locale: const Locale('en')));
         await tester.pumpAndSettle();
 
         expect(find.text('System'), findsNothing);
       });
 
-      testWidgets('switch is ON by default (useSystemTheme=true)', (tester) async {
+      testWidgets('switch is ON by default (useSystemTheme=true)', (
+        tester,
+      ) async {
         await tester.pumpWidget(_harness(locale: const Locale('en')));
         await tester.pumpAndSettle();
 
@@ -112,145 +118,156 @@ void main() {
       });
 
       testWidgets(
-          'when useSystemTheme=true, SegmentedButton has null onSelectionChanged (disabled)',
-          (tester) async {
-        await tester.pumpWidget(_harness(locale: const Locale('en')));
-        await tester.pumpAndSettle();
+        'when useSystemTheme=true, SegmentedButton has null onSelectionChanged (disabled)',
+        (tester) async {
+          await tester.pumpWidget(_harness(locale: const Locale('en')));
+          await tester.pumpAndSettle();
 
-        final button = tester.widget<SegmentedButton<AppThemeMode>>(
-          find.byType(SegmentedButton<AppThemeMode>),
-        );
-        expect(button.onSelectionChanged, isNull);
-      });
-
-      testWidgets(
-          'when system theme is ON and device is light, Light segment is highlighted',
-          (tester) async {
-        await tester.pumpWidget(
-          _harness(
-            locale: const Locale('en'),
-            platformBrightness: Brightness.light,
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        final button = tester.widget<SegmentedButton<AppThemeMode>>(
-          find.byType(SegmentedButton<AppThemeMode>),
-        );
-        expect(button.selected, {AppThemeMode.light});
-      });
+          final button = tester.widget<SegmentedButton<AppThemeMode>>(
+            find.byType(SegmentedButton<AppThemeMode>),
+          );
+          expect(button.onSelectionChanged, isNull);
+        },
+      );
 
       testWidgets(
-          'when system theme is ON and device is dark, Dark segment is highlighted',
-          (tester) async {
-        await tester.pumpWidget(
-          _harness(
-            locale: const Locale('en'),
-            platformBrightness: Brightness.dark,
-          ),
-        );
-        await tester.pumpAndSettle();
+        'when system theme is ON and device is light, Light segment is highlighted',
+        (tester) async {
+          await tester.pumpWidget(
+            _harness(
+              locale: const Locale('en'),
+              platformBrightness: Brightness.light,
+            ),
+          );
+          await tester.pumpAndSettle();
 
-        final button = tester.widget<SegmentedButton<AppThemeMode>>(
-          find.byType(SegmentedButton<AppThemeMode>),
-        );
-        expect(button.selected, {AppThemeMode.dark});
-      });
-
-      testWidgets(
-          'when useSystemTheme=false, SegmentedButton is enabled (non-null onSelectionChanged)',
-          (tester) async {
-        final repo = _FakeSettingsRepository(
-          initial: const AppSettings(useSystemTheme: false),
-        );
-        await tester.pumpWidget(
-          _harness(locale: const Locale('en'), repo: repo),
-        );
-        await tester.pumpAndSettle();
-
-        final button = tester.widget<SegmentedButton<AppThemeMode>>(
-          find.byType(SegmentedButton<AppThemeMode>),
-        );
-        expect(button.onSelectionChanged, isNotNull);
-      });
+          final button = tester.widget<SegmentedButton<AppThemeMode>>(
+            find.byType(SegmentedButton<AppThemeMode>),
+          );
+          expect(button.selected, {AppThemeMode.light});
+        },
+      );
 
       testWidgets(
-          'when useSystemTheme=false and manualThemeMode=dark, Dark is selected',
-          (tester) async {
-        final repo = _FakeSettingsRepository(
-          initial: const AppSettings(
-            useSystemTheme: false,
-            manualThemeMode: AppThemeMode.dark,
-          ),
-        );
-        await tester.pumpWidget(
-          _harness(locale: const Locale('en'), repo: repo),
-        );
-        await tester.pumpAndSettle();
+        'when system theme is ON and device is dark, Dark segment is highlighted',
+        (tester) async {
+          await tester.pumpWidget(
+            _harness(
+              locale: const Locale('en'),
+              platformBrightness: Brightness.dark,
+            ),
+          );
+          await tester.pumpAndSettle();
 
-        final button = tester.widget<SegmentedButton<AppThemeMode>>(
-          find.byType(SegmentedButton<AppThemeMode>),
-        );
-        expect(button.selected, {AppThemeMode.dark});
-      });
+          final button = tester.widget<SegmentedButton<AppThemeMode>>(
+            find.byType(SegmentedButton<AppThemeMode>),
+          );
+          expect(button.selected, {AppThemeMode.dark});
+        },
+      );
 
       testWidgets(
-          'tapping Dark segment when system OFF saves manualThemeMode=dark',
-          (tester) async {
-        final repo = _FakeSettingsRepository(
-          initial: const AppSettings(useSystemTheme: false),
-        );
-        await tester.pumpWidget(
-          _harness(locale: const Locale('en'), repo: repo),
-        );
-        await tester.pumpAndSettle();
+        'when useSystemTheme=false, SegmentedButton is enabled (non-null onSelectionChanged)',
+        (tester) async {
+          final repo = _FakeSettingsRepository(
+            initial: const AppSettings(useSystemTheme: false),
+          );
+          await tester.pumpWidget(
+            _harness(locale: const Locale('en'), repo: repo),
+          );
+          await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Dark'));
-        await tester.pumpAndSettle();
-
-        expect(repo.savedManualThemeMode, AppThemeMode.dark);
-      });
+          final button = tester.widget<SegmentedButton<AppThemeMode>>(
+            find.byType(SegmentedButton<AppThemeMode>),
+          );
+          expect(button.onSelectionChanged, isNotNull);
+        },
+      );
 
       testWidgets(
-          'toggling switch OFF saves useSystemTheme=false and pre-sets manualThemeMode from brightness',
-          (tester) async {
-        final repo = _FakeSettingsRepository();
-        await tester.pumpWidget(
-          _harness(
-            locale: const Locale('en'),
-            repo: repo,
-            platformBrightness: Brightness.dark,
-          ),
-        );
-        await tester.pumpAndSettle();
+        'when useSystemTheme=false and manualThemeMode=dark, Dark is selected',
+        (tester) async {
+          final repo = _FakeSettingsRepository(
+            initial: const AppSettings(
+              useSystemTheme: false,
+              manualThemeMode: AppThemeMode.dark,
+            ),
+          );
+          await tester.pumpWidget(
+            _harness(locale: const Locale('en'), repo: repo),
+          );
+          await tester.pumpAndSettle();
 
-        // Switch starts ON — tap to turn it OFF.
-        await tester.tap(find.byType(Switch));
-        await tester.pumpAndSettle();
+          final button = tester.widget<SegmentedButton<AppThemeMode>>(
+            find.byType(SegmentedButton<AppThemeMode>),
+          );
+          expect(button.selected, {AppThemeMode.dark});
+        },
+      );
 
-        expect(repo.savedUseSystemTheme, isFalse);
-        // Dark device → dark manual mode pre-set
-        expect(repo.savedManualThemeMode, AppThemeMode.dark);
-      });
+      testWidgets(
+        'tapping Dark segment when system OFF saves manualThemeMode=dark',
+        (tester) async {
+          final repo = _FakeSettingsRepository(
+            initial: const AppSettings(useSystemTheme: false),
+          );
+          await tester.pumpWidget(
+            _harness(locale: const Locale('en'), repo: repo),
+          );
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.text('Dark'));
+          await tester.pumpAndSettle();
+
+          expect(repo.savedManualThemeMode, AppThemeMode.dark);
+        },
+      );
+
+      testWidgets(
+        'toggling switch OFF saves useSystemTheme=false and pre-sets manualThemeMode from brightness',
+        (tester) async {
+          final repo = _FakeSettingsRepository();
+          await tester.pumpWidget(
+            _harness(
+              locale: const Locale('en'),
+              repo: repo,
+              platformBrightness: Brightness.dark,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Switch starts ON — tap to turn it OFF.
+          await tester.tap(find.byType(Switch));
+          await tester.pumpAndSettle();
+
+          expect(repo.savedUseSystemTheme, isFalse);
+          // Dark device → dark manual mode pre-set
+          expect(repo.savedManualThemeMode, AppThemeMode.dark);
+        },
+      );
     });
 
     group('Ukrainian labels', () {
-      testWidgets('renders correct Ukrainian labels under Locale("uk")',
-          (tester) async {
+      testWidgets('renders correct Ukrainian labels under Locale("uk")', (
+        tester,
+      ) async {
         await tester.pumpWidget(_harness(locale: const Locale('uk')));
         await tester.pumpAndSettle();
 
         expect(find.text('Системна тема'), findsOneWidget);
-        expect(find.text('Використовувати налаштування пристрою'),
-            findsOneWidget);
+        expect(
+          find.text('Використовувати налаштування пристрою'),
+          findsOneWidget,
+        );
         expect(find.text('Світла'), findsOneWidget);
         expect(find.text('Темна'), findsOneWidget);
       });
     });
 
     group('German labels', () {
-      testWidgets('renders correct German labels under Locale("de")',
-          (tester) async {
+      testWidgets('renders correct German labels under Locale("de")', (
+        tester,
+      ) async {
         await tester.pumpWidget(_harness(locale: const Locale('de')));
         await tester.pumpAndSettle();
 

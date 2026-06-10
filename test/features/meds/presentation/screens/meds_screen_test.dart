@@ -44,8 +44,9 @@ void main() {
       expect(find.text('Ліки'), findsOneWidget);
     });
 
-    testWidgets('falls back to "Meds" for unsupported Locale("fr")',
-        (tester) async {
+    testWidgets('falls back to "Meds" for unsupported Locale("fr")', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('fr')));
       await tester.pumpAndSettle();
 
@@ -73,9 +74,7 @@ void main() {
         of: appBarFinder,
         matching: find.byWidgetPredicate(
           (widget) =>
-              widget is Divider &&
-              widget.height == 1 &&
-              widget.thickness == 1,
+              widget is Divider && widget.height == 1 && widget.thickness == 1,
         ),
       );
 
@@ -105,8 +104,9 @@ void main() {
       expect(icon.icon, LucideIcons.plus);
     });
 
-    testWidgets('FAB tooltip equals localized medsAddFabTooltip in en',
-        (tester) async {
+    testWidgets('FAB tooltip equals localized medsAddFabTooltip in en', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('en')));
       await tester.pumpAndSettle();
 
@@ -117,8 +117,9 @@ void main() {
       expect(fab.tooltip, 'Add medication');
     });
 
-    testWidgets('FAB tooltip equals localized medsAddFabTooltip in de',
-        (tester) async {
+    testWidgets('FAB tooltip equals localized medsAddFabTooltip in de', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('de')));
       await tester.pumpAndSettle();
 
@@ -129,8 +130,9 @@ void main() {
       expect(fab.tooltip, 'Medikament hinzufügen');
     });
 
-    testWidgets('FAB tooltip equals localized medsAddFabTooltip in uk',
-        (tester) async {
+    testWidgets('FAB tooltip equals localized medsAddFabTooltip in uk', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('uk')));
       await tester.pumpAndSettle();
 
@@ -144,23 +146,24 @@ void main() {
 
   group('MedsScreen Add-medication modal', () {
     testWidgets(
-        'tapping the FAB opens AddMedicationModal showing the localized title (en)',
-        (tester) async {
-      await tester.pumpWidget(_harness(locale: const Locale('en')));
-      await tester.pumpAndSettle();
+      'tapping the FAB opens AddMedicationModal showing the localized title (en)',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(FloatingActionButton));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(AddMedicationModal), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byType(AddMedicationModal),
-          matching: find.text('Add medication'),
-        ),
-        findsOneWidget,
-      );
-    });
+        expect(find.byType(AddMedicationModal), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(AddMedicationModal),
+            matching: find.text('Add medication'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('back-arrow IconButton dismisses the modal', (tester) async {
       await tester.pumpWidget(_harness(locale: const Locale('en')));

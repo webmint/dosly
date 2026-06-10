@@ -47,8 +47,7 @@ part 'logger.g.dart';
 /// root so the pipeline is a true no-op — and [Level.ALL] otherwise. Kept
 /// pure (no `kReleaseMode` read) so tests can exercise both branches with an
 /// explicit [isRelease] value.
-Level levelFor({required bool isRelease}) =>
-    isRelease ? Level.OFF : Level.ALL;
+Level levelFor({required bool isRelease}) => isRelease ? Level.OFF : Level.ALL;
 
 /// Destination for a sanitized log record.
 ///
@@ -60,7 +59,8 @@ typedef LogSink = void Function(SanitizedLog log, Level level);
 /// Default [LogSink] that forwards a sanitized record to `dart:developer`.
 ///
 /// Joins [SanitizedLog.message] with [SanitizedLog.error] (when present) and
-/// reconstructs a [StackTrace] from [SanitizedLog.stack] when available.
+/// wraps the already-truncated [SanitizedLog.stack] text in a [StackTrace] via
+/// `StackTrace.fromString` when available (no structured trace is reconstructed).
 void _developerLogSink(SanitizedLog log, Level level) {
   final String? stack = log.stack;
   developer.log(

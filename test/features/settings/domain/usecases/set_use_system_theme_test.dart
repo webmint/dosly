@@ -24,88 +24,76 @@ void main() {
       useCase = SetUseSystemTheme(repo);
     });
 
-    test(
-      'value=false, repo healthy: writes saveThemeMode then '
-      'saveUseSystemTheme in that order, returns Right(null)',
-      () async {
-        when(() => repo.saveThemeMode(any()))
-            .thenAnswer((_) async => const Right<Failure, void>(null));
-        when(() => repo.saveUseSystemTheme(any()))
-            .thenAnswer((_) async => const Right<Failure, void>(null));
+    test('value=false, repo healthy: writes saveThemeMode then '
+        'saveUseSystemTheme in that order, returns Right(null)', () async {
+      when(
+        () => repo.saveThemeMode(any()),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
+      when(
+        () => repo.saveUseSystemTheme(any()),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
 
-        final result = await useCase(
-          value: false,
-          currentDeviceMode: AppThemeMode.dark,
-        );
+      final result = await useCase(
+        value: false,
+        currentDeviceMode: AppThemeMode.dark,
+      );
 
-        verifyInOrder([
-          () => repo.saveThemeMode(AppThemeMode.dark),
-          () => repo.saveUseSystemTheme(false),
-        ]);
-        expect(result, const Right<Failure, void>(null));
-      },
-    );
+      verifyInOrder([
+        () => repo.saveThemeMode(AppThemeMode.dark),
+        () => repo.saveUseSystemTheme(false),
+      ]);
+      expect(result, const Right<Failure, void>(null));
+    });
 
-    test(
-      'value=true: writes saveUseSystemTheme(true) only, never touches '
-      'saveThemeMode',
-      () async {
-        when(() => repo.saveUseSystemTheme(any()))
-            .thenAnswer((_) async => const Right<Failure, void>(null));
+    test('value=true: writes saveUseSystemTheme(true) only, never touches '
+        'saveThemeMode', () async {
+      when(
+        () => repo.saveUseSystemTheme(any()),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
 
-        final result = await useCase(
-          value: true,
-          currentDeviceMode: AppThemeMode.dark,
-        );
+      final result = await useCase(
+        value: true,
+        currentDeviceMode: AppThemeMode.dark,
+      );
 
-        verify(() => repo.saveUseSystemTheme(true)).called(1);
-        verifyNever(() => repo.saveThemeMode(any()));
-        expect(result, const Right<Failure, void>(null));
-      },
-    );
+      verify(() => repo.saveUseSystemTheme(true)).called(1);
+      verifyNever(() => repo.saveThemeMode(any()));
+      expect(result, const Right<Failure, void>(null));
+    });
 
-    test(
-      'value=false, saveThemeMode fails: returns Left and skips '
-      'saveUseSystemTheme',
-      () async {
-        when(() => repo.saveThemeMode(any())).thenAnswer(
-          (_) async => const Left<Failure, void>(CacheFailure('boom')),
-        );
+    test('value=false, saveThemeMode fails: returns Left and skips '
+        'saveUseSystemTheme', () async {
+      when(() => repo.saveThemeMode(any())).thenAnswer(
+        (_) async => const Left<Failure, void>(CacheFailure('boom')),
+      );
 
-        final result = await useCase(
-          value: false,
-          currentDeviceMode: AppThemeMode.dark,
-        );
+      final result = await useCase(
+        value: false,
+        currentDeviceMode: AppThemeMode.dark,
+      );
 
-        expect(result, const Left<Failure, void>(CacheFailure('boom')));
-        verify(() => repo.saveThemeMode(AppThemeMode.dark)).called(1);
-        verifyNever(() => repo.saveUseSystemTheme(any()));
-      },
-    );
+      expect(result, const Left<Failure, void>(CacheFailure('boom')));
+      verify(() => repo.saveThemeMode(AppThemeMode.dark)).called(1);
+      verifyNever(() => repo.saveUseSystemTheme(any()));
+    });
 
-    test(
-      'value=false, saveUseSystemTheme fails after saveThemeMode succeeds: '
-      'returns the saveUseSystemTheme Left',
-      () async {
-        when(() => repo.saveThemeMode(any()))
-            .thenAnswer((_) async => const Right<Failure, void>(null));
-        when(() => repo.saveUseSystemTheme(any())).thenAnswer(
-          (_) async =>
-              const Left<Failure, void>(CacheFailure('toggle failed')),
-        );
+    test('value=false, saveUseSystemTheme fails after saveThemeMode succeeds: '
+        'returns the saveUseSystemTheme Left', () async {
+      when(
+        () => repo.saveThemeMode(any()),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
+      when(() => repo.saveUseSystemTheme(any())).thenAnswer(
+        (_) async => const Left<Failure, void>(CacheFailure('toggle failed')),
+      );
 
-        final result = await useCase(
-          value: false,
-          currentDeviceMode: AppThemeMode.dark,
-        );
+      final result = await useCase(
+        value: false,
+        currentDeviceMode: AppThemeMode.dark,
+      );
 
-        expect(
-          result,
-          const Left<Failure, void>(CacheFailure('toggle failed')),
-        );
-        verify(() => repo.saveThemeMode(AppThemeMode.dark)).called(1);
-        verify(() => repo.saveUseSystemTheme(false)).called(1);
-      },
-    );
+      expect(result, const Left<Failure, void>(CacheFailure('toggle failed')));
+      verify(() => repo.saveThemeMode(AppThemeMode.dark)).called(1);
+      verify(() => repo.saveUseSystemTheme(false)).called(1);
+    });
   });
 }

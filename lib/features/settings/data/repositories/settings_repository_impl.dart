@@ -54,7 +54,6 @@ class SettingsRepositoryImpl implements SettingsRepository {
     }
   }
 
-  /// Persists whether the app should follow the device system language.
   @override
   Future<Either<Failure, void>> saveUseSystemLanguage(bool value) async {
     try {
@@ -65,7 +64,6 @@ class SettingsRepositoryImpl implements SettingsRepository {
     }
   }
 
-  /// Persists the user's manual [AppLanguage] choice.
   @override
   Future<Either<Failure, void>> saveManualLanguage(AppLanguage language) async {
     try {

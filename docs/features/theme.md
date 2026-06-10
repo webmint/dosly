@@ -2,7 +2,7 @@
 
 ## Overview
 
-The theme module is dosly's visual foundation. It hand-codes Material 3 `ColorScheme` tokens for light and dark mode, bundles Roboto at four weights, and composes them into `ThemeData` with 11 pre-wired component themes. Everything lives under `lib/core/theme/` so every future feature consumes the same tokens — widgets never hardcode colors or text styles.
+The theme module is dosly's visual foundation. It hand-codes Material 3 `ColorScheme` tokens for light and dark mode, bundles Roboto at two weights (400 and 500), and composes them into `ThemeData` with 11 pre-wired component themes. Everything lives under `lib/core/theme/` so every future feature consumes the same tokens — widgets never hardcode colors or text styles.
 
 Runtime theme-mode selection (light / dark / system) is owned by `settingsNotifierProvider`, not by this module. See [`settings.md`](settings.md) and [`architecture.md`](../architecture.md) for how `DoslyApp` maps `AppThemeMode` to Flutter's `ThemeMode`.
 
@@ -87,7 +87,7 @@ Text('Card title', style: Theme.of(context).textTheme.titleMedium);
 2. Edit the style inside the `TextTheme(...)` literal — all 15 M3 slots are already declared, so usually you're tweaking one.
 3. Rebuild. Text consumers that read `Theme.of(context).textTheme.titleLarge` pick it up automatically.
 
-Do not add a new `fontFamily`. The app bundles only Roboto (300 / 400 / 500 / 700); adding another family means adding more TTF assets to `assets/fonts/` and declaring them in `pubspec.yaml` under `flutter.fonts`.
+Do not add a new `fontFamily`. The app bundles only Roboto (400 / 500); adding another family means adding more TTF assets to `assets/fonts/` and declaring them in `pubspec.yaml` under `flutter.fonts`.
 
 ## How to change the runtime theme mode
 

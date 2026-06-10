@@ -2,7 +2,7 @@
 ///
 /// Declares all 15 M3 type scale styles. Composed into `ThemeData.textTheme`
 /// by `AppTheme` (see `app_theme.dart`). Roboto is bundled as an asset
-/// (Task 001) at weights 300, 400, 500, 700.
+/// (Task 001) at weights 400 and 500 — the only weights this type scale uses.
 ///
 /// The `height` field is a multiplier of `fontSize` (Flutter convention),
 /// so canonical M3 line-heights are expressed as `lineHeight / fontSize`.

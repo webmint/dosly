@@ -52,18 +52,20 @@ class AppBootstrap extends ConsumerWidget {
     // Instantiate the logging pipeline in the root ProviderScope so that
     // Logger.root listener is registered before any route can fail.
     ref.read(loggerProvider); // side-effect only; value discarded
-    return ref.watch(sharedPreferencesInitProvider).when(
-      loading: () => _bootstrapShell(const SplashScreen()),
-      error: (error, stackTrace) => _bootstrapShell(
-        PrefsLoadErrorScreen(
-          onRetry: () => ref.invalidate(sharedPreferencesInitProvider),
-        ),
-      ),
-      data: (prefs) => ProviderScope(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-        child: const DoslyApp(),
-      ),
-    );
+    return ref
+        .watch(sharedPreferencesInitProvider)
+        .when(
+          loading: () => _bootstrapShell(const SplashScreen()),
+          error: (error, stackTrace) => _bootstrapShell(
+            PrefsLoadErrorScreen(
+              onRetry: () => ref.invalidate(sharedPreferencesInitProvider),
+            ),
+          ),
+          data: (prefs) => ProviderScope(
+            overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+            child: const DoslyApp(),
+          ),
+        );
   }
 
   /// Wraps [home] in a minimal [MaterialApp] shell for the startup phases.

@@ -17,7 +17,10 @@ import 'package:flutter/widgets.dart';
 /// the list alphabetically (`de`, `en`, `uk`) — would incorrectly surface
 /// German to users on unsupported device locales. This function pins the
 /// fallback to English regardless of list order.
-Locale resolveAppLocale(Locale? deviceLocale, Iterable<Locale> supportedLocales) {
+Locale resolveAppLocale(
+  Locale? deviceLocale,
+  Iterable<Locale> supportedLocales,
+) {
   if (deviceLocale != null) {
     for (final supported in supportedLocales) {
       if (supported.languageCode == deviceLocale.languageCode) {

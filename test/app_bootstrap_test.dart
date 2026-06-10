@@ -22,7 +22,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:shared_preferences/shared_preferences.dart' show SharedPreferencesWithCache, SharedPreferencesWithCacheOptions;
+import 'package:shared_preferences/shared_preferences.dart'
+    show SharedPreferencesWithCache, SharedPreferencesWithCacheOptions;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
@@ -107,9 +108,8 @@ void main() {
           ProviderScope(
             overrides: [
               sharedPreferencesInitProvider.overrideWith(
-                (ref) => Future<SharedPreferencesWithCache>.error(
-                  Exception('boom'),
-                ),
+                (ref) =>
+                    Future<SharedPreferencesWithCache>.error(Exception('boom')),
               ),
             ],
             child: const AppBootstrap(),
@@ -119,10 +119,7 @@ void main() {
 
         expect(find.byType(PrefsLoadErrorScreen), findsOneWidget);
         // English localized message (test harness default locale is en).
-        expect(
-          find.text("We couldn't load your preferences."),
-          findsOneWidget,
-        );
+        expect(find.text("We couldn't load your preferences."), findsOneWidget);
         // Exactly one MaterialApp — the bootstrap shell.
         expect(find.byType(MaterialApp), findsOneWidget);
       },
@@ -137,35 +134,34 @@ void main() {
     /// While init is pending, the loading branch must show [SplashScreen] with
     /// a [CircularProgressIndicator] inside exactly one [MaterialApp]. We
     /// complete the Completer at the end to avoid a pending-timer failure.
-    testWidgets(
-      'shows SplashScreen with spinner while init is pending',
-      (WidgetTester tester) async {
-        final completer = Completer<SharedPreferencesWithCache>();
+    testWidgets('shows SplashScreen with spinner while init is pending', (
+      WidgetTester tester,
+    ) async {
+      final completer = Completer<SharedPreferencesWithCache>();
 
-        await tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              sharedPreferencesInitProvider.overrideWith(
-                (ref) => completer.future,
-              ),
-              // Provide a fake settings repo so DoslyApp can inflate once the
-              // completer resolves (avoids the synchronous-provider throw).
-              settingsRepositoryProvider.overrideWithValue(fakeRepo),
-            ],
-            child: const AppBootstrap(),
-          ),
-        );
-        // One frame — the future is still pending.
-        await tester.pump();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesInitProvider.overrideWith(
+              (ref) => completer.future,
+            ),
+            // Provide a fake settings repo so DoslyApp can inflate once the
+            // completer resolves (avoids the synchronous-provider throw).
+            settingsRepositoryProvider.overrideWithValue(fakeRepo),
+          ],
+          child: const AppBootstrap(),
+        ),
+      );
+      // One frame — the future is still pending.
+      await tester.pump();
 
-        expect(find.byType(SplashScreen), findsOneWidget);
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(SplashScreen), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-        // Resolve to avoid a "pending timers" failure at the end of the test.
-        completer.complete(realPrefs);
-        await tester.pumpAndSettle();
-      },
-    );
+      // Resolve to avoid a "pending timers" failure at the end of the test.
+      completer.complete(realPrefs);
+      await tester.pumpAndSettle();
+    });
   });
 
   // -------------------------------------------------------------------------

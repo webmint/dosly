@@ -34,8 +34,9 @@ class _FakeSettingsRepository implements SettingsRepository {
       const Right(null);
 
   @override
-  Future<Either<Failure, void>> saveManualLanguage(AppLanguage language) async =>
-      const Right(null);
+  Future<Either<Failure, void>> saveManualLanguage(
+    AppLanguage language,
+  ) async => const Right(null);
 }
 
 /// Builds a two-route [GoRouter] + [ProviderScope] + [MaterialApp.router]
@@ -44,10 +45,7 @@ class _FakeSettingsRepository implements SettingsRepository {
 Widget _harness() {
   final router = GoRouter(
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, _) => const HomeScreen(),
-      ),
+      GoRoute(path: '/', builder: (context, _) => const HomeScreen()),
       GoRoute(
         path: '/settings',
         builder: (context, _) => const SettingsScreen(),
@@ -70,9 +68,9 @@ Widget _harness() {
 
 void main() {
   group('HomeScreen gear icon navigation', () {
-    testWidgets(
-        'should navigate to SettingsScreen when gear is tapped',
-        (tester) async {
+    testWidgets('should navigate to SettingsScreen when gear is tapped', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness());
       await tester.pumpAndSettle();
 

@@ -46,8 +46,9 @@ void main() {
       },
     );
 
-    testWidgets('renders the correct Lucide icons for each destination',
-        (tester) async {
+    testWidgets('renders the correct Lucide icons for each destination', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness());
       await tester.pumpAndSettle();
 
@@ -57,32 +58,34 @@ void main() {
     });
 
     testWidgets(
-        'NavigationBar.selectedIndex reflects the selectedIndex parameter',
-        (tester) async {
-      for (final index in [0, 1, 2]) {
-        await tester.pumpWidget(_harness(selectedIndex: index));
-        await tester.pumpAndSettle();
+      'NavigationBar.selectedIndex reflects the selectedIndex parameter',
+      (tester) async {
+        for (final index in [0, 1, 2]) {
+          await tester.pumpWidget(_harness(selectedIndex: index));
+          await tester.pumpAndSettle();
 
-        final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
-        expect(bar.selectedIndex, index);
-      }
-    });
+          final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+          expect(bar.selectedIndex, index);
+        }
+      },
+    );
 
     testWidgets(
-        'tapping a destination invokes onDestinationSelected with the tapped index',
-        (tester) async {
-      final indices = <int>[];
-      await tester.pumpWidget(_harness(onDestinationSelected: indices.add));
-      await tester.pumpAndSettle();
+      'tapping a destination invokes onDestinationSelected with the tapped index',
+      (tester) async {
+        final indices = <int>[];
+        await tester.pumpWidget(_harness(onDestinationSelected: indices.add));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Meds'));
-      await tester.pumpAndSettle();
-      expect(indices, [1]);
+        await tester.tap(find.text('Meds'));
+        await tester.pumpAndSettle();
+        expect(indices, [1]);
 
-      await tester.tap(find.text('History'));
-      await tester.pumpAndSettle();
-      expect(indices, [1, 2]);
-    });
+        await tester.tap(find.text('History'));
+        await tester.pumpAndSettle();
+        expect(indices, [1, 2]);
+      },
+    );
 
     testWidgets('labelBehavior is alwaysShow', (tester) async {
       await tester.pumpWidget(_harness());
@@ -92,8 +95,9 @@ void main() {
       expect(bar.labelBehavior, NavigationDestinationLabelBehavior.alwaysShow);
     });
 
-    testWidgets('renders a 1-px top divider above the NavigationBar',
-        (tester) async {
+    testWidgets('renders a 1-px top divider above the NavigationBar', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness());
       await tester.pumpAndSettle();
 
@@ -103,10 +107,7 @@ void main() {
           matching: find.byType(Divider),
         ),
       );
-      expect(
-        dividers.any((d) => d.height == 1 && d.thickness == 1),
-        isTrue,
-      );
+      expect(dividers.any((d) => d.height == 1 && d.thickness == 1), isTrue);
     });
   });
 }

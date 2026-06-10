@@ -28,8 +28,9 @@ void main() {
       expect(find.text('Add medication'), findsOneWidget);
     });
 
-    testWidgets("renders 'Medikament hinzufügen' under Locale('de')",
-        (tester) async {
+    testWidgets("renders 'Medikament hinzufügen' under Locale('de')", (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('de')));
       await tester.pumpAndSettle();
 
@@ -90,8 +91,9 @@ void main() {
   });
 
   group('AddMedicationModal typography', () {
-    testWidgets('title Text inherits theme (no explicit style override)',
-        (tester) async {
+    testWidgets('title Text inherits theme (no explicit style override)', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('en')));
       await tester.pumpAndSettle();
 

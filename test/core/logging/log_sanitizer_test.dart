@@ -27,8 +27,7 @@ void main() {
     Object? error, {
     StackTrace? stackTrace,
     String message = 'test message',
-  }) =>
-      LogRecord(Level.WARNING, message, 'dosly', error, stackTrace);
+  }) => LogRecord(Level.WARNING, message, 'dosly', error, stackTrace);
 
   /// Returns the full sanitized output string for leak-scanning.
   String fullOutput(SanitizedLog s) =>
@@ -61,8 +60,7 @@ void main() {
 
     test('should emit PermissionDeniedFailure permission verbatim', () {
       const permission = 'POST_NOTIFICATIONS';
-      final record =
-          makeRecord(const PermissionDeniedFailure(permission));
+      final record = makeRecord(const PermissionDeniedFailure(permission));
 
       final s = sanitizeRecord(record, includeErrorDetail: false);
 
@@ -70,17 +68,20 @@ void main() {
       expect(s.error, contains(permission));
     });
 
-    test('should redact NotificationScheduleFailure reason and emit placeholder',
-        () {
-      const secretReason = 'exact platform error string with internals';
-      final record =
-          makeRecord(const NotificationScheduleFailure(secretReason));
+    test(
+      'should redact NotificationScheduleFailure reason and emit placeholder',
+      () {
+        const secretReason = 'exact platform error string with internals';
+        final record = makeRecord(
+          const NotificationScheduleFailure(secretReason),
+        );
 
-      final s = sanitizeRecord(record, includeErrorDetail: false);
+        final s = sanitizeRecord(record, includeErrorDetail: false);
 
-      expect(s.error, equals('NotificationScheduleFailure($_redacted)'));
-      expect(s.error, isNot(contains(secretReason)));
-    });
+        expect(s.error, equals('NotificationScheduleFailure($_redacted)'));
+        expect(s.error, isNot(contains(secretReason)));
+      },
+    );
 
     test('should emit ValidationFailure field and redact message', () {
       const field = 'medicationName';
@@ -97,57 +98,59 @@ void main() {
     });
 
     test(
-        'should emit UnknownFailure with runtimeType only when includeErrorDetail is false',
-        () {
-      final inner = PlatformException(code: 'ERR', message: 'secret detail');
-      final record = makeRecord(
-        UnknownFailure(inner, StackTrace.current),
-      );
+      'should emit UnknownFailure with runtimeType only when includeErrorDetail is false',
+      () {
+        final inner = PlatformException(code: 'ERR', message: 'secret detail');
+        final record = makeRecord(UnknownFailure(inner, StackTrace.current));
 
-      final s = sanitizeRecord(record, includeErrorDetail: false);
+        final s = sanitizeRecord(record, includeErrorDetail: false);
 
-      // Must contain the runtime type name
-      expect(s.error, contains('PlatformException'));
-      // Must NOT contain the secret platform message detail
-      expect(s.error, isNot(contains('secret detail')));
-    });
-
-    test(
-        'should emit UnknownFailure with full toString when includeErrorDetail is true',
-        () {
-      final inner = PlatformException(code: 'ERR', message: 'visible detail');
-      final record = makeRecord(
-        UnknownFailure(inner, StackTrace.current),
-      );
-
-      final s = sanitizeRecord(record, includeErrorDetail: true);
-
-      expect(s.error, contains('PlatformException'));
-      expect(s.error, contains('visible detail'));
-    });
+        // Must contain the runtime type name
+        expect(s.error, contains('PlatformException'));
+        // Must NOT contain the secret platform message detail
+        expect(s.error, isNot(contains('secret detail')));
+      },
+    );
 
     test(
-        'should emit non-Failure object with runtimeType only when includeErrorDetail is false',
-        () {
-      final error = Exception('some internal exception detail');
-      final record = makeRecord(error);
+      'should emit UnknownFailure with full toString when includeErrorDetail is true',
+      () {
+        final inner = PlatformException(code: 'ERR', message: 'visible detail');
+        final record = makeRecord(UnknownFailure(inner, StackTrace.current));
 
-      final s = sanitizeRecord(record, includeErrorDetail: false);
+        final s = sanitizeRecord(record, includeErrorDetail: true);
 
-      expect(s.error, contains('_Exception'));
-      expect(s.error, isNot(contains('some internal exception detail')));
-    });
+        expect(s.error, contains('PlatformException'));
+        expect(s.error, contains('visible detail'));
+      },
+    );
 
     test(
-        'should emit non-Failure object with full toString when includeErrorDetail is true',
-        () {
-      final error = Exception('some internal exception detail');
-      final record = makeRecord(error);
+      'should emit non-Failure object with runtimeType only when includeErrorDetail is false',
+      () {
+        final error = Exception('some internal exception detail');
+        final record = makeRecord(error);
 
-      final s = sanitizeRecord(record, includeErrorDetail: true);
+        final s = sanitizeRecord(record, includeErrorDetail: false);
 
-      expect(s.error, contains('some internal exception detail'));
-    });
+        // Match the public type name without coupling to the SDK-private
+        // `_Exception` class name (which could be renamed across Dart SDKs).
+        expect(s.error, contains('Exception'));
+        expect(s.error, isNot(contains('some internal exception detail')));
+      },
+    );
+
+    test(
+      'should emit non-Failure object with full toString when includeErrorDetail is true',
+      () {
+        final error = Exception('some internal exception detail');
+        final record = makeRecord(error);
+
+        final s = sanitizeRecord(record, includeErrorDetail: true);
+
+        expect(s.error, contains('some internal exception detail'));
+      },
+    );
 
     test('should return empty error string when record carries no error', () {
       final record = makeRecord(null);
@@ -164,22 +167,24 @@ void main() {
 
   group('Leak prevention', () {
     test(
-        'should not leak iOS filesystem path from UnknownFailure wrapping PlatformException',
-        () {
-      final platformEx = PlatformException(
-        code: 'IO',
-        message: '/Users/me/Library/Developer/CoreSimulator/db.sqlite write failed',
-      );
-      final record = makeRecord(
-        UnknownFailure(platformEx, StackTrace.current),
-      );
+      'should not leak iOS filesystem path from UnknownFailure wrapping PlatformException',
+      () {
+        final platformEx = PlatformException(
+          code: 'IO',
+          message:
+              '/Users/me/Library/Developer/CoreSimulator/db.sqlite write failed',
+        );
+        final record = makeRecord(
+          UnknownFailure(platformEx, StackTrace.current),
+        );
 
-      final s = sanitizeRecord(record, includeErrorDetail: false);
-      final output = fullOutput(s);
+        final s = sanitizeRecord(record, includeErrorDetail: false);
+        final output = fullOutput(s);
 
-      expect(output, isNot(contains('/Users/me/Library')));
-      expect(output, isNot(contains('db.sqlite')));
-    });
+        expect(output, isNot(contains('/Users/me/Library')));
+        expect(output, isNot(contains('db.sqlite')));
+      },
+    );
 
     test('should not leak medication name from ValidationFailure message', () {
       final record = makeRecord(
@@ -196,19 +201,20 @@ void main() {
     });
 
     test(
-        'should not leak Android shared-prefs path from CacheFailure message',
-        () {
-      final record = makeRecord(
-        const CacheFailure(
-          'FileSystemException: /data/data/app.dosly/shared_prefs/prefs.xml not found',
-        ),
-      );
+      'should not leak Android shared-prefs path from CacheFailure message',
+      () {
+        final record = makeRecord(
+          const CacheFailure(
+            'FileSystemException: /data/data/app.dosly/shared_prefs/prefs.xml not found',
+          ),
+        );
 
-      final s = sanitizeRecord(record, includeErrorDetail: false);
-      final output = fullOutput(s);
+        final s = sanitizeRecord(record, includeErrorDetail: false);
+        final output = fullOutput(s);
 
-      expect(output, isNot(contains('/data/data/app.dosly')));
-    });
+        expect(output, isNot(contains('/data/data/app.dosly')));
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -224,10 +230,8 @@ void main() {
       final st = StackTrace.current;
       final record = makeRecord(UnknownFailure(inner, st));
 
-      final withDetail =
-          sanitizeRecord(record, includeErrorDetail: true);
-      final withoutDetail =
-          sanitizeRecord(record, includeErrorDetail: false);
+      final withDetail = sanitizeRecord(record, includeErrorDetail: true);
+      final withoutDetail = sanitizeRecord(record, includeErrorDetail: false);
 
       // With detail: full toString present
       expect(withDetail.error, contains('/private/var/containers/secret/path'));
@@ -238,6 +242,41 @@ void main() {
         isNot(contains('/private/var/containers/secret/path')),
       );
     });
+  });
+
+  // ---------------------------------------------------------------------------
+  // _sanitizeStack UnknownFailure fallback branch
+  // ---------------------------------------------------------------------------
+
+  group('_sanitizeStack UnknownFailure fallback', () {
+    test(
+      'should pull stack from UnknownFailure when LogRecord.stackTrace is null',
+      () {
+        // All existing stack tests supply the stack via the LogRecord.stackTrace
+        // argument, so the fallback branch
+        //   `if (stackTrace == null && recordError is UnknownFailure) {
+        //      stackTrace = recordError.stack; }`
+        // (log_sanitizer.dart:157-159) is never hit.
+        //
+        // Here: LogRecord.stackTrace is omitted (null) but the error IS an
+        // UnknownFailure carrying a real StackTrace — the fallback must pick
+        // it up and produce a non-null SanitizedLog.stack.
+        final someStack = StackTrace.current;
+        final record = makeRecord(
+          Failure.unknown(Exception('wrapped error'), someStack),
+          // stackTrace argument deliberately omitted → null
+        );
+
+        final s = sanitizeRecord(record, includeErrorDetail: false);
+
+        expect(
+          s.stack,
+          isNotNull,
+          reason:
+              'stack must be populated via the UnknownFailure fallback path',
+        );
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
