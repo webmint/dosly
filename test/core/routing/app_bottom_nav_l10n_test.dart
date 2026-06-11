@@ -45,8 +45,9 @@ void main() {
       expect(find.text('Історія'), findsOneWidget);
     });
 
-    testWidgets('falls back to English for unsupported Locale("fr")',
-        (tester) async {
+    testWidgets('falls back to English for unsupported Locale("fr")', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('fr')));
       await tester.pumpAndSettle();
 

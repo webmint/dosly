@@ -32,9 +32,7 @@ enum AppLanguage {
   /// fallback pattern used by `AppThemeMode.fromCodeOrDefault` for theme
   /// codes. Callers persisting `String?` should null-guard before calling
   /// (this factory takes a non-nullable [code]).
-  static AppLanguage fromLanguageCodeOrDefault(String code) =>
-      AppLanguage.values.firstWhere(
-        (lang) => lang.code == code,
-        orElse: () => AppLanguage.en,
-      );
+  static AppLanguage fromLanguageCodeOrDefault(String code) => AppLanguage
+      .values
+      .firstWhere((lang) => lang.code == code, orElse: () => AppLanguage.en);
 }

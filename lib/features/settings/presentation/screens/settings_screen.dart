@@ -63,10 +63,10 @@ class SettingsScreen extends ConsumerWidget {
             child: Text(
               context.l10n.settingsAppearanceHeader.toUpperCase(),
               style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.5,
-                  ),
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
           const Padding(
@@ -79,10 +79,10 @@ class SettingsScreen extends ConsumerWidget {
             child: Text(
               context.l10n.settingsLanguageHeader.toUpperCase(),
               style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.5,
-                  ),
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
           const Padding(

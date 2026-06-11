@@ -51,8 +51,9 @@ class LanguageSelector extends ConsumerWidget {
     // When the system toggle is active, derive the displayed entry from the
     // actual device-resolved locale so the user can see what the system is
     // using — not the stale prior manual selection.
-    final displayedLanguage =
-        useSystemLanguage ? deviceLanguage : manualLanguage;
+    final displayedLanguage = useSystemLanguage
+        ? deviceLanguage
+        : manualLanguage;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,8 +66,12 @@ class LanguageSelector extends ConsumerWidget {
           // provides the 16 px horizontal inset.
           contentPadding: EdgeInsets.zero,
           onChanged: (bool value) {
-            ref.read(settingsNotifierProvider.notifier)
-                .setUseSystemLanguage(value, currentDeviceLanguage: deviceLanguage);
+            ref
+                .read(settingsNotifierProvider.notifier)
+                .setUseSystemLanguage(
+                  value,
+                  currentDeviceLanguage: deviceLanguage,
+                );
           },
         ),
         const SizedBox(height: 8),

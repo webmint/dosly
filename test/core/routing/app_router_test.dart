@@ -7,6 +7,8 @@
 // production routes.
 
 import 'package:dosly/core/error/failures.dart';
+import 'package:dosly/core/logging/log_sanitizer.dart';
+import 'package:dosly/core/logging/logger.dart';
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
@@ -18,6 +20,7 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logging/logging.dart';
 
 import 'package:dosly/core/routing/app_router.dart';
 import 'package:dosly/core/routing/app_shell.dart';
@@ -61,9 +64,7 @@ class _SentinelScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('SENTINEL_MEDS_SUB')),
-    );
+    return const Scaffold(body: Center(child: Text('SENTINEL_MEDS_SUB')));
   }
 }
 
@@ -128,8 +129,7 @@ Future<void> _pumpRouter(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        settingsRepositoryProvider
-            .overrideWithValue(_FakeSettingsRepository()),
+        settingsRepositoryProvider.overrideWithValue(_FakeSettingsRepository()),
         ...overrides,
       ],
       child: Consumer(
@@ -213,35 +213,35 @@ void main() {
     // rather than a tap. This verifies the shell's currentIndex wiring, not
     // just tap-handler wiring.
     // -----------------------------------------------------------------------
-    testWidgets(
-      'Test 3 (AC-10): selectedIndex tracks direct-URL navigation',
-      (tester) async {
-        await _pumpRouter(tester);
+    testWidgets('Test 3 (AC-10): selectedIndex tracks direct-URL navigation', (
+      tester,
+    ) async {
+      await _pumpRouter(tester);
 
-        // Helper: get the current selectedIndex from the NavigationBar.
-        int selectedIndex() =>
-            tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex;
+      // Helper: get the current selectedIndex from the NavigationBar.
+      int selectedIndex() => tester
+          .widget<NavigationBar>(find.byType(NavigationBar))
+          .selectedIndex;
 
-        // Initial state: index 0 (Today / home branch).
-        expect(selectedIndex(), 0);
+      // Initial state: index 0 (Today / home branch).
+      expect(selectedIndex(), 0);
 
-        // Navigate to /meds via GoRouter.of — use a context that is under the
-        // router (AppBottomNav is always present in the shell branches).
-        GoRouter.of(tester.element(find.byType(AppBottomNav))).go('/meds');
-        await tester.pumpAndSettle();
-        expect(selectedIndex(), 1);
+      // Navigate to /meds via GoRouter.of — use a context that is under the
+      // router (AppBottomNav is always present in the shell branches).
+      GoRouter.of(tester.element(find.byType(AppBottomNav))).go('/meds');
+      await tester.pumpAndSettle();
+      expect(selectedIndex(), 1);
 
-        // Navigate to /history.
-        GoRouter.of(tester.element(find.byType(AppBottomNav))).go('/history');
-        await tester.pumpAndSettle();
-        expect(selectedIndex(), 2);
+      // Navigate to /history.
+      GoRouter.of(tester.element(find.byType(AppBottomNav))).go('/history');
+      await tester.pumpAndSettle();
+      expect(selectedIndex(), 2);
 
-        // Navigate back to /.
-        GoRouter.of(tester.element(find.byType(AppBottomNav))).go('/');
-        await tester.pumpAndSettle();
-        expect(selectedIndex(), 0);
-      },
-    );
+      // Navigate back to /.
+      GoRouter.of(tester.element(find.byType(AppBottomNav))).go('/');
+      await tester.pumpAndSettle();
+      expect(selectedIndex(), 0);
+    });
 
     // -----------------------------------------------------------------------
     // Test 4 — AC-11: branch stack is preserved across tab switches.
@@ -265,7 +265,9 @@ void main() {
         );
 
         // Push the sentinel sub-route inside the Meds branch.
-        GoRouter.of(tester.element(find.byType(HomeScreen))).go('/meds/sentinel');
+        GoRouter.of(
+          tester.element(find.byType(HomeScreen)),
+        ).go('/meds/sentinel');
         await tester.pumpAndSettle();
         expect(find.text('SENTINEL_MEDS_SUB'), findsOneWidget);
 
@@ -332,10 +334,7 @@ void main() {
         expect(find.byType(AppBottomNav), findsNothing);
 
         // Recovery button is present.
-        expect(
-          find.widgetWithText(FilledButton, 'Go to home'),
-          findsOneWidget,
-        );
+        expect(find.widgetWithText(FilledButton, 'Go to home'), findsOneWidget);
 
         // Tap the button → navigate back to HomeScreen.
         await tester.tap(find.widgetWithText(FilledButton, 'Go to home'));
@@ -343,6 +342,67 @@ void main() {
 
         expect(find.byType(HomeScreen), findsOneWidget);
         expect(find.byType(AppBottomNav), findsOneWidget);
+      },
+    );
+
+    // -----------------------------------------------------------------------
+    // Test 8 — errorBuilder once-per-error dedup guard
+    // (app_router.dart:87-90: `if (error != null && !identical(error,
+    //  lastLoggedError)) { lastLoggedError = error; logger.warning(...) }`)
+    //
+    // Wires a capturing LogSink via configureLogging and overrides
+    // loggerProvider so the production appRouter captures the same Logger
+    // instance. Navigates to an unmatched path and asserts exactly ONE
+    // warning is recorded — proving the guard fires on the first invocation
+    // but would not fire a second time for the same error object (the
+    // identical() guard). A second navigate to the same unmatched path
+    // produces a new exception object (go_router creates a fresh
+    // GoException per navigation), so we cannot assert "same error, zero
+    // new warnings" with a fresh navigate — the test is therefore honestly
+    // named for what it verifies: exactly one warning for one unmatched
+    // navigation.
+    // -----------------------------------------------------------------------
+    testWidgets(
+      'Test 8: errorBuilder logs exactly one warning for a single unmatched navigation',
+      (tester) async {
+        final warningMessages = <String>[];
+
+        // Configure the logging pipeline with a capturing sink so we can
+        // count warning-level emissions from the router's errorBuilder.
+        final sub = configureLogging(
+          level: Level.ALL,
+          includeErrorDetail: false,
+          sink: (SanitizedLog log, Level level) {
+            if (level >= Level.WARNING) {
+              warningMessages.add(log.message);
+            }
+          },
+        );
+        addTearDown(sub.cancel);
+        addTearDown(Logger.root.clearListeners);
+
+        // Override loggerProvider so the router under test reads the Logger
+        // that is already wired to our capturing pipeline above.
+        // Logger('dosly') is a cached singleton by name in package:logging,
+        // so configureLogging above and loggerProvider both share it.
+        await _pumpRouter(
+          tester,
+          overrides: [loggerProvider.overrideWithValue(Logger('dosly'))],
+        );
+
+        // Navigate to an unmatched path — triggers errorBuilder once.
+        GoRouter.of(
+          tester.element(find.byType(HomeScreen)),
+        ).go('/no-such-path');
+        await tester.pumpAndSettle();
+
+        // Exactly one warning must have been recorded.
+        expect(
+          warningMessages.where((m) => m.contains('Route resolution failed')),
+          hasLength(1),
+          reason:
+              'errorBuilder must log exactly one warning for a single unmatched navigation',
+        );
       },
     );
   });

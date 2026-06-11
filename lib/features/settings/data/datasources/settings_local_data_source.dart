@@ -77,6 +77,13 @@ class SettingsLocalDataSource {
   ///
   /// Falls back to [AppLanguage.en] when no value has been stored or the
   /// stored code does not match any [AppLanguage.code].
+  ///
+  /// Unlike [getThemeMode], a wrong-type cached value is deliberately NOT
+  /// caught here: this getter is unguarded by design. A `TypeError` from a
+  /// legacy non-string value propagates to [SettingsRepositoryImpl.load]'s
+  /// `catch`, which is the single containment boundary for the unguarded
+  /// getters (→ `Left(Failure.unknown)`). Only [getThemeMode] needs an internal
+  /// guard, because its key had a documented legacy `int` → `String` migration.
   AppLanguage getManualLanguage() {
     final String? code = _prefs.getString(_kManualLanguageKey);
     if (code == null) {

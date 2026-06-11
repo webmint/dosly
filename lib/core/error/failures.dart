@@ -45,5 +45,6 @@ sealed class Failure with _$Failure {
   /// Callers MUST NOT pass user-visible strings or PII (medication names,
   /// dosages, intake history) in [error] — the default `toString()` emits
   /// `error.toString()` verbatim and may be logged.
-  const factory Failure.unknown(Object error, StackTrace stack) = UnknownFailure;
+  const factory Failure.unknown(Object error, StackTrace stack) =
+      UnknownFailure;
 }

@@ -37,9 +37,6 @@ enum AppThemeMode {
   /// Returns [AppThemeMode.light] for any unknown, null, or empty input
   /// — same defensive pattern used by `getManualLanguage()` for
   /// `AppLanguage` in `settings_local_data_source.dart`.
-  static AppThemeMode fromCodeOrDefault(String? code) =>
-      AppThemeMode.values.firstWhere(
-        (m) => m.code == code,
-        orElse: () => AppThemeMode.light,
-      );
+  static AppThemeMode fromCodeOrDefault(String? code) => AppThemeMode.values
+      .firstWhere((m) => m.code == code, orElse: () => AppThemeMode.light);
 }

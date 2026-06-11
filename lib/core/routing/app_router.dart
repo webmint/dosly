@@ -2,9 +2,11 @@
 ///
 /// Declares [appRouterProvider] — a keep-alive Riverpod provider
 /// that creates a `StatefulShellRoute.indexedStack` with three branches
-/// (Home `/`, Meds `/meds`, History `/history`) sharing a single [AppShell]
+/// (Today `/`, Meds `/meds`, History `/history`) sharing a single [AppShell]
 /// scaffold + [AppBottomNav], plus a sibling top-level [GoRoute] for
-/// `/settings`.
+/// `/settings`. Branch 0 (`/`) is built by [HomeScreen] but is surfaced in the
+/// bottom nav as the localized "Today" destination (class `HomeScreen`,
+/// destination label "Today").
 ///
 /// Branch order matches [AppBottomNav] destination order (0=Today, 1=Meds,
 /// 2=History). Do not reorder without updating the bottom nav.

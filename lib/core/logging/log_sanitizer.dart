@@ -57,11 +57,7 @@ const int _maxStackFrames = 10;
 /// The [message] field is passed through verbatim — see [SanitizedLog.message].
 class SanitizedLog {
   /// Creates a sanitized log value.
-  const SanitizedLog({
-    required this.message,
-    required this.error,
-    this.stack,
-  });
+  const SanitizedLog({required this.message, required this.error, this.stack});
 
   /// The log message, passed through verbatim from [LogRecord.message].
   ///
@@ -166,9 +162,5 @@ String? _sanitizeStack(LogRecord record) {
     return null;
   }
 
-  return stackTrace
-      .toString()
-      .split('\n')
-      .take(_maxStackFrames)
-      .join('\n');
+  return stackTrace.toString().split('\n').take(_maxStackFrames).join('\n');
 }

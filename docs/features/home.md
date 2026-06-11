@@ -13,7 +13,7 @@ Everything in this feature lives under `lib/features/home/presentation/`. There 
 - An `AppBar` with the hard-coded title `"Dosly"` (not localized — the app name is a proper noun).
 - A settings gear `IconButton` in `actions` that calls `context.push('/settings')`. The tooltip is the localized `settingsTooltip` string.
 - A 1-px `Divider` pinned to the bottom of the `AppBar` via `PreferredSize`.
-- A placeholder `body` with a centered "Hello World" text and a temporary "Theme preview" `OutlinedButton` (scheduled for post-MVP removal — see `specs/002-main-screen/spec.md` §6).
+- A placeholder `body` with a centered "Hello World" text.
 
 ```dart
 // lib/features/home/presentation/screens/home_screen.dart

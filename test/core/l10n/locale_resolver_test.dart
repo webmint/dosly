@@ -10,13 +10,10 @@ void main() {
   const supported = [Locale('de'), Locale('en'), Locale('uk')];
 
   group('resolveAppLocale', () {
-    test(
-      'should return English when device locale is null',
-      () {
-        final result = resolveAppLocale(null, supported);
-        expect(result, const Locale('en'));
-      },
-    );
+    test('should return English when device locale is null', () {
+      final result = resolveAppLocale(null, supported);
+      expect(result, const Locale('en'));
+    });
 
     test(
       'should return the matching supported locale when device locale is supported',
@@ -36,12 +33,9 @@ void main() {
       },
     );
 
-    test(
-      'should match by languageCode only — country code is ignored',
-      () {
-        final result = resolveAppLocale(const Locale('en', 'US'), supported);
-        expect(result, const Locale('en'));
-      },
-    );
+    test('should match by languageCode only — country code is ignored', () {
+      final result = resolveAppLocale(const Locale('en', 'US'), supported);
+      expect(result, const Locale('en'));
+    });
   });
 }

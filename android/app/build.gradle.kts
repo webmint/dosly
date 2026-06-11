@@ -20,8 +20,12 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.dosly"
+        // Unique reverse-DNS application id (governs the installed app's
+        // identity, per-app data dir, and allowBackup scoping). `namespace`
+        // above stays `com.example.dosly` for now — it is the code/R package
+        // name (tied to MainActivity.kt's package) and has no app-identity or
+        // at-rest-isolation impact; renaming it is a separate refactor.
+        applicationId = "dev.webmint.dosly"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

@@ -21,20 +21,20 @@ void main() {
     });
 
     test('falls back to light when code is unknown', () {
-      expect(
-        AppThemeMode.fromCodeOrDefault('unknown'),
-        AppThemeMode.light,
-      );
+      expect(AppThemeMode.fromCodeOrDefault('unknown'), AppThemeMode.light);
     });
   });
 
   group('AppThemeMode cardinality', () {
-    test('has exactly 2 values (light, dark) — system stays in useSystemTheme bool', () {
-      expect(AppThemeMode.values.length, 2);
-      expect(
-        AppThemeMode.values,
-        containsAll([AppThemeMode.light, AppThemeMode.dark]),
-      );
-    });
+    test(
+      'has exactly 2 values (light, dark) — system stays in useSystemTheme bool',
+      () {
+        expect(AppThemeMode.values.length, 2);
+        expect(
+          AppThemeMode.values,
+          containsAll([AppThemeMode.light, AppThemeMode.dark]),
+        );
+      },
+    );
   });
 }

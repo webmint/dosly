@@ -42,8 +42,9 @@ void main() {
       expect(find.text('Історія'), findsOneWidget);
     });
 
-    testWidgets('falls back to "History" for unsupported Locale("fr")',
-        (tester) async {
+    testWidgets('falls back to "History" for unsupported Locale("fr")', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('fr')));
       await tester.pumpAndSettle();
 
@@ -71,9 +72,7 @@ void main() {
         of: appBarFinder,
         matching: find.byWidgetPredicate(
           (widget) =>
-              widget is Divider &&
-              widget.height == 1 &&
-              widget.thickness == 1,
+              widget is Divider && widget.height == 1 && widget.thickness == 1,
         ),
       );
 

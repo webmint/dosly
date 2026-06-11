@@ -88,13 +88,14 @@ class SettingsNotifier extends _$SettingsNotifier {
     _errors = StreamController<Failure>.broadcast();
     ref.onDispose(_errors.close);
     final repo = ref.watch(settingsRepositoryProvider);
-    return repo.load().fold(
-      (failure) {
-        _errors.add(failure);
-        return const AppSettings();
-      },
-      (settings) => settings,
-    );
+    return repo.load().fold((failure) {
+      // No listener is subscribed at build() time, so this emit reaches no
+      // one (broadcast streams don't buffer) — see the [errors] getter
+      // dartdoc / spec 022 OQ-2. The default-state fallback below is the
+      // observable safety net.
+      _errors.add(failure);
+      return const AppSettings();
+    }, (settings) => settings);
   }
 
   /// Updates the manual theme mode, persists it, and notifies listeners.
@@ -106,12 +107,9 @@ class SettingsNotifier extends _$SettingsNotifier {
   /// failure is forwarded to [settingsErrorsProvider] so the UI can surface it.
   Future<void> setThemeMode(AppThemeMode mode) async {
     final result = await ref.read(setThemeModeProvider).call(mode);
-    result.fold(
-      (failure) => _errors.add(failure),
-      (_) {
-        state = state.copyWith(manualThemeMode: mode);
-      },
-    );
+    result.fold((failure) => _errors.add(failure), (_) {
+      state = state.copyWith(manualThemeMode: mode);
+    });
   }
 
   /// Updates whether the app should follow the device system theme, persists
@@ -124,23 +122,19 @@ class SettingsNotifier extends _$SettingsNotifier {
     bool value, {
     required AppThemeMode currentDeviceMode,
   }) async {
-    final result = await ref.read(setUseSystemThemeProvider).call(
-          value: value,
-          currentDeviceMode: currentDeviceMode,
+    final result = await ref
+        .read(setUseSystemThemeProvider)
+        .call(value: value, currentDeviceMode: currentDeviceMode);
+    result.fold((failure) => _errors.add(failure), (_) {
+      if (!value) {
+        state = state.copyWith(
+          manualThemeMode: currentDeviceMode,
+          useSystemTheme: false,
         );
-    result.fold(
-      (failure) => _errors.add(failure),
-      (_) {
-        if (!value) {
-          state = state.copyWith(
-            manualThemeMode: currentDeviceMode,
-            useSystemTheme: false,
-          );
-        } else {
-          state = state.copyWith(useSystemTheme: true);
-        }
-      },
-    );
+      } else {
+        state = state.copyWith(useSystemTheme: true);
+      }
+    });
   }
 
   /// Updates whether the app should follow the device language, persists the
@@ -153,23 +147,19 @@ class SettingsNotifier extends _$SettingsNotifier {
     bool value, {
     required AppLanguage currentDeviceLanguage,
   }) async {
-    final result = await ref.read(setUseSystemLanguageProvider).call(
-          value: value,
-          currentDeviceLanguage: currentDeviceLanguage,
+    final result = await ref
+        .read(setUseSystemLanguageProvider)
+        .call(value: value, currentDeviceLanguage: currentDeviceLanguage);
+    result.fold((failure) => _errors.add(failure), (_) {
+      if (!value) {
+        state = state.copyWith(
+          manualLanguage: currentDeviceLanguage,
+          useSystemLanguage: false,
         );
-    result.fold(
-      (failure) => _errors.add(failure),
-      (_) {
-        if (!value) {
-          state = state.copyWith(
-            manualLanguage: currentDeviceLanguage,
-            useSystemLanguage: false,
-          );
-        } else {
-          state = state.copyWith(useSystemLanguage: true);
-        }
-      },
-    );
+      } else {
+        state = state.copyWith(useSystemLanguage: true);
+      }
+    });
   }
 
   /// Updates the manual language, persists it, and notifies listeners.
@@ -178,12 +168,9 @@ class SettingsNotifier extends _$SettingsNotifier {
   /// failure is forwarded to [settingsErrorsProvider] so the UI can surface it.
   Future<void> setManualLanguage(AppLanguage language) async {
     final result = await ref.read(setManualLanguageProvider).call(language);
-    result.fold(
-      (failure) => _errors.add(failure),
-      (_) {
-        state = state.copyWith(manualLanguage: language);
-      },
-    );
+    result.fold((failure) => _errors.add(failure), (_) {
+      state = state.copyWith(manualLanguage: language);
+    });
   }
 }
 
@@ -195,11 +182,12 @@ class SettingsNotifier extends _$SettingsNotifier {
 /// pre-subscription events (accepted — see spec 022 OQ-2).
 ///
 /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
-/// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes
-/// when a listener mounts and disposes when the last listener detaches. The
-/// underlying [StreamController] lives on the kept-alive
-/// [settingsNotifierProvider], so failures emitted while no listener is
-/// subscribed are simply not buffered (the stream is event-driven, not state).
+/// errors to the user — typically as a SnackBar. This wrapper is autoDispose:
+/// it re-runs (re-reading the same long-lived stream) as listeners come and go.
+/// The broadcast [StreamController] itself lives for the lifetime of the
+/// kept-alive [settingsNotifierProvider] and is never re-created per listener,
+/// so failures emitted while no listener is subscribed are simply not buffered
+/// (the stream is event-driven, not state).
 @riverpod
 Stream<Failure> settingsErrors(Ref ref) {
   return ref.watch(settingsNotifierProvider.notifier).errors;

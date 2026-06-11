@@ -49,8 +49,9 @@ class ThemeSelector extends ConsumerWidget {
 
     // When the system toggle is active, derive the displayed segment from the
     // actual device brightness so the user can see what the system is using.
-    final AppThemeMode displayedMode =
-        useSystemTheme ? deviceMode : manualThemeMode;
+    final AppThemeMode displayedMode = useSystemTheme
+        ? deviceMode
+        : manualThemeMode;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,7 +64,8 @@ class ThemeSelector extends ConsumerWidget {
           // provides the 16 px horizontal inset.
           contentPadding: EdgeInsets.zero,
           onChanged: (bool value) {
-            ref.read(settingsNotifierProvider.notifier)
+            ref
+                .read(settingsNotifierProvider.notifier)
                 .setUseSystemTheme(value, currentDeviceMode: deviceMode);
           },
         ),
@@ -71,33 +73,34 @@ class ThemeSelector extends ConsumerWidget {
         SizedBox(
           width: double.infinity,
           child: SegmentedButton<AppThemeMode>(
-          segments: <ButtonSegment<AppThemeMode>>[
-            ButtonSegment<AppThemeMode>(
-              value: AppThemeMode.light,
-              label: Text(l10n.settingsThemeLight),
-              icon: const Icon(LucideIcons.sun),
-            ),
-            ButtonSegment<AppThemeMode>(
-              value: AppThemeMode.dark,
-              label: Text(l10n.settingsThemeDark),
-              icon: const Icon(LucideIcons.moon),
-            ),
-          ],
-          selected: <AppThemeMode>{displayedMode},
-          // Passing null disables the button in M3, but the selected segment
-          // remains visually highlighted showing the current system theme.
-          onSelectionChanged: useSystemTheme
-              ? null
-              : (Set<AppThemeMode> selection) {
-                  // M3 single-select never emits an empty set, but the type
-                  // allows it — guard so an empty selection is a no-op rather
-                  // than a `StateError` from `.first`.
-                  if (selection.isEmpty) return;
-                  ref
-                      .read(settingsNotifierProvider.notifier)
-                      .setThemeMode(selection.first);
-                },
-        ),
+            segments: <ButtonSegment<AppThemeMode>>[
+              ButtonSegment<AppThemeMode>(
+                value: AppThemeMode.light,
+                label: Text(l10n.settingsThemeLight),
+                icon: const Icon(LucideIcons.sun),
+              ),
+              ButtonSegment<AppThemeMode>(
+                value: AppThemeMode.dark,
+                label: Text(l10n.settingsThemeDark),
+                icon: const Icon(LucideIcons.moon),
+              ),
+            ],
+            selected: <AppThemeMode>{displayedMode},
+            // Passing null disables the button in M3, but the selected segment
+            // remains visually highlighted showing the current system theme.
+            onSelectionChanged: useSystemTheme
+                ? null
+                : (Set<AppThemeMode> selection) {
+                    // Defensive: with the default `emptySelectionAllowed: false`
+                    // an empty set is not reachable via the UI, but the callback
+                    // type permits it — guard so `.first` can't throw a
+                    // `StateError` if that config ever changes.
+                    if (selection.isEmpty) return;
+                    ref
+                        .read(settingsNotifierProvider.notifier)
+                        .setThemeMode(selection.first);
+                  },
+          ),
         ),
       ],
     );

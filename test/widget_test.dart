@@ -19,7 +19,7 @@ class _FakeSettingsRepository implements SettingsRepository {
   AppSettings _settings;
 
   _FakeSettingsRepository({AppSettings? initial})
-      : _settings = initial ?? const AppSettings();
+    : _settings = initial ?? const AppSettings();
 
   @override
   Either<Failure, AppSettings> load() => Right(_settings);
@@ -56,24 +56,20 @@ void main() {
     fakeRepo = _FakeSettingsRepository();
   });
 
+  testWidgets('DoslyApp renders the home screen with app bar and Hello World', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsRepositoryProvider.overrideWithValue(fakeRepo)],
+        child: const DoslyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-  testWidgets(
-    'DoslyApp renders the home screen with app bar and Hello World',
-    (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            settingsRepositoryProvider.overrideWithValue(fakeRepo),
-          ],
-          child: const DoslyApp(),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Hello World'), findsOneWidget);
-      expect(find.text('Dosly'), findsOneWidget);
-    },
-  );
+    expect(find.text('Hello World'), findsOneWidget);
+    expect(find.text('Dosly'), findsOneWidget);
+  });
 
   group('MaterialApp.locale reactivity', () {
     testWidgets(
@@ -81,9 +77,7 @@ void main() {
       (tester) async {
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
-              settingsRepositoryProvider.overrideWithValue(fakeRepo),
-            ],
+            overrides: [settingsRepositoryProvider.overrideWithValue(fakeRepo)],
             child: const DoslyApp(),
           ),
         );

@@ -20,7 +20,7 @@
 
 Features shipped so far:
 
-- **[`001-m3-theme`](features/theme.md)** — Material 3 theme tokens, Roboto typography, `ThemeData` for light and dark, and a preview screen.
+- **[`001-m3-theme`](features/theme.md)** — Material 3 theme tokens, Roboto typography, and `ThemeData` for light and dark.
 - **`002-main-screen`** — A placeholder `HomeScreen` and the adoption of `go_router` as the project's routing foundation. See [`architecture.md` § Routing](architecture.md#routing).
 - **[`004-lucide-icons`](features/icons.md)** — Adopted Lucide (via `lucide_icons_flutter`) as the app-wide icon set, replacing Material `Icons.*`.
 - **[`005-bottom-nav`](features/home.md)** — Material 3 bottom navigation bar with three destinations (Today · Meds · History).

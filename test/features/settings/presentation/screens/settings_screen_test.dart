@@ -72,15 +72,10 @@ class _FakeSettingsRepository implements SettingsRepository {
 ///
 /// An optional [fakeRepo] can be supplied to override the default always-success
 /// fake — used by error-SnackBar tests to inject per-method failure flags.
-Widget _harness({
-  required Locale locale,
-  _FakeSettingsRepository? fakeRepo,
-}) {
+Widget _harness({required Locale locale, _FakeSettingsRepository? fakeRepo}) {
   final repo = fakeRepo ?? _FakeSettingsRepository();
   return ProviderScope(
-    overrides: [
-      settingsRepositoryProvider.overrideWithValue(repo),
-    ],
+    overrides: [settingsRepositoryProvider.overrideWithValue(repo)],
     child: MaterialApp(
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -114,8 +109,9 @@ void main() {
       expect(find.text('Налаштування'), findsOneWidget);
     });
 
-    testWidgets('falls back to "Settings" for unsupported Locale("fr")',
-        (tester) async {
+    testWidgets('falls back to "Settings" for unsupported Locale("fr")', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('fr')));
       await tester.pumpAndSettle();
 
@@ -124,8 +120,9 @@ void main() {
   });
 
   group('SettingsScreen appearance header', () {
-    testWidgets('renders uppercased "APPEARANCE" header under Locale("en")',
-        (tester) async {
+    testWidgets('renders uppercased "APPEARANCE" header under Locale("en")', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('en')));
       await tester.pumpAndSettle();
 
@@ -133,16 +130,18 @@ void main() {
     });
 
     testWidgets(
-        'renders uppercased "ЗОВНІШНІЙ ВИГЛЯД" header under Locale("uk")',
-        (tester) async {
-      await tester.pumpWidget(_harness(locale: const Locale('uk')));
-      await tester.pumpAndSettle();
+      'renders uppercased "ЗОВНІШНІЙ ВИГЛЯД" header under Locale("uk")',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('uk')));
+        await tester.pumpAndSettle();
 
-      expect(find.text('ЗОВНІШНІЙ ВИГЛЯД'), findsOneWidget);
-    });
+        expect(find.text('ЗОВНІШНІЙ ВИГЛЯД'), findsOneWidget);
+      },
+    );
 
-    testWidgets('renders uppercased "DARSTELLUNG" header under Locale("de")',
-        (tester) async {
+    testWidgets('renders uppercased "DARSTELLUNG" header under Locale("de")', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('de')));
       await tester.pumpAndSettle();
 
@@ -170,9 +169,7 @@ void main() {
         of: appBarFinder,
         matching: find.byWidgetPredicate(
           (widget) =>
-              widget is Divider &&
-              widget.height == 1 &&
-              widget.thickness == 1,
+              widget is Divider && widget.height == 1 && widget.thickness == 1,
         ),
       );
 
@@ -181,24 +178,27 @@ void main() {
   });
 
   group('SettingsScreen language header', () {
-    testWidgets('renders uppercased "LANGUAGE" header under Locale("en")',
-        (tester) async {
+    testWidgets('renders uppercased "LANGUAGE" header under Locale("en")', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('en')));
       await tester.pumpAndSettle();
 
       expect(find.text('LANGUAGE'), findsOneWidget);
     });
 
-    testWidgets('renders uppercased "МОВА" header under Locale("uk")',
-        (tester) async {
+    testWidgets('renders uppercased "МОВА" header under Locale("uk")', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('uk')));
       await tester.pumpAndSettle();
 
       expect(find.text('МОВА'), findsOneWidget);
     });
 
-    testWidgets('renders uppercased "SPRACHE" header under Locale("de")',
-        (tester) async {
+    testWidgets('renders uppercased "SPRACHE" header under Locale("de")', (
+      tester,
+    ) async {
       await tester.pumpWidget(_harness(locale: const Locale('de')));
       await tester.pumpAndSettle();
 
@@ -207,9 +207,9 @@ void main() {
   });
 
   group('SettingsScreen error SnackBar', () {
-    testWidgets(
-        'shows localized error SnackBar when setUseSystemTheme fails',
-        (tester) async {
+    testWidgets('shows localized error SnackBar when setUseSystemTheme fails', (
+      tester,
+    ) async {
       final fakeRepo = _FakeSettingsRepository()
         ..failOnSaveUseSystemTheme = true;
       await tester.pumpWidget(
@@ -229,33 +229,33 @@ void main() {
     });
 
     testWidgets(
-        'shows localized error SnackBar when setUseSystemLanguage fails',
-        (tester) async {
-      final fakeRepo = _FakeSettingsRepository()
-        ..failOnSaveUseSystemLanguage = true;
-      await tester.pumpWidget(
-        _harness(locale: const Locale('en'), fakeRepo: fakeRepo),
-      );
-      await tester.pumpAndSettle();
+      'shows localized error SnackBar when setUseSystemLanguage fails',
+      (tester) async {
+        final fakeRepo = _FakeSettingsRepository()
+          ..failOnSaveUseSystemLanguage = true;
+        await tester.pumpWidget(
+          _harness(locale: const Locale('en'), fakeRepo: fakeRepo),
+        );
+        await tester.pumpAndSettle();
 
-      // Tap the "Use device language" SwitchListTile (the 2nd/last switch).
-      await tester.tap(find.byType(SwitchListTile).last);
-      await tester.pump(); // mutator runs
-      await tester.pump(const Duration(milliseconds: 100)); // SnackBar enters
+        // Tap the "Use device language" SwitchListTile (the 2nd/last switch).
+        await tester.tap(find.byType(SwitchListTile).last);
+        await tester.pump(); // mutator runs
+        await tester.pump(const Duration(milliseconds: 100)); // SnackBar enters
 
-      expect(
-        find.text("Couldn't save your preference. Please try again."),
-        findsOneWidget,
-      );
-    });
+        expect(
+          find.text("Couldn't save your preference. Please try again."),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets(
-        'shows localized error SnackBar when setThemeMode fails',
-        (tester) async {
+    testWidgets('shows localized error SnackBar when setThemeMode fails', (
+      tester,
+    ) async {
       // Only the ThemeMode save fails; the toggle-off save must succeed so the
       // SegmentedButton becomes enabled.
-      final fakeRepo = _FakeSettingsRepository()
-        ..failOnSaveThemeMode = true;
+      final fakeRepo = _FakeSettingsRepository()..failOnSaveThemeMode = true;
       await tester.pumpWidget(
         _harness(locale: const Locale('en'), fakeRepo: fakeRepo),
       );
@@ -277,9 +277,9 @@ void main() {
       );
     });
 
-    testWidgets(
-        'shows localized error SnackBar when setManualLanguage fails',
-        (tester) async {
+    testWidgets('shows localized error SnackBar when setManualLanguage fails', (
+      tester,
+    ) async {
       // Only the manual language save fails; the toggle-off save must succeed
       // so the DropdownButton becomes enabled.
       final fakeRepo = _FakeSettingsRepository()

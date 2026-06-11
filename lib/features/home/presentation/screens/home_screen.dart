@@ -28,6 +28,9 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // Brand wordmark — intentionally not localized. Capitalized 'Dosly'
+        // for in-app display; `MaterialApp.title` uses lowercase 'dosly' (the
+        // OS task-switcher / package name). The differing casing is deliberate.
         title: const Text('Dosly'),
         actions: [
           IconButton(

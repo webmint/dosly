@@ -24,88 +24,76 @@ void main() {
       useCase = SetUseSystemLanguage(repo);
     });
 
-    test(
-      'value=false, repo healthy: writes saveManualLanguage then '
-      'saveUseSystemLanguage in that order, returns Right(null)',
-      () async {
-        when(() => repo.saveManualLanguage(any()))
-            .thenAnswer((_) async => const Right<Failure, void>(null));
-        when(() => repo.saveUseSystemLanguage(any()))
-            .thenAnswer((_) async => const Right<Failure, void>(null));
+    test('value=false, repo healthy: writes saveManualLanguage then '
+        'saveUseSystemLanguage in that order, returns Right(null)', () async {
+      when(
+        () => repo.saveManualLanguage(any()),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
+      when(
+        () => repo.saveUseSystemLanguage(any()),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
 
-        final result = await useCase(
-          value: false,
-          currentDeviceLanguage: AppLanguage.uk,
-        );
+      final result = await useCase(
+        value: false,
+        currentDeviceLanguage: AppLanguage.uk,
+      );
 
-        verifyInOrder([
-          () => repo.saveManualLanguage(AppLanguage.uk),
-          () => repo.saveUseSystemLanguage(false),
-        ]);
-        expect(result, const Right<Failure, void>(null));
-      },
-    );
+      verifyInOrder([
+        () => repo.saveManualLanguage(AppLanguage.uk),
+        () => repo.saveUseSystemLanguage(false),
+      ]);
+      expect(result, const Right<Failure, void>(null));
+    });
 
-    test(
-      'value=true: writes saveUseSystemLanguage(true) only, never touches '
-      'saveManualLanguage',
-      () async {
-        when(() => repo.saveUseSystemLanguage(any()))
-            .thenAnswer((_) async => const Right<Failure, void>(null));
+    test('value=true: writes saveUseSystemLanguage(true) only, never touches '
+        'saveManualLanguage', () async {
+      when(
+        () => repo.saveUseSystemLanguage(any()),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
 
-        final result = await useCase(
-          value: true,
-          currentDeviceLanguage: AppLanguage.uk,
-        );
+      final result = await useCase(
+        value: true,
+        currentDeviceLanguage: AppLanguage.uk,
+      );
 
-        verify(() => repo.saveUseSystemLanguage(true)).called(1);
-        verifyNever(() => repo.saveManualLanguage(any()));
-        expect(result, const Right<Failure, void>(null));
-      },
-    );
+      verify(() => repo.saveUseSystemLanguage(true)).called(1);
+      verifyNever(() => repo.saveManualLanguage(any()));
+      expect(result, const Right<Failure, void>(null));
+    });
 
-    test(
-      'value=false, saveManualLanguage fails: returns Left and skips '
-      'saveUseSystemLanguage',
-      () async {
-        when(() => repo.saveManualLanguage(any())).thenAnswer(
-          (_) async => const Left<Failure, void>(CacheFailure('boom')),
-        );
+    test('value=false, saveManualLanguage fails: returns Left and skips '
+        'saveUseSystemLanguage', () async {
+      when(() => repo.saveManualLanguage(any())).thenAnswer(
+        (_) async => const Left<Failure, void>(CacheFailure('boom')),
+      );
 
-        final result = await useCase(
-          value: false,
-          currentDeviceLanguage: AppLanguage.uk,
-        );
+      final result = await useCase(
+        value: false,
+        currentDeviceLanguage: AppLanguage.uk,
+      );
 
-        expect(result, const Left<Failure, void>(CacheFailure('boom')));
-        verify(() => repo.saveManualLanguage(AppLanguage.uk)).called(1);
-        verifyNever(() => repo.saveUseSystemLanguage(any()));
-      },
-    );
+      expect(result, const Left<Failure, void>(CacheFailure('boom')));
+      verify(() => repo.saveManualLanguage(AppLanguage.uk)).called(1);
+      verifyNever(() => repo.saveUseSystemLanguage(any()));
+    });
 
-    test(
-      'value=false, saveUseSystemLanguage fails after saveManualLanguage '
-      'succeeds: returns the saveUseSystemLanguage Left',
-      () async {
-        when(() => repo.saveManualLanguage(any()))
-            .thenAnswer((_) async => const Right<Failure, void>(null));
-        when(() => repo.saveUseSystemLanguage(any())).thenAnswer(
-          (_) async =>
-              const Left<Failure, void>(CacheFailure('toggle failed')),
-        );
+    test('value=false, saveUseSystemLanguage fails after saveManualLanguage '
+        'succeeds: returns the saveUseSystemLanguage Left', () async {
+      when(
+        () => repo.saveManualLanguage(any()),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
+      when(() => repo.saveUseSystemLanguage(any())).thenAnswer(
+        (_) async => const Left<Failure, void>(CacheFailure('toggle failed')),
+      );
 
-        final result = await useCase(
-          value: false,
-          currentDeviceLanguage: AppLanguage.uk,
-        );
+      final result = await useCase(
+        value: false,
+        currentDeviceLanguage: AppLanguage.uk,
+      );
 
-        expect(
-          result,
-          const Left<Failure, void>(CacheFailure('toggle failed')),
-        );
-        verify(() => repo.saveManualLanguage(AppLanguage.uk)).called(1);
-        verify(() => repo.saveUseSystemLanguage(false)).called(1);
-      },
-    );
+      expect(result, const Left<Failure, void>(CacheFailure('toggle failed')));
+      verify(() => repo.saveManualLanguage(AppLanguage.uk)).called(1);
+      verify(() => repo.saveUseSystemLanguage(false)).called(1);
+    });
   });
 }

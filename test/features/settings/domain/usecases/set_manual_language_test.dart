@@ -28,8 +28,9 @@ void main() {
       'forwards the input to repo.saveManualLanguage and returns Right(null) '
       'on success',
       () async {
-        when(() => repo.saveManualLanguage(any()))
-            .thenAnswer((_) async => const Right<Failure, void>(null));
+        when(
+          () => repo.saveManualLanguage(any()),
+        ).thenAnswer((_) async => const Right<Failure, void>(null));
 
         final result = await useCase(AppLanguage.uk);
 
@@ -38,18 +39,15 @@ void main() {
       },
     );
 
-    test(
-      'returns the repository Left when saveManualLanguage fails',
-      () async {
-        when(() => repo.saveManualLanguage(any())).thenAnswer(
-          (_) async => const Left<Failure, void>(CacheFailure('mock failure')),
-        );
+    test('returns the repository Left when saveManualLanguage fails', () async {
+      when(() => repo.saveManualLanguage(any())).thenAnswer(
+        (_) async => const Left<Failure, void>(CacheFailure('mock failure')),
+      );
 
-        final result = await useCase(AppLanguage.uk);
+      final result = await useCase(AppLanguage.uk);
 
-        verify(() => repo.saveManualLanguage(AppLanguage.uk)).called(1);
-        expect(result, const Left<Failure, void>(CacheFailure('mock failure')));
-      },
-    );
+      verify(() => repo.saveManualLanguage(AppLanguage.uk)).called(1);
+      expect(result, const Left<Failure, void>(CacheFailure('mock failure')));
+    });
   });
 }

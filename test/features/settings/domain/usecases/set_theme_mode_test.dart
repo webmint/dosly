@@ -24,19 +24,17 @@ void main() {
       useCase = SetThemeMode(repo);
     });
 
-    test(
-      'forwards the input to repo.saveThemeMode and returns Right(null) on '
-      'success',
-      () async {
-        when(() => repo.saveThemeMode(any()))
-            .thenAnswer((_) async => const Right<Failure, void>(null));
+    test('forwards the input to repo.saveThemeMode and returns Right(null) on '
+        'success', () async {
+      when(
+        () => repo.saveThemeMode(any()),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
 
-        final result = await useCase(AppThemeMode.dark);
+      final result = await useCase(AppThemeMode.dark);
 
-        verify(() => repo.saveThemeMode(AppThemeMode.dark)).called(1);
-        expect(result, const Right<Failure, void>(null));
-      },
-    );
+      verify(() => repo.saveThemeMode(AppThemeMode.dark)).called(1);
+      expect(result, const Right<Failure, void>(null));
+    });
 
     test('returns the repository Left when saveThemeMode fails', () async {
       when(() => repo.saveThemeMode(any())).thenAnswer(
