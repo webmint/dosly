@@ -5,11 +5,12 @@
 /// - [sharedPreferencesInit] — the async creation seam that builds the
 ///   app-wide [SharedPreferencesWithCache] instance. It is awaited (via
 ///   `AsyncValue`) by the `AppBootstrap` widget during startup.
-/// - [sharedPreferences] — a synchronous, throwing placeholder. It exists so
-///   the settings provider tree can read prefs synchronously. The
-///   `AppBootstrap` widget injects the resolved value from
-///   [sharedPreferencesInit] as an override for this provider; until then it
-///   throws to surface a missing-override programmer error immediately.
+/// - [sharedPreferences] — a synchronous accessor the settings provider tree
+///   reads. It exposes the value resolved by [sharedPreferencesInit] via
+///   `requireValue`. `AppBootstrap` only mounts the widgets that read it after
+///   [sharedPreferencesInit] has resolved (its `data` branch), so the
+///   synchronous read always succeeds; reading it before then is a programmer
+///   error that surfaces immediately.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -41,22 +42,14 @@ Future<SharedPreferencesWithCache> sharedPreferencesInit(Ref ref) =>
 
 /// Provides the application-wide [SharedPreferencesWithCache] instance.
 ///
-/// This provider uses a throwing placeholder — failing to inject an override
-/// is a programmer error that surfaces immediately at startup. The override is
-/// injected by `AppBootstrap`'s data branch (a nested [ProviderScope]) once
-/// [sharedPreferencesInit] resolves:
-///
-/// ```dart
-/// // Inside AppBootstrap.build — data branch
-/// ProviderScope(
-///   overrides: [
-///     sharedPreferencesProvider.overrideWithValue(prefs),
-///   ],
-///   child: const DoslyApp(),
-/// );
-/// ```
+/// Returns the value resolved by [sharedPreferencesInit] via `requireValue`,
+/// giving the settings provider tree a synchronous read. `AppBootstrap` only
+/// mounts `DoslyApp` (and therefore the settings providers that read this) in
+/// its `data` branch — after [sharedPreferencesInit] has resolved — so
+/// `requireValue` always has a value. If this is read while
+/// [sharedPreferencesInit] is still loading or in error, `requireValue` throws,
+/// surfacing the programmer error immediately. Tests may still override this
+/// provider directly with a fake or in-memory instance.
 @Riverpod(keepAlive: true)
 SharedPreferencesWithCache sharedPreferences(Ref ref) =>
-    throw UnimplementedError(
-      'sharedPreferencesProvider must be overridden by AppBootstrap',
-    );
+    ref.watch(sharedPreferencesInitProvider).requireValue;

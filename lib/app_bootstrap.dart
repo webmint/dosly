@@ -9,10 +9,10 @@
 /// * **error** — shows [PrefsLoadErrorScreen] inside the same shell; the Retry
 ///   button calls [ProviderRef.invalidate] on
 ///   [sharedPreferencesInitProvider] to re-trigger the async init.
-/// * **data** — wraps [DoslyApp] in a nested [ProviderScope] that overrides
-///   the synchronous [sharedPreferencesProvider] with the resolved instance.
-///   This preserves the synchronous-read contract used by
-///   `lib/features/settings/**` without any change to that code.
+/// * **data** — mounts [DoslyApp] directly. By this point
+///   [sharedPreferencesInitProvider] has resolved, so the synchronous
+///   [sharedPreferencesProvider] (which reads that resolved value) serves the
+///   settings provider tree without any nested scope or override.
 ///
 /// Only one [MaterialApp] is ever mounted at a time: the loading and error
 /// branches use [_bootstrapShell]; the data branch returns [DoslyApp] which
@@ -39,8 +39,8 @@ import 'l10n/app_localizations.dart';
 /// * [AsyncLoading] → [SplashScreen] (with a [MaterialApp] bootstrap shell)
 /// * [AsyncError] → [PrefsLoadErrorScreen] (with a [MaterialApp] bootstrap
 ///   shell; the Retry button invalidates the init provider)
-/// * [AsyncData] → [DoslyApp] wrapped in a [ProviderScope] override that
-///   injects the resolved [SharedPreferencesWithCache] instance
+/// * [AsyncData] → [DoslyApp] mounted directly (the resolved prefs are served
+///   by [sharedPreferencesProvider], which reads [sharedPreferencesInitProvider])
 ///
 /// `const`-constructible — Flutter's element reuse applies.
 class AppBootstrap extends ConsumerWidget {
@@ -61,10 +61,7 @@ class AppBootstrap extends ConsumerWidget {
               onRetry: () => ref.invalidate(sharedPreferencesInitProvider),
             ),
           ),
-          data: (prefs) => ProviderScope(
-            overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-            child: const DoslyApp(),
-          ),
+          data: (_) => const DoslyApp(),
         );
   }
 
