@@ -63,9 +63,11 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
             children: [
               TextField(
                 controller: _nameController,
+                // Outline/label styling comes from the global
+                // `inputDecorationTheme` (outlined, transparent) — no
+                // call-site border/color overrides.
                 decoration: InputDecoration(
                   labelText: context.l10n.medsAddNameLabel,
-                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),

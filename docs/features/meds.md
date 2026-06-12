@@ -22,15 +22,15 @@ Everything in this feature lives under `lib/features/meds/presentation/`. There 
 - A `Scaffold + AppBar` carrying the localized title `context.l10n.medsAddTitle` ("Add medication").
 - A leading `IconButton` (back arrow, `LucideIcons.arrowLeft`) that calls `Navigator.of(context).pop()`.
 - A `SingleChildScrollView → Padding(16) → Column(crossAxisAlignment: stretch)` body containing:
-  - An outlined `TextField` bound to `_nameController` with label `context.l10n.medsAddNameLabel` and `OutlineInputBorder`.
+  - An outlined `TextField` bound to `_nameController` with label `context.l10n.medsAddNameLabel`. The outlined, transparent styling (2px outline, `primary` on focus) comes from the global `inputDecorationTheme` in `lib/core/theme/app_theme.dart` — no call-site border/color overrides.
   - A full-width `FilledButton.icon` (`LucideIcons.save` + `context.l10n.medsAddSaveButton`) with `onPressed: () {}` — a **deliberate no-op**.
 
 ```dart
 TextField(
   controller: _nameController,
+  // Outline/label styling inherited from the global inputDecorationTheme.
   decoration: InputDecoration(
     labelText: context.l10n.medsAddNameLabel,
-    border: const OutlineInputBorder(),
   ),
 ),
 const SizedBox(height: 16),
