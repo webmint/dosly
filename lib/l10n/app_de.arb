@@ -16,6 +16,8 @@
   "settingsPersistenceError": "Einstellung konnte nicht gespeichert werden. Bitte erneut versuchen.",
   "medsAddFabTooltip": "Medikament hinzufügen",
   "medsAddTitle": "Medikament hinzufügen",
+  "medsAddNameLabel": "Medikamentenname",
+  "medsAddSaveButton": "Speichern",
   "errorScreenTitle": "Seite nicht gefunden",
   "errorScreenBody": "Wir konnten dieses Ziel nicht finden.",
   "errorScreenGoHome": "Zur Startseite",
