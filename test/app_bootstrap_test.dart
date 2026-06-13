@@ -245,4 +245,44 @@ void main() {
       },
     );
   });
+
+  // -------------------------------------------------------------------------
+  // Real settings wiring (regression)
+  // -------------------------------------------------------------------------
+
+  group('real settings wiring', () {
+    /// Regression test for the startup crash where the settings provider tree
+    /// resolved [sharedPreferencesProvider] in the root container (throwing
+    /// "must be overridden by AppBootstrap") because a nested-scope override
+    /// did not propagate to the un-scoped settings providers.
+    ///
+    /// Unlike the other data-branch tests, this one deliberately does NOT
+    /// override [settingsRepositoryProvider], so the REAL chain runs:
+    /// DoslyApp → settingsNotifier → settingsRepository →
+    /// sharedPreferencesProvider. With the fix, sharedPreferencesProvider reads
+    /// the resolved [sharedPreferencesInitProvider] value, so DoslyApp inflates
+    /// without throwing.
+    testWidgets(
+      'data branch inflates DoslyApp via the real settings provider chain',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              sharedPreferencesInitProvider.overrideWith(
+                (ref) => Future<SharedPreferencesWithCache>.value(realPrefs),
+              ),
+              // settingsRepositoryProvider is intentionally NOT overridden —
+              // sharedPreferencesProvider must serve the resolved prefs.
+            ],
+            child: const AppBootstrap(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DoslyApp), findsOneWidget);
+        // No ProviderException (or any error) escaped during build.
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
 }

@@ -60,6 +60,12 @@ class AppLocalizationsUk extends AppLocalizations {
   String get medsAddTitle => 'Додати ліки';
 
   @override
+  String get medsAddNameLabel => 'Назва ліків';
+
+  @override
+  String get medsAddSaveButton => 'Зберегти';
+
+  @override
   String get errorScreenTitle => 'Сторінку не знайдено';
 
   @override

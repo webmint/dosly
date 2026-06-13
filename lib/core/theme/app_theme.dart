@@ -80,14 +80,20 @@ class AppTheme {
         elevation: 0,
       ),
       inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: scheme.surfaceContainerHigh,
+        // Outlined, transparent fields per the design template (`.fi`): a 2px
+        // outline that is `outline` when idle and `primary` when focused, with
+        // the `shape-xs` (4px) corner radius. Not filled — no gray fill.
+        filled: false,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: scheme.outline, width: 2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: scheme.outline, width: 2),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(4),
           borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
       ),

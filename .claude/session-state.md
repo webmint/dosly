@@ -2,25 +2,24 @@
 # Session State
 
 ## Current Feature
-None active. Last shipped: 025-typed-logger. Most recent work: `/audit` (2026-06-10 report) then a `/fix` batch resolving the audit's actionable findings.
+026-add-med-name-input — Add-medication form, iteration 1 (VISUAL-ONLY): medication-name field + no-op Save button in AddMedicationModal. Branch `spec/026-add-med-name-input`. All tasks Complete; ready for `/review` → `/verify` → `/summarize` → `/finalize`.
 
 ## Progress
-Ran `/audit` (full) → `audits/2026-06-10-audit.md`: 0 Critical, 0 High, 8 Medium, 17 Info (1 finding discarded by validation). Then `/fix` batch on branch `fix/audit-2026-06-10` (commit 5003000, local-only, NOT pushed; audit report left untracked). Resolved 11 code/doc/format findings + 6 new tests + app-id rename. No-action by design: AR4, SR2, QA8. Deferred: SR1 (release keystore).
+2 of 2 tasks Complete. Task 001 (l10n keys) + Task 002 (modal field + no-op Save button + test). Multi-iteration feature: this is iteration 1; later iterations add the rest of the form; the FINAL iteration adds real data save (drift + domain + repository). Roadmap in research/2026-06-11-add-medication-name-save.md.
 
 ## Recently Completed (last 3)
-- /fix audit-2026-06-10 batch: dart format lib+test (CR1); dartdoc/comment accuracy (CR2/3/4/5/6/7, AR2/3/5/6/7); drop Roboto 300/700 fonts (CR8); applicationId→dev.webmint.dosly (SR3); +6 coverage tests (QA1-5)
-- AR1 attempted then REVERTED — guarding getManualLanguage broke a deliberate spec-022 AC-2 test (see MEMORY); kept unguarded, documented the asymmetry
-- /audit 2026-06-10 full codebase review (4 adversarial agents, stream-validated)
+- Task 002: AddMedicationModal StatelessWidget→StatefulWidget; body = SingleChildScrollView→Padding(16)→Column(stretch) with outlined name TextField + full-width FilledButton.icon(LucideIcons.save) no-op Save; test updated. analyze clean, 294 tests pass, apk built. Review APPROVE-with-warnings → both fixed.
+- Task 001: added medsAddNameLabel + medsAddSaveButton across en/de/uk (@meta en-only), regenerated bindings. analyze clean, 292 tests pass. Review APPROVE.
 
 ## Recent Decisions
-- Unguarded settings getters (except getThemeMode) are by-design; repo-level catch is the boundary — future audits/fixes must NOT add guards (see MEMORY 2026-06-10)
-- SR3: changed applicationId only, left namespace=com.example.dosly (avoids MainActivity.kt package move)
-- SR1 (debug-keystore release signing) deferred to release-prep (personal-use app, no release yet)
+- Save button is an INTENTIONAL documented no-op this iteration (enabled, onPressed: () {}); no persistence/validation/domain/Riverpod (all out-of-scope per spec 026).
+- Plain StatefulWidget (not ConsumerStatefulWidget) — no Riverpod need yet.
+- Explicit `OutlineInputBorder()` overrides the global filled/rounded inputDecorationTheme — deferred reconciliation to the data-save iteration (see MEMORY).
 
 ## Recently Modified Files
-- lib/features/settings/data/datasources/settings_local_data_source.dart (AR1 revert+doc), .../repositories/settings_repository_impl.dart, .../providers/settings_provider.dart
-- pubspec.yaml, lib/core/theme/app_text_theme.dart, lib/core/{logging/logger,routing/app_router}.dart, android/app/build.gradle.kts
-- docs/{features/home,features/theme,overview}.md; +6 tests (logger, log_sanitizer, settings_provider, app_router)
+- lib/features/meds/presentation/widgets/add_medication_modal.dart (first TextField / controller-owning StatefulWidget in the project)
+- test/features/meds/presentation/widgets/add_medication_modal_test.dart
+- lib/l10n/app_{en,de,uk}.arb (+ regenerated app_localizations*.dart)
 
 ## Verification
-dart analyze: clean | flutter test: 292 pass | flutter build apk --debug: built | code-review: APPROVE (1 warning addressed)
+dart analyze: clean | flutter test: 294 pass | flutter build apk --debug: built | code-review: both tasks APPROVE (Task 002 warnings fixed)

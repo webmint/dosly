@@ -1,4 +1,5 @@
-// Tests enforce AC-4, AC-5, AC-9, AC-12 from spec 011-meds-add-fab.
+// Tests for the AddMedicationModal. The body field/Save-button tests enforce
+// spec 026-add-med-name-input; the AppBar back-arrow/title/typography tests carry over from spec 011-meds-add-fab.
 import 'package:dosly/core/l10n/locale_resolver.dart';
 import 'package:dosly/features/meds/presentation/widgets/add_medication_modal.dart';
 import 'package:dosly/l10n/app_localizations.dart';
@@ -59,22 +60,6 @@ void main() {
       );
     });
 
-    testWidgets('body is empty (SizedBox.shrink)', (tester) async {
-      await tester.pumpWidget(_harness(locale: const Locale('en')));
-      await tester.pumpAndSettle();
-
-      // Verify the body contains no interactive or form widgets.
-      expect(find.byType(ElevatedButton), findsNothing);
-      expect(find.byType(OutlinedButton), findsNothing);
-      expect(find.byType(TextButton), findsNothing);
-      expect(find.byType(TextField), findsNothing);
-      expect(find.byType(Form), findsNothing);
-
-      // The Scaffold body itself must be SizedBox.shrink.
-      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-      expect(scaffold.body, isA<SizedBox>());
-    });
-
     testWidgets('AppBar has a back-arrow IconButton leading', (tester) async {
       await tester.pumpWidget(_harness(locale: const Locale('en')));
       await tester.pumpAndSettle();
@@ -85,9 +70,56 @@ void main() {
           matching: find.byType(IconButton),
         ),
       );
+      expect(iconButton.icon, isA<Icon>());
       final icon = iconButton.icon as Icon;
       expect(icon.icon, LucideIcons.arrowLeft);
     });
+
+    testWidgets('body contains a TextField with the localized name label', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_harness(locale: const Locale('en')));
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.decoration?.labelText, 'Medication name');
+    });
+
+    testWidgets(
+      'body contains a FilledButton with Save label and save icon',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.widgetWithText(FilledButton, 'Save'),
+          findsOneWidget,
+        );
+
+        // Verify the icon inside the FilledButton is LucideIcons.save.
+        final icon = tester.widget<Icon>(
+          find.descendant(
+            of: find.byType(FilledButton),
+            matching: find.byType(Icon),
+          ),
+        );
+        expect(icon.icon, LucideIcons.save);
+      },
+    );
+
+    testWidgets(
+      'tapping Save does not throw and does not pop the modal',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(FilledButton));
+        await tester.pump();
+
+        // The modal must still be in the tree — Save is a no-op in iteration 1.
+        expect(find.byType(AddMedicationModal), findsOneWidget);
+      },
+    );
   });
 
   group('AddMedicationModal typography', () {

@@ -58,6 +58,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get medsAddTitle => 'Medikament hinzufügen';
 
   @override
+  String get medsAddNameLabel => 'Medikamentenname';
+
+  @override
+  String get medsAddSaveButton => 'Speichern';
+
+  @override
   String get errorScreenTitle => 'Seite nicht gefunden';
 
   @override

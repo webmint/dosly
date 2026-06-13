@@ -64,6 +64,14 @@
   "@medsAddTitle": {
     "description": "Title shown at the top of the placeholder Add-medication full-screen modal on the Meds screen."
   },
+  "medsAddNameLabel": "Medication name",
+  "@medsAddNameLabel": {
+    "description": "Floating label for the medication-name text field in the Add-medication modal."
+  },
+  "medsAddSaveButton": "Save",
+  "@medsAddSaveButton": {
+    "description": "Label on the Save button in the Add-medication modal (visual-only placeholder, no-op in iteration 1)."
+  },
   "errorScreenTitle": "Page not found",
   "@errorScreenTitle": {
     "description": "Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link)."

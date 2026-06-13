@@ -196,6 +196,18 @@ abstract class AppLocalizations {
   /// **'Add medication'**
   String get medsAddTitle;
 
+  /// Floating label for the medication-name text field in the Add-medication modal.
+  ///
+  /// In en, this message translates to:
+  /// **'Medication name'**
+  String get medsAddNameLabel;
+
+  /// Label on the Save button in the Add-medication modal (visual-only placeholder, no-op in iteration 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get medsAddSaveButton;
+
   /// Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link).
   ///
   /// In en, this message translates to:
