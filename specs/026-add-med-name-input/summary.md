@@ -1,42 +1,46 @@
 ## Feature Summary: 026 — Add-Medication Name Field + Save Button (visual-only, iteration 1)
 
 ### What was built
-The previously-empty "Add medication" modal now shows the first real piece of the add-medication form: a medication-name text field and a Save button, styled to match the app design and localized in English, German, and Ukrainian. This is iteration 1 of a multi-step form — it is intentionally visual only: the Save button is a documented no-op and nothing is stored yet. Persistence and the rest of the form land in later iterations.
+The previously-empty "Add medication" modal now shows the first piece of the add-medication form: a medication-name text field and a Save button, styled to the app design and localized in English, German, and Ukrainian. This is iteration 1 of a multi-step form — visual only: the Save button is a documented no-op and nothing is stored yet. The on-device run also surfaced and fixed two pre-existing app-wide issues (a startup crash and gray-filled text inputs).
 
 ### Changes
-- Task 001: Add `medsAddNameLabel` + `medsAddSaveButton` l10n keys — added the field-label and Save-button strings across en/de/uk (English template carries the `@`-metadata) and regenerated the localization bindings.
-- Task 002: Add name field + no-op Save button to `AddMedicationModal` (+ update test) — converted the modal to a `StatefulWidget` owning a disposed `TextEditingController`; replaced the empty body with a scrollable, keyboard-safe outlined name `TextField` and a full-width filled Save button (Lucide save icon, enabled, intentional no-op); rewrote the widget test accordingly.
+- Task 001: Add `medsAddNameLabel` + `medsAddSaveButton` l10n keys — field-label and Save-button strings across en/de/uk (`@`-metadata in English), bindings regenerated.
+- Task 002: Add name field + no-op Save button to `AddMedicationModal` — converted the modal to a `StatefulWidget` with a disposed `TextEditingController`; replaced the empty body with a scrollable outlined name `TextField` + full-width filled Save button; updated the widget test.
+- fix(startup): the app crashed at launch (`sharedPreferencesProvider must be overridden`) because a nested-ProviderScope override didn't propagate to the un-scoped settings providers — `sharedPreferencesProvider` now reads the resolved `sharedPreferencesInitProvider` value and `AppBootstrap` mounts `DoslyApp` directly; added a regression test that exercises the real provider chain.
+- fix(theme): text inputs were filled-gray — changed the global `inputDecorationTheme` to outlined/transparent (2px outline, primary on focus, 4px corners) per the design template.
 
 ### Files changed
-- `lib/features/meds/presentation/widgets/` — 1 file modified (the modal)
-- `lib/l10n/` — 3 ARB files + 4 regenerated binding files modified
-- `test/features/meds/presentation/widgets/` — 1 file modified (modal test)
-- `specs/026-add-med-name-input/`, `.claude/` — feature artifacts (spec/plan/tasks/review/verify, memory, session-state)
+- `lib/features/meds/presentation/widgets/` — 1 file (the modal)
+- `lib/core/providers/`, `lib/app_bootstrap.dart` — startup wiring (2 files)
+- `lib/core/theme/app_theme.dart` — global input theme
+- `lib/l10n/` — 3 ARBs + 4 regenerated bindings
+- `test/` — modal test + `app_bootstrap_test.dart` (regression test)
 
-Source/test/l10n: 9 files changed, 149 insertions(+), 33 deletions(-). Including artifacts: 19 files, 741(+), 45(−).
+Source/test/l10n: 13 files changed, 224 insertions(+), 70 deletions(-). Including artifacts/docs: 25 files, 974(+), 101(−).
 
 ### Key decisions
-- Widget type: plain `StatefulWidget` (not `ConsumerStatefulWidget`) — needs a disposable controller but has no shared state to expose yet (KISS; Riverpod deferred to the data-save iteration).
-- Save behavior: enabled button with an intentional documented no-op `onPressed: () {}` — visual-only per the user's "no data save yet" constraint; no validation, persistence, or navigation.
-- Layout: `SingleChildScrollView → Padding → Column(stretch)` — keyboard-safe and gives the Save button full width without explicit sizing.
-- Icon: `LucideIcons.save` (verified present in `lucide_icons_flutter 3.1.12`), consistent with the project's existing Lucide usage.
+- Widget type: plain `StatefulWidget` (not `ConsumerStatefulWidget`) — owns a disposable controller, no shared state to expose yet (KISS).
+- Save behavior: enabled button with an intentional documented no-op — visual-only iteration, no persistence/validation.
+- Startup fix: sync provider reads `sharedPreferencesInitProvider.requireValue` (resolved before `DoslyApp` mounts) rather than per-provider Riverpod `dependencies:` scoping — simpler, preserves the non-blocking splash, no codegen churn.
+- Input styling fixed at the global theme (not per field) so the whole future form inherits the outlined look; redundant call-site `OutlineInputBorder` removed.
 
 ### Deviations from plan
-- Task 002: code review (APPROVE with warnings) surfaced two in-scope test-file issues that were fixed immediately — a stale `spec 011` header comment was rewritten to name both specs, and an unguarded `as Icon` cast was guarded with `isA<Icon>()`.
+- Task 002: code review fixed two in-scope test-file issues (a stale `spec 011` header comment; an unguarded `as Icon` cast → `isA<Icon>()`).
+- Out-of-spec (user-authorized): the startup and theme fixes were mixed into this branch to unblock on-device testing and resolve the gray input — outside spec 026's declared Affected Areas, flagged in `verify.md`.
 
 ### Acceptance criteria
 - [x] AC-1: Modal is a `StatefulWidget`; `TextEditingController` disposed in `dispose()`
-- [x] AC-2: Body is a scrollable container with one `TextField` + one `FilledButton`; AppBar unchanged
-- [x] AC-3: Outlined name field labelled via `medsAddNameLabel`, no call-site style overrides
+- [x] AC-2: Scrollable body with one `TextField` + one `FilledButton`; AppBar unchanged
+- [x] AC-3: Outlined name field (`medsAddNameLabel`); outline now supplied by the global theme, no call-site overrides
 - [x] AC-4: Full-width `FilledButton.icon` with `LucideIcons.save` + `medsAddSaveButton`
-- [x] AC-5: Save is enabled and a documented no-op (no read/validate/persist/navigate/pop/feedback)
-- [x] AC-6: Both keys present in en/de/uk with the specified values
+- [x] AC-5: Save is enabled and a documented no-op
+- [x] AC-6: Both keys present in en/de/uk
 - [x] AC-7: `@`-description metadata only in `app_en.arb`
-- [x] AC-8: Strings via `context.l10n`; no `!` null-assertion
+- [x] AC-8: Strings via `context.l10n`; no `!`
 - [x] AC-9: `dart analyze` clean
-- [x] AC-10: Test updated (empty-body assertion removed; field/button/no-op tests added; locale/back-arrow/typography kept)
-- [x] AC-11: `flutter test` passes (294)
+- [x] AC-10: Test updated (empty-body removed; field/button/no-op tests added; locale/back-arrow/typography kept)
+- [x] AC-11: `flutter test` passes (295)
 - [x] AC-12: `flutter build apk --debug` succeeds
-- [ ] AC-13: Manual on-device theme/locale check (deferred to user run-through)
+- [~] AC-13: On-device check — boots, modal opens, input outlined (user-confirmed); full light/dark + en/de/uk matrix is a remaining quick eyeball
 
-> Verify verdict: APPROVED with non-blocking test-coverage warnings (controller-disposal and DE/UK-label assertions are beyond the AC-required tests — optional follow-up).
+> Verify verdict: APPROVED with non-blocking warnings (controller-disposal, DE/UK label, and theme-border test assertions — optional follow-ups). App boots and runs on-device; startup crash fixed and locked by a regression test.

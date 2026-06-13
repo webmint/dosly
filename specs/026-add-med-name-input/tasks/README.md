@@ -66,10 +66,11 @@ None. The task File Impact exactly matches the spec's Affected Areas (modal widg
 
 All 13 ACs covered.
 
-## Verification (2026-06-12)
+## Verification (2026-06-12, re-verified after on-device run)
 
-Both tasks Complete. `/verify` verdict: **APPROVED** (with non-blocking test-coverage warnings).
-- AC: 12/12 automatable PASS · AC-13 MANUAL (device run-through).
-- `dart analyze`: clean · `flutter test`: 294 pass · `flutter build apk --debug`: built.
-- Review: Security PASS (0 Crit/High) · Performance clean (1 Low info) · Test GAPS FOUND (warnings only — beyond AC scope).
+Both tasks Complete. `/verify` verdict: **APPROVED** (with non-blocking warnings).
+- AC: 12/12 automatable PASS · AC-13 PARTIAL (user-confirmed on-device: boots, modal opens, input outlined).
+- `dart analyze`: clean · `flutter test`: **295 pass** · `flutter build apk --debug`: built · **on-device boot: confirmed**.
+- Review (full branch): Security PASS (0 Crit/High) · Performance 1 Medium (latent/unreachable) + 2 Low · Test GAPS FOUND (warnings only).
+- **Out-of-spec fixes mixed into the branch** (user-authorized): `fix(startup)` (resolved a latent first-device-run crash — nested-scope override didn't propagate; see MEMORY) and `fix(theme)` (inputs outlined/transparent instead of filled-gray).
 - Full report: `../verify.md` · Review: `../review.md`.

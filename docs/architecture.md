@@ -106,16 +106,16 @@ void main() {
 
 - **loading** — renders `SplashScreen` inside a lightweight `MaterialApp` shell so the OS launch-screen hand-off is seamless.
 - **error** — renders `PrefsLoadErrorScreen` inside the same shell; its Retry button calls `ref.invalidate(sharedPreferencesInitProvider)` to re-trigger the async init. The typed logger (`lib/core/logging/`, feature 025) now exists; the router error path logs routing failures through it (sanitized, debug-only). This bootstrap error branch remains UI-only — its failure surfacing is tracked separately (bug 003).
-- **data** — wraps `DoslyApp` in a nested `ProviderScope` that overrides the synchronous `sharedPreferencesProvider` with the resolved instance, preserving the settings tree's synchronous-read contract unchanged.
+- **data** — mounts `const DoslyApp()` directly. By this point `sharedPreferencesInitProvider` has resolved, so the synchronous `sharedPreferencesProvider` (which calls `ref.watch(sharedPreferencesInitProvider).requireValue`) serves the settings provider tree without any nested scope or override.
 
-`sharedPreferencesProvider` (in `lib/core/providers/shared_preferences_provider.dart`) is declared with a throwing placeholder — failing to inject the override is a programmer error surfaced immediately. The override now lives in `AppBootstrap`'s data branch rather than in `main()`.
+`sharedPreferencesProvider` (in `lib/core/providers/shared_preferences_provider.dart`) exposes the value resolved by `sharedPreferencesInitProvider` via `requireValue`, giving the settings tree a synchronous read. Because `AppBootstrap` only mounts `DoslyApp` in its `data` branch — after init has resolved — `requireValue` always succeeds on the real startup path. (Reading it before init resolves is a programmer error that surfaces immediately via `requireValue`'s throw.) Tests may still override this provider directly with a fake or in-memory instance.
 
 ### Provider wiring
 
 | Provider | Type | Purpose |
 |---|---|---|
-| `sharedPreferencesInitProvider` | `@riverpod` function (Future) | Async creation of the prefs instance; awaited by `AppBootstrap` before the sync provider is overridden |
-| `sharedPreferencesProvider` | `@Riverpod(keepAlive: true)` function | App-wide prefs instance, override-injected by `AppBootstrap`'s data branch; throwing placeholder until then |
+| `sharedPreferencesInitProvider` | `@riverpod` function (Future) | Async creation of the prefs instance; awaited by `AppBootstrap` before `DoslyApp` is mounted |
+| `sharedPreferencesProvider` | `@Riverpod(keepAlive: true)` function | App-wide prefs instance; reads `sharedPreferencesInitProvider.requireValue` — synchronous because `AppBootstrap` only exposes it after init resolves |
 | `appRouterProvider` | `@Riverpod(keepAlive: true)` function | App-wide `GoRouter` instance with `onDispose`-bound lifecycle |
 | `settingsRepositoryProvider` | `@riverpod` function (autoDispose) | Wires data source to repository |
 | `settingsNotifierProvider` | `@Riverpod(keepAlive: true, name: 'settingsNotifierProvider')` class form | Current settings + mutation API |
@@ -272,7 +272,7 @@ class AppShell extends StatelessWidget {
 
 `lib/main.dart` bootstraps the app synchronously: it calls `WidgetsFlutterBinding.ensureInitialized()` and then `runApp` immediately — no `await`, no async work. Async initialization (currently SharedPreferences hydration) is delegated to `AppBootstrap` inside the widget tree, per constitution §4.2.1 ("Never block `main()` on async work"). Future async work (database open, notification scheduler init) follows the same pattern: add a new `@riverpod` init provider and gate the dependent UI on its `AsyncValue` in `AppBootstrap`.
 
-All UI wiring happens in `lib/app.dart`. `DoslyApp` is a `ConsumerWidget` rather than a plain `StatelessWidget`. The `ProviderScope` override for `sharedPreferencesProvider` is now injected by `AppBootstrap`'s data branch (a nested `ProviderScope`), not by `main()`. See [App-wide state](#app-wide-state-riverpod--sharedpreferences) above.
+All UI wiring happens in `lib/app.dart`. `DoslyApp` is a `ConsumerWidget` rather than a plain `StatelessWidget`. It is mounted directly by `AppBootstrap`'s `data` branch — no nested `ProviderScope` or override is needed because `sharedPreferencesProvider` reads the value already resolved by `sharedPreferencesInitProvider`. See [App-wide state](#app-wide-state-riverpod--sharedpreferences) above.
 
 ## Related
 
