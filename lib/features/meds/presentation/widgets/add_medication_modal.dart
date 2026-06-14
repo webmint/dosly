@@ -1,12 +1,16 @@
-/// Meds feature — full-screen modal for the Add-medication flow (iteration 2).
+/// Meds feature — full-screen modal for the Add-medication flow (iteration 3).
 ///
 /// This library hosts [AddMedicationModal], a full-screen modal route
 /// pushed when the user taps the Add-medication FAB on the Meds screen.
 /// The body renders a medication-name text field, a medication-form picker
-/// ([_MedicationFormPicker] — spec 027, iteration 2), and a Save button.
-/// In this second iteration (spec 027-med-form-picker) the Save button
-/// remains an intentional no-op and the selected form is local state only —
-/// the data-save iteration will wire both fields to a real persistence layer.
+/// ([_MedicationFormPicker] — spec 027, iteration 2), form-dependent input
+/// fields ([_DoseField], [_QuantityStepper], [_StockCard] — spec 028,
+/// iteration 3), and a Save button.
+///
+/// **Visual-only iteration 3 (spec 028)**: The conditional fields are LOCAL
+/// STATE only — no values are read by Save, validated, or persisted.  The
+/// data-save iteration will wire all controllers and stepper values to a real
+/// persistence layer.  Save remains an intentional no-op.
 library;
 
 import 'package:flutter/material.dart';
@@ -22,7 +26,7 @@ import '../../../../l10n/l10n_extensions.dart';
 /// An immutable descriptor for a single medication-form option displayed in
 /// [_MedicationFormPicker].
 ///
-/// Visual-only (spec 027, iteration 2): instances are never persisted.
+/// Visual-only (spec 027 / 028, iterations 2–3): instances are never persisted.
 /// The [key] string matches the planned domain enum name so future wiring
 /// is a straightforward search-and-replace.
 @immutable
@@ -32,6 +36,13 @@ class _MedFormOption {
     required this.icon,
     required this.name,
     required this.sub,
+    this.hasDose = false,
+    this.hasQuantity = false,
+    this.hasStock = false,
+    this.doseUnits = const [],
+    this.quantityStep = 1,
+    this.quantityMin = 1,
+    this.quantityUnit,
   });
 
   /// Stable identifier that matches the planned domain enum name.
@@ -45,13 +56,51 @@ class _MedFormOption {
 
   /// Localized sub-description (e.g. route of administration).
   final String Function(AppLocalizations l10n) sub;
+
+  /// Whether this form shows the dose amount + unit fields.
+  ///
+  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  final bool hasDose;
+
+  /// Whether this form shows the quantity-per-intake stepper.
+  ///
+  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  final bool hasQuantity;
+
+  /// Whether this form shows the pack-stock card.
+  ///
+  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  final bool hasStock;
+
+  /// Ordered list of localized dose-unit label builders for this form.
+  ///
+  /// Only meaningful when [hasDose] is `true`.
+  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  final List<String Function(AppLocalizations l10n)> doseUnits;
+
+  /// The increment / decrement step for the quantity stepper.
+  ///
+  /// Only meaningful when [hasQuantity] is `true`.
+  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  final double quantityStep;
+
+  /// The minimum allowed value for the quantity stepper (also the reset value).
+  ///
+  /// Only meaningful when [hasQuantity] is `true`.
+  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  final double quantityMin;
+
+  /// Localized unit label builder for the quantity stepper (e.g. "tab", "cap").
+  ///
+  /// `null` when [hasQuantity] is `false`.
+  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  final String Function(AppLocalizations l10n)? quantityUnit;
 }
 
 /// The 8 medication-form options shown in [_MedicationFormPicker], in the
-/// HTML grid order: tablet, capsule, syrup, drops, injection, inhaler,
-/// cream, sachet.
+/// grid order: tablet, capsule, syrup, drops, injection, inhaler, cream, sachet.
 ///
-/// Visual-only (spec 027, iteration 2) — not persisted anywhere.
+/// Visual-only (spec 027 / 028, iterations 2–3) — not persisted anywhere.
 // Cannot be `const`: items hold `String Function(AppLocalizations)` closures.
 final List<_MedFormOption> _medFormOptions = [
   _MedFormOption(
@@ -59,30 +108,50 @@ final List<_MedFormOption> _medFormOptions = [
     icon: LucideIcons.tablets,
     name: (l10n) => l10n.medsAddFormTablet,
     sub: (l10n) => l10n.medsAddFormTabletSub,
+    hasQuantity: true,
+    hasStock: true,
+    quantityStep: 0.5,
+    quantityMin: 0.5,
+    quantityUnit: (l10n) => l10n.medsAddUnitTablet,
   ),
   _MedFormOption(
     key: 'capsule',
     icon: LucideIcons.pill,
     name: (l10n) => l10n.medsAddFormCapsule,
     sub: (l10n) => l10n.medsAddFormCapsuleSub,
+    hasQuantity: true,
+    hasStock: true,
+    quantityStep: 1,
+    quantityMin: 1,
+    quantityUnit: (l10n) => l10n.medsAddUnitCapsule,
   ),
   _MedFormOption(
     key: 'syrup',
     icon: LucideIcons.milk,
     name: (l10n) => l10n.medsAddFormSyrup,
     sub: (l10n) => l10n.medsAddFormSyrupSub,
+    hasDose: true,
+    doseUnits: [(l10n) => l10n.medsAddUnitMl],
   ),
   _MedFormOption(
     key: 'drops',
     icon: LucideIcons.droplets,
     name: (l10n) => l10n.medsAddFormDrops,
     sub: (l10n) => l10n.medsAddFormDropsSub,
+    hasDose: true,
+    doseUnits: [(l10n) => l10n.medsAddUnitDrops, (l10n) => l10n.medsAddUnitMl],
   ),
   _MedFormOption(
     key: 'injection',
     icon: LucideIcons.syringe,
     name: (l10n) => l10n.medsAddFormInjection,
     sub: (l10n) => l10n.medsAddFormInjectionSub,
+    hasDose: true,
+    doseUnits: [
+      (l10n) => l10n.medsAddUnitMl,
+      (l10n) => l10n.medsAddUnitMg,
+      (l10n) => l10n.medsAddUnitUnits,
+    ],
   ),
   _MedFormOption(
     key: 'inhaler',
@@ -118,14 +187,24 @@ final List<_MedFormOption> _medFormOptions = [
 /// * Selection is stored in local [State] only — it is intentionally NOT
 ///   persisted, not passed to a Riverpod provider, and not consumed by the
 ///   Save button (which remains a no-op).
-/// * The data-save iteration will accept a callback or use a provider to
-///   wire the selected form into the repository call.
+/// * [onFormSelected] is invoked whenever the user commits a selection so that
+///   the parent can react (e.g. show form-dependent fields — spec 028).
 ///
 /// No [AnimationController] is used — [AnimatedSize] and [AnimatedRotation]
 /// are implicit animations that manage their own lifecycle.
 class _MedicationFormPicker extends StatefulWidget {
   /// Creates a [_MedicationFormPicker].
-  const _MedicationFormPicker();
+  ///
+  /// [onFormSelected] is called with the newly selected [_MedFormOption]
+  /// every time the user picks an option from the grid.
+  const _MedicationFormPicker({required this.onFormSelected});
+
+  /// Callback invoked after the user taps an option chip.
+  ///
+  /// The parent uses this to conditionally render form-dependent fields
+  /// (spec 028, iteration 3).  The picker keeps its own `_selectedIndex`
+  /// and `_isOpen` state; this callback is purely additive.
+  final ValueChanged<_MedFormOption> onFormSelected;
 
   @override
   State<_MedicationFormPicker> createState() => _MedicationFormPickerState();
@@ -303,10 +382,13 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => setState(() {
-        _selectedIndex = index;
-        _isOpen = false;
-      }),
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+          _isOpen = false;
+        });
+        widget.onFormSelected(_medFormOptions[index]);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
@@ -349,6 +431,256 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
 }
 
 // ---------------------------------------------------------------------------
+// _DoseField widget
+// ---------------------------------------------------------------------------
+
+/// A presentation-only row with a dose amount [TextField] and a unit
+/// [DropdownButtonFormField].
+///
+/// Visual-only iteration 3 (spec 028) — the [controller] value and
+/// [selectedUnitIndex] are local state in [_AddMedicationModalState].
+/// Nothing is persisted; Save remains a no-op.
+class _DoseField extends StatelessWidget {
+  /// Creates a [_DoseField].
+  const _DoseField({
+    required this.controller,
+    required this.units,
+    required this.selectedUnitIndex,
+    required this.onUnitChanged,
+  });
+
+  /// Controller for the dose amount text input.
+  final TextEditingController controller;
+
+  /// Ordered list of localized unit label builders for the dropdown.
+  final List<String Function(AppLocalizations l10n)> units;
+
+  /// Currently selected index in [units].
+  final int selectedUnitIndex;
+
+  /// Callback invoked when the user picks a different unit.
+  final ValueChanged<int?> onUnitChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 3,
+          child: TextField(
+            key: const ValueKey('medsAddDoseField'),
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText: l10n.medsAddDoseLabel,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 2,
+          child: DropdownButtonFormField<int>(
+            key: const ValueKey('medsAddDoseUnit'),
+            initialValue: selectedUnitIndex,
+            decoration: InputDecoration(
+              labelText: l10n.medsAddDoseUnitLabel,
+            ),
+            items: [
+              for (var i = 0; i < units.length; i++)
+                DropdownMenuItem<int>(
+                  value: i,
+                  child: Text(units[i](l10n)),
+                ),
+            ],
+            onChanged: onUnitChanged,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _QuantityStepper widget
+// ---------------------------------------------------------------------------
+
+/// A presentation-only quantity-per-intake stepper rendered inside an
+/// [InputDecorator] so it matches the form's outlined field style.
+///
+/// Visual-only iteration 3 (spec 028) — [formattedValue], [onIncrement],
+/// and [onDecrement] are driven by local state in [_AddMedicationModalState].
+/// Nothing is persisted; Save remains a no-op.
+class _QuantityStepper extends StatelessWidget {
+  /// Creates a [_QuantityStepper].
+  const _QuantityStepper({
+    required this.formattedValue,
+    required this.unitLabel,
+    required this.onIncrement,
+    required this.onDecrement,
+  });
+
+  /// The quantity value already formatted (no trailing ".0" for whole numbers).
+  final String formattedValue;
+
+  /// Localized unit label displayed next to the value (e.g. "tab", "cap").
+  final String unitLabel;
+
+  /// Called when the user taps the increment (+) button.
+  final VoidCallback onIncrement;
+
+  /// Called when the user taps the decrement (−) button.
+  final VoidCallback onDecrement;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return InputDecorator(
+      isEmpty: false,
+      decoration: InputDecoration(
+        labelText: context.l10n.medsAddQuantityLabel,
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            key: const ValueKey('medsAddQtyDecrement'),
+            icon: const Icon(LucideIcons.minus),
+            onPressed: onDecrement,
+          ),
+          Expanded(
+            child: Text(
+              formattedValue,
+              key: const ValueKey('medsAddQtyValue'),
+              textAlign: TextAlign.center,
+              style: textTheme.titleMedium,
+            ),
+          ),
+          Text(
+            unitLabel,
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          IconButton(
+            key: const ValueKey('medsAddQtyIncrement'),
+            icon: const Icon(LucideIcons.plus),
+            onPressed: onIncrement,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _StockCard widget
+// ---------------------------------------------------------------------------
+
+/// A presentation-only pack-stock card with remaining, total, and warn fields.
+///
+/// Visual-only iteration 3 (spec 028) — the three [TextEditingController]s
+/// are owned by [_AddMedicationModalState] and disposed there.  Nothing is
+/// persisted; Save remains a no-op.
+class _StockCard extends StatelessWidget {
+  /// Creates a [_StockCard].
+  const _StockCard({
+    required this.remainingController,
+    required this.totalController,
+    required this.warnController,
+  });
+
+  /// Controller for the "remaining in pack" text field.
+  final TextEditingController remainingController;
+
+  /// Controller for the "total in pack" text field.
+  final TextEditingController totalController;
+
+  /// Controller for the "warn when remaining reaches" text field.
+  final TextEditingController warnController;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final l10n = context.l10n;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header row: icon + title.
+          Row(
+            children: [
+              Icon(LucideIcons.packageOpen, color: colorScheme.secondary),
+              const SizedBox(width: 8),
+              Text(
+                l10n.medsAddStockTitle,
+                style: textTheme.titleSmall,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.medsAddStockNote,
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Remaining + Total row.
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('medsAddStockRemaining'),
+                  controller: remainingController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: l10n.medsAddStockRemainingLabel,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('medsAddStockTotal'),
+                  controller: totalController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: l10n.medsAddStockTotalLabel,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Low-stock warning threshold field.
+          TextField(
+            key: const ValueKey('medsAddStockWarn'),
+            controller: warnController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: l10n.medsAddStockWarnLabel,
+              suffixIcon: const Icon(LucideIcons.triangleAlert),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // AddMedicationModal
 // ---------------------------------------------------------------------------
 
@@ -361,9 +693,16 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
 /// * a padded [Column] containing:
 ///   - a medication-name [TextField] (spec 026),
 ///   - a medication-form picker [_MedicationFormPicker] (spec 027,
-///     iteration 2 — visual-only, selection not yet persisted), and
+///     iteration 2 — visual-only, selection not yet persisted),
+///   - form-dependent fields (spec 028, iteration 3 — visual-only):
+///     * [_DoseField] for injection / syrup / drops,
+///     * [_QuantityStepper] for tablet / capsule,
+///     * [_StockCard] for tablet / capsule,
 ///   - a full-width [FilledButton.icon] Save button (no-op — data-save
 ///     iteration will wire persistence).
+///
+/// **Visual-only iteration 3 (spec 028)**: All conditional field values are
+/// local state only.  Save is an intentional no-op.
 ///
 /// The modal is pushed via `Navigator.push(MaterialPageRoute(
 /// fullscreenDialog: true, ...))` from `meds_screen.dart`.
@@ -376,16 +715,132 @@ class AddMedicationModal extends StatefulWidget {
 }
 
 class _AddMedicationModalState extends State<AddMedicationModal> {
+  // -------------------------------------------------------------------------
+  // Controllers
+  // -------------------------------------------------------------------------
+
+  /// Controller for the medication-name text field (spec 026).
   final TextEditingController _nameController = TextEditingController();
+
+  /// Controller for the dose amount text field (liquid forms — spec 028).
+  /// Visual-only; not read by Save.
+  final TextEditingController _doseController = TextEditingController();
+
+  /// Controller for the "remaining in pack" field in the stock card (spec 028).
+  /// Visual-only; not read by Save.
+  final TextEditingController _stockRemainingController =
+      TextEditingController();
+
+  /// Controller for the "total in pack" field in the stock card (spec 028).
+  /// Visual-only; not read by Save.
+  final TextEditingController _stockTotalController = TextEditingController();
+
+  /// Controller for the low-stock warning threshold field (spec 028).
+  /// Visual-only; not read by Save.
+  final TextEditingController _stockWarnController = TextEditingController();
+
+  // -------------------------------------------------------------------------
+  // Form-dependent state (spec 028, visual-only)
+  // -------------------------------------------------------------------------
+
+  /// The medication form currently selected by the user, or `null` if none.
+  ///
+  /// Drives conditional rendering of [_DoseField], [_QuantityStepper], and
+  /// [_StockCard].  Visual-only — not persisted.
+  _MedFormOption? _selectedForm;
+
+  /// Current quantity-per-intake value for the stepper.
+  ///
+  /// Reset to [_MedFormOption.quantityMin] on form change.
+  /// Visual-only — not persisted.
+  double _quantity = 0;
+
+  /// Currently selected index in the dose-unit dropdown.
+  ///
+  /// Reset to 0 on form change.
+  /// Visual-only — not persisted.
+  int _selectedDoseUnitIndex = 0;
+
+  // -------------------------------------------------------------------------
+  // Lifecycle
+  // -------------------------------------------------------------------------
 
   @override
   void dispose() {
     _nameController.dispose();
+    _doseController.dispose();
+    _stockRemainingController.dispose();
+    _stockTotalController.dispose();
+    _stockWarnController.dispose();
     super.dispose();
   }
 
+  // -------------------------------------------------------------------------
+  // Form-selection logic
+  // -------------------------------------------------------------------------
+
+  /// Called by [_MedicationFormPicker] when the user selects a form.
+  ///
+  /// Resets conditional fields when the form key changes, then updates
+  /// [_selectedForm].
+  void _onFormSelected(_MedFormOption form) {
+    setState(() {
+      if (form.key != _selectedForm?.key) {
+        _resetConditionalFields(form);
+      }
+      _selectedForm = form;
+    });
+  }
+
+  /// Clears all conditional field controllers and resets stepper state to
+  /// the defaults for [form].
+  ///
+  /// Called inside a [setState] block by [_onFormSelected].
+  void _resetConditionalFields(_MedFormOption form) {
+    _doseController.clear();
+    _stockRemainingController.clear();
+    _stockTotalController.clear();
+    _stockWarnController.clear();
+    _selectedDoseUnitIndex = 0;
+    _quantity = form.hasQuantity ? form.quantityMin : 0;
+  }
+
+  // -------------------------------------------------------------------------
+  // Quantity stepper logic
+  // -------------------------------------------------------------------------
+
+  /// Formats [v] without a trailing ".0" for whole-number values.
+  ///
+  /// Examples: `1.0 → "1"`, `1.5 → "1.5"`.
+  String _formatQuantity(double v) =>
+      v % 1 == 0 ? v.toInt().toString() : v.toString();
+
+  /// Increments [_quantity] by [_MedFormOption.quantityStep].
+  void _incrementQuantity() {
+    final step = _selectedForm?.quantityStep ?? 1;
+    setState(() {
+      _quantity += step;
+    });
+  }
+
+  /// Decrements [_quantity] by [_MedFormOption.quantityStep], clamped at
+  /// [_MedFormOption.quantityMin].
+  void _decrementQuantity() {
+    final step = _selectedForm?.quantityStep ?? 1;
+    final min = _selectedForm?.quantityMin ?? 1;
+    setState(() {
+      _quantity = (_quantity - step).clamp(min, double.infinity);
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Build
+  // -------------------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
+    final selectedForm = _selectedForm;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -412,11 +867,56 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
               ),
               const SizedBox(height: 16),
               // Medication-form picker — visual-only iteration 2 (spec 027).
-              // Selection is local to _MedicationFormPicker; Save remains
-              // a no-op until the data-save iteration wires the picker.
-              const _MedicationFormPicker(),
+              // Selection is local to _MedicationFormPicker; _onFormSelected
+              // hoists it to the parent for conditional field rendering.
+              _MedicationFormPicker(onFormSelected: _onFormSelected),
+
+              // ----------------------------------------------------------------
+              // Form-dependent fields (spec 028, iteration 3 — visual-only).
+              // Each block is gated on the selected form's capability flags so
+              // that NO conditional widget appears in the tree when no form is
+              // selected (preserving the spec-026 test assertion).
+              // ----------------------------------------------------------------
+
+              // Dose field: injection, syrup, drops.
+              if (selectedForm?.hasDose ?? false) ...[
+                const SizedBox(height: 16),
+                _DoseField(
+                  controller: _doseController,
+                  units: selectedForm?.doseUnits ?? const [],
+                  selectedUnitIndex: _selectedDoseUnitIndex,
+                  onUnitChanged: (value) {
+                    if (value != null) {
+                      setState(() => _selectedDoseUnitIndex = value);
+                    }
+                  },
+                ),
+              ],
+
+              // Quantity stepper: tablet, capsule.
+              if (selectedForm?.hasQuantity ?? false) ...[
+                const SizedBox(height: 16),
+                _QuantityStepper(
+                  formattedValue: _formatQuantity(_quantity),
+                  unitLabel:
+                      selectedForm?.quantityUnit?.call(context.l10n) ?? '',
+                  onIncrement: _incrementQuantity,
+                  onDecrement: _decrementQuantity,
+                ),
+              ],
+
+              // Pack-stock card: tablet, capsule.
+              if (selectedForm?.hasStock ?? false) ...[
+                const SizedBox(height: 16),
+                _StockCard(
+                  remainingController: _stockRemainingController,
+                  totalController: _stockTotalController,
+                  warnController: _stockWarnController,
+                ),
+              ],
+
               const SizedBox(height: 16),
-              // Intentional no-op for spec 026/027 visual iterations.
+              // Intentional no-op for spec 026/027/028 visual iterations.
               // The data-save iteration will replace this empty callback
               // with real persistence logic.
               FilledButton.icon(

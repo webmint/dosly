@@ -15,15 +15,16 @@ Everything in this feature lives under `lib/features/meds/presentation/`. There 
 - A `SizedBox.shrink()` body — intentionally empty until the medication-list feature is implemented.
 - A `FloatingActionButton` (Material 3 FAB, `LucideIcons.plus`) with tooltip `context.l10n.medsAddFabTooltip` ("Add medication" in English). Tapping it calls `_openAddMedicationModal(context)`.
 
-## Add-Medication Modal (iteration 1 — visual only)
+## Add-Medication Modal (iteration 3 — visual only)
 
-`AddMedicationModal` (in `lib/features/meds/presentation/widgets/add_medication_modal.dart`) is a `StatefulWidget` that owns a `TextEditingController` for the medication-name field and disposes it in `dispose()`. It is a full-screen modal with:
+`AddMedicationModal` (in `lib/features/meds/presentation/widgets/add_medication_modal.dart`) is a `StatefulWidget` that owns five `TextEditingController`s (name, dose, stock-remaining, stock-total, stock-warn) — all disposed in `dispose()`. It is a full-screen modal with:
 
 - A `Scaffold + AppBar` carrying the localized title `context.l10n.medsAddTitle` ("Add medication").
 - A leading `IconButton` (back arrow, `LucideIcons.arrowLeft`) that calls `Navigator.of(context).pop()`.
 - A `SingleChildScrollView → Padding(16) → Column(crossAxisAlignment: stretch)` body containing:
   - An outlined `TextField` bound to `_nameController` with label `context.l10n.medsAddNameLabel`. The outlined, transparent styling (2px outline, `primary` on focus) comes from the global `inputDecorationTheme` in `lib/core/theme/app_theme.dart` — no call-site border/color overrides.
   - A medication-form picker (added in iteration 2 — see below).
+  - Form-dependent fields gated on the selected form's capability flags (added in iteration 3 — see below).
   - A full-width `FilledButton.icon` (`LucideIcons.save` + `context.l10n.medsAddSaveButton`) with `onPressed: () {}` — a **deliberate no-op**.
 
 ```dart
@@ -44,7 +45,7 @@ FilledButton.icon(
 ),
 ```
 
-The Save button's empty callback is **intentional and documented** (spec 026, iteration 1). It does not validate input, persist data, pop the modal, or give user feedback. Real save behaviour — drift persistence, domain layer, Riverpod provider — will be wired in the data-save iteration. There is still no `domain/` or `data/` layer for this feature.
+The Save button's empty callback is **intentional and documented** (spec 026 through 028, iterations 1–3). It does not validate input, persist data, pop the modal, or give user feedback. Real save behaviour — drift persistence, domain layer, Riverpod provider — will be wired in the data-save iteration. There is still no `domain/` or `data/` layer for this feature.
 
 ## Medication-Form Picker (iteration 2 — visual only)
 
@@ -91,10 +92,55 @@ Forms are defined as a top-level `final List<_MedFormOption>` (a private present
 ### Scope and intentional no-ops
 
 - **No Riverpod**: the picker is a plain `StatefulWidget`. No `ConsumerStatefulWidget`, no provider.
-- **No persistence**: the selected form is held only in `_MedicationFormPicker`'s local state and discarded when the modal closes.
-- **No callback to the parent**: `_AddMedicationModalState` does not read the selected form. The connection to the Save button will be wired in the data-save iteration.
-- **Save remains a no-op** (spec 026, unchanged): it still does `onPressed: () {}`.
+- **Selection hoisted via callback (spec 028)**: `_MedicationFormPicker` accepts a `ValueChanged<_MedFormOption> onFormSelected` callback. The picker keeps its own `_selectedIndex` / `_isOpen` state; `_AddMedicationModalState` receives the selected option and uses it to conditionally render form-dependent fields (see below). The selection is **not** connected to the Save button.
+- **No persistence**: the selected form and all conditional field values are local state — discarded when the modal closes.
+- **Save remains a no-op** (spec 026–028, unchanged): it still does `onPressed: () {}`.
 - **No domain/data layer** for meds: no `Medication` entity, no `MedicationForm` enum in `lib/`, no repository, no data source.
+
+## Form-Dependent Fields (iteration 3 — visual only)
+
+When the user selects a medication form, `_AddMedicationModalState` renders additional input fields between the picker and the Save button. All values are local state; nothing is persisted; Save remains a no-op.
+
+### Field matrix
+
+| Form | Dose field + unit dropdown | Quantity stepper | Pack-stock card |
+|------|:-:|:-:|:-:|
+| Tablet | — | step 0.5, min 0.5, unit "tab" | yes |
+| Capsule | — | step 1, min 1, unit "cap" | yes |
+| Syrup | ml | — | — |
+| Drops | drops / ml | — | — |
+| Injection | ml / mg / IU | — | — |
+| Inhaler | — | — | — |
+| Cream | — | — | — |
+| Sachet | — | — | — |
+
+Before any form is selected, **none** of the conditional widgets appear in the widget tree (not just hidden — the `if` guard evaluates to false).
+
+### Dose field (`_DoseField`)
+
+Shown for injection, syrup, and drops. A `Row` containing:
+- A `TextField` (3/5 width, decimal keyboard, label `medsAddDoseLabel`) for the dose amount.
+- A `DropdownButtonFormField<int>` (2/5 width, label `medsAddDoseUnitLabel`) for the unit. Injection offers ml / mg / IU; syrup offers ml only; drops offers drops / ml.
+
+### Quantity stepper (`_QuantityStepper`)
+
+Shown for tablet and capsule. Rendered inside an `InputDecorator` (label `medsAddQuantityLabel`) for visual consistency with the outlined fields above it. A `Row` with:
+- A decrement `IconButton` (`LucideIcons.minus`) — value is clamped at `quantityMin` (0.5 for tablet, 1 for capsule).
+- A centred `Text` showing the formatted value — no trailing `.0` for whole numbers (`1.0 → "1"`, `1.5 → "1.5"`).
+- A muted unit label (`colorScheme.onSurfaceVariant`).
+- An increment `IconButton` (`LucideIcons.plus`).
+
+### Pack-stock card (`_StockCard`)
+
+Shown for tablet and capsule. A rounded `Container` (`colorScheme.surfaceContainerLow` background, `colorScheme.outlineVariant` border, 16 dp radius) containing:
+- A header row: `LucideIcons.packageOpen` + title `medsAddStockTitle`.
+- A subtitle note `medsAddStockNote`.
+- A side-by-side row: "Remaining in pack" (`medsAddStockRemainingLabel`) and "Total in pack" (`medsAddStockTotalLabel`) — both numeric `TextField`s.
+- A "Warn when remaining reaches" `TextField` (`medsAddStockWarnLabel`) with a `LucideIcons.triangleAlert` suffix icon.
+
+### Reset on form change
+
+Switching to a different form clears all conditional field controllers and resets the stepper to the new form's `quantityMin`. This happens inside `setState` in `_AddMedicationModalState._onFormSelected`. Controllers are permanent `State` fields — they are cleared (`.clear()`), not recreated — to avoid use-after-dispose risks.
 
 ## Opening the modal
 
@@ -161,6 +207,34 @@ Sixteen keys for the 8 form options (name + sub each):
 
 All 19 keys exist in `app_en.arb` (with `@`-description metadata), `app_de.arb`, and `app_uk.arb`. Consumed exclusively via `context.l10n` (no direct `AppLocalizations.of(context)!` call sites).
 
+### Form-dependent fields (added in `028-form-dependent-fields`)
+
+Five label keys for the conditional input controls:
+
+| Key | English | German | Ukrainian |
+|---|---|---|---|
+| `medsAddDoseLabel` | Dose amount | Dosismenge | Доза |
+| `medsAddDoseUnitLabel` | Unit | Einheit | Одиниця |
+| `medsAddQuantityLabel` | Quantity per intake | Menge pro Einnahme | Кількість на прийом |
+| `medsAddStockTitle` | Pack stock | Packungsvorrat | Запас упаковки |
+| `medsAddStockNote` | Track remaining pills to get low-stock alerts | Verbleibende Tabletten verfolgen, um Warnungen bei niedrigem Bestand zu erhalten | Відстежуйте залишок таблеток для сповіщень про низький запас |
+| `medsAddStockRemainingLabel` | Remaining | Verbleibend | Залишок |
+| `medsAddStockTotalLabel` | Total in pack | Gesamt in Packung | Всього в упаковці |
+| `medsAddStockWarnLabel` | Warn when remaining reaches | Warnen, wenn verbleibend erreicht | Попередити, коли залишок досягне |
+
+Six unit abbreviation keys (resolved at runtime via `context.l10n`):
+
+| Key | English | German | Ukrainian | Used by |
+|---|---|---|---|---|
+| `medsAddUnitTablet` | tab | Tab. | таб. | tablet stepper |
+| `medsAddUnitCapsule` | cap | Kaps. | кап. | capsule stepper |
+| `medsAddUnitMl` | ml | ml | мл | syrup / drops / injection |
+| `medsAddUnitMg` | mg | mg | мг | injection |
+| `medsAddUnitUnits` | IU | IE | МО | injection (International Units) |
+| `medsAddUnitDrops` | drops | Tropfen | краплі | drops |
+
+All 14 keys exist in `app_en.arb` (with `@`-description metadata), `app_de.arb`, and `app_uk.arb`.
+
 ## Routing
 
 `MedsScreen` is mounted at `/meds` as branch index 1 of the `StatefulShellRoute.indexedStack` in `lib/core/routing/app_router.dart`. Navigate to it with:
@@ -177,8 +251,9 @@ The add-medication form is being built iteratively:
 
 - **Feature 026 (done)** — name `TextField` + Save button (visual only; Save is a no-op).
 - **Feature 027 (done)** — medication-form picker (visual only; selected form is local state, not wired to Save).
-- **Pending** — real Save behaviour: `domain/` entities (`Medication`, `MedicationForm` enum), repository interface, `data/` datasource (drift), concrete repository, Riverpod provider wired to the Save button; the picker's selection callback will be connected at this point.
-- **Pending** — additional form fields (dose, unit, schedule, etc.) as future specs are defined; the HTML design's `FORM_FIELDS` field-visibility logic (different fields shown per form) is also deferred.
+- **Feature 028 (done)** — form-dependent fields: quantity stepper + pack-stock card for tablet/capsule; dose field + unit dropdown for injection/syrup/drops; picker selection hoisted to modal via callback. Still visual only — Save remains a no-op; no persistence.
+- **Pending** — real Save behaviour: `domain/` entities (`Medication`, `MedicationForm` enum), repository interface, `data/` datasource (drift), concrete repository, Riverpod provider wired to the Save button; all controller values and stepper state will be read at this point.
+- **Pending** — schedule, reminder, and other form fields as future specs are defined.
 - **Pending** — medication list replacing the `SizedBox.shrink()` body of `MedsScreen`.
 
 No changes to the `AppBar` structure, the `/meds` route path, or the modal-opening pattern are expected.
@@ -188,6 +263,7 @@ No changes to the `AppBar` structure, the `/meds` route path, or the modal-openi
 - [`../../specs/011-meds-add-fab/spec.md`](../../specs/011-meds-add-fab/spec.md) — the spec that introduced the FAB and modal scaffolding
 - [`../../specs/026-add-med-name-input/spec.md`](../../specs/026-add-med-name-input/spec.md) — the spec that added the name field and Save button (iteration 1)
 - [`../../specs/027-med-form-picker/spec.md`](../../specs/027-med-form-picker/spec.md) — the spec that added the medication-form picker (iteration 2)
+- [`../../specs/028-form-dependent-fields/spec.md`](../../specs/028-form-dependent-fields/spec.md) — the spec that added form-dependent input fields (iteration 3)
 - [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen
 - [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology, routing conventions, and the `rootNavigator` context
 - [`i18n.md`](i18n.md) — how ARB keys are added and translated

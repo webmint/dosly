@@ -123,6 +123,49 @@ class AppLocalizationsUk extends AppLocalizations {
   String get medsAddFormSachetSub => 'Розчинний порошок';
 
   @override
+  String get medsAddDoseLabel => 'Доза';
+
+  @override
+  String get medsAddDoseUnitLabel => 'Одиниця';
+
+  @override
+  String get medsAddQuantityLabel => 'Кількість на прийом';
+
+  @override
+  String get medsAddStockTitle => 'Залишок у пачці';
+
+  @override
+  String get medsAddStockNote =>
+      'Для капсул, таблеток та подібних форм. Автоматично зменшується після кожного прийому.';
+
+  @override
+  String get medsAddStockRemainingLabel => 'Залишок';
+
+  @override
+  String get medsAddStockTotalLabel => 'Всього в пачці';
+
+  @override
+  String get medsAddStockWarnLabel => 'Попередити коли лишиться';
+
+  @override
+  String get medsAddUnitMl => 'мл';
+
+  @override
+  String get medsAddUnitMg => 'мг';
+
+  @override
+  String get medsAddUnitUnits => 'МО';
+
+  @override
+  String get medsAddUnitDrops => 'краплі';
+
+  @override
+  String get medsAddUnitTablet => 'табл';
+
+  @override
+  String get medsAddUnitCapsule => 'капс';
+
+  @override
   String get errorScreenTitle => 'Сторінку не знайдено';
 
   @override
