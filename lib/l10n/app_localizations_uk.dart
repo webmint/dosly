@@ -66,6 +66,63 @@ class AppLocalizationsUk extends AppLocalizations {
   String get medsAddSaveButton => 'Зберегти';
 
   @override
+  String get medsAddFormLabel => 'Форма препарату';
+
+  @override
+  String get medsAddFormPlaceholder => 'Оберіть форму';
+
+  @override
+  String get medsAddFormGridTitle => 'Типові форми';
+
+  @override
+  String get medsAddFormTablet => 'Таблетка';
+
+  @override
+  String get medsAddFormTabletSub => 'Пресована форма';
+
+  @override
+  String get medsAddFormCapsule => 'Капсули';
+
+  @override
+  String get medsAddFormCapsuleSub => 'Тверда желатинова оболонка';
+
+  @override
+  String get medsAddFormSyrup => 'Сироп';
+
+  @override
+  String get medsAddFormSyrupSub => 'Рідка лікарська форма';
+
+  @override
+  String get medsAddFormDrops => 'Краплі';
+
+  @override
+  String get medsAddFormDropsSub => 'Рідка крапельна форма';
+
+  @override
+  String get medsAddFormInjection => 'Ін\'єкція';
+
+  @override
+  String get medsAddFormInjectionSub => 'Внутрішньом\'язова/в/в';
+
+  @override
+  String get medsAddFormInhaler => 'Інгалятор';
+
+  @override
+  String get medsAddFormInhalerSub => 'Аерозольна форма';
+
+  @override
+  String get medsAddFormCream => 'Крем / Мазь';
+
+  @override
+  String get medsAddFormCreamSub => 'Зовнішня форма';
+
+  @override
+  String get medsAddFormSachet => 'Саше';
+
+  @override
+  String get medsAddFormSachetSub => 'Розчинний порошок';
+
+  @override
   String get errorScreenTitle => 'Сторінку не знайдено';
 
   @override

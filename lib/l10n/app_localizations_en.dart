@@ -64,6 +64,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medsAddSaveButton => 'Save';
 
   @override
+  String get medsAddFormLabel => 'Medication form';
+
+  @override
+  String get medsAddFormPlaceholder => 'Choose a form';
+
+  @override
+  String get medsAddFormGridTitle => 'Common forms';
+
+  @override
+  String get medsAddFormTablet => 'Tablet';
+
+  @override
+  String get medsAddFormTabletSub => 'Compressed form';
+
+  @override
+  String get medsAddFormCapsule => 'Capsule';
+
+  @override
+  String get medsAddFormCapsuleSub => 'Hard gelatin shell';
+
+  @override
+  String get medsAddFormSyrup => 'Syrup';
+
+  @override
+  String get medsAddFormSyrupSub => 'Liquid dosage form';
+
+  @override
+  String get medsAddFormDrops => 'Drops';
+
+  @override
+  String get medsAddFormDropsSub => 'Liquid drop form';
+
+  @override
+  String get medsAddFormInjection => 'Injection';
+
+  @override
+  String get medsAddFormInjectionSub => 'Intramuscular / IV';
+
+  @override
+  String get medsAddFormInhaler => 'Inhaler';
+
+  @override
+  String get medsAddFormInhalerSub => 'Aerosol form';
+
+  @override
+  String get medsAddFormCream => 'Cream / Ointment';
+
+  @override
+  String get medsAddFormCreamSub => 'Topical form';
+
+  @override
+  String get medsAddFormSachet => 'Sachet';
+
+  @override
+  String get medsAddFormSachetSub => 'Soluble powder';
+
+  @override
   String get errorScreenTitle => 'Page not found';
 
   @override

@@ -208,6 +208,120 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get medsAddSaveButton;
 
+  /// Floating label on the medication-form picker display row in the Add-medication modal.
+  ///
+  /// In en, this message translates to:
+  /// **'Medication form'**
+  String get medsAddFormLabel;
+
+  /// Display-row text shown before a medication form is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a form'**
+  String get medsAddFormPlaceholder;
+
+  /// Title above the medication-form options grid.
+  ///
+  /// In en, this message translates to:
+  /// **'Common forms'**
+  String get medsAddFormGridTitle;
+
+  /// Medication-form option name (tablet) in the Add-medication picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Tablet'**
+  String get medsAddFormTablet;
+
+  /// Sub-description for the tablet medication form.
+  ///
+  /// In en, this message translates to:
+  /// **'Compressed form'**
+  String get medsAddFormTabletSub;
+
+  /// Medication-form option name (capsule).
+  ///
+  /// In en, this message translates to:
+  /// **'Capsule'**
+  String get medsAddFormCapsule;
+
+  /// Sub-description for the capsule medication form.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard gelatin shell'**
+  String get medsAddFormCapsuleSub;
+
+  /// Medication-form option name (syrup).
+  ///
+  /// In en, this message translates to:
+  /// **'Syrup'**
+  String get medsAddFormSyrup;
+
+  /// Sub-description for the syrup medication form.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid dosage form'**
+  String get medsAddFormSyrupSub;
+
+  /// Medication-form option name (drops).
+  ///
+  /// In en, this message translates to:
+  /// **'Drops'**
+  String get medsAddFormDrops;
+
+  /// Sub-description for the drops medication form.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid drop form'**
+  String get medsAddFormDropsSub;
+
+  /// Medication-form option name (injection).
+  ///
+  /// In en, this message translates to:
+  /// **'Injection'**
+  String get medsAddFormInjection;
+
+  /// Sub-description for the injection medication form.
+  ///
+  /// In en, this message translates to:
+  /// **'Intramuscular / IV'**
+  String get medsAddFormInjectionSub;
+
+  /// Medication-form option name (inhaler).
+  ///
+  /// In en, this message translates to:
+  /// **'Inhaler'**
+  String get medsAddFormInhaler;
+
+  /// Sub-description for the inhaler medication form.
+  ///
+  /// In en, this message translates to:
+  /// **'Aerosol form'**
+  String get medsAddFormInhalerSub;
+
+  /// Medication-form option name (cream/ointment).
+  ///
+  /// In en, this message translates to:
+  /// **'Cream / Ointment'**
+  String get medsAddFormCream;
+
+  /// Sub-description for the cream/ointment medication form.
+  ///
+  /// In en, this message translates to:
+  /// **'Topical form'**
+  String get medsAddFormCreamSub;
+
+  /// Medication-form option name (sachet).
+  ///
+  /// In en, this message translates to:
+  /// **'Sachet'**
+  String get medsAddFormSachet;
+
+  /// Sub-description for the sachet medication form.
+  ///
+  /// In en, this message translates to:
+  /// **'Soluble powder'**
+  String get medsAddFormSachetSub;
+
   /// Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link).
   ///
   /// In en, this message translates to:

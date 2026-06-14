@@ -72,6 +72,82 @@
   "@medsAddSaveButton": {
     "description": "Label on the Save button in the Add-medication modal (visual-only placeholder, no-op in iteration 1)."
   },
+  "medsAddFormLabel": "Medication form",
+  "@medsAddFormLabel": {
+    "description": "Floating label on the medication-form picker display row in the Add-medication modal."
+  },
+  "medsAddFormPlaceholder": "Choose a form",
+  "@medsAddFormPlaceholder": {
+    "description": "Display-row text shown before a medication form is selected."
+  },
+  "medsAddFormGridTitle": "Common forms",
+  "@medsAddFormGridTitle": {
+    "description": "Title above the medication-form options grid."
+  },
+  "medsAddFormTablet": "Tablet",
+  "@medsAddFormTablet": {
+    "description": "Medication-form option name (tablet) in the Add-medication picker."
+  },
+  "medsAddFormTabletSub": "Compressed form",
+  "@medsAddFormTabletSub": {
+    "description": "Sub-description for the tablet medication form."
+  },
+  "medsAddFormCapsule": "Capsule",
+  "@medsAddFormCapsule": {
+    "description": "Medication-form option name (capsule)."
+  },
+  "medsAddFormCapsuleSub": "Hard gelatin shell",
+  "@medsAddFormCapsuleSub": {
+    "description": "Sub-description for the capsule medication form."
+  },
+  "medsAddFormSyrup": "Syrup",
+  "@medsAddFormSyrup": {
+    "description": "Medication-form option name (syrup)."
+  },
+  "medsAddFormSyrupSub": "Liquid dosage form",
+  "@medsAddFormSyrupSub": {
+    "description": "Sub-description for the syrup medication form."
+  },
+  "medsAddFormDrops": "Drops",
+  "@medsAddFormDrops": {
+    "description": "Medication-form option name (drops)."
+  },
+  "medsAddFormDropsSub": "Liquid drop form",
+  "@medsAddFormDropsSub": {
+    "description": "Sub-description for the drops medication form."
+  },
+  "medsAddFormInjection": "Injection",
+  "@medsAddFormInjection": {
+    "description": "Medication-form option name (injection)."
+  },
+  "medsAddFormInjectionSub": "Intramuscular / IV",
+  "@medsAddFormInjectionSub": {
+    "description": "Sub-description for the injection medication form."
+  },
+  "medsAddFormInhaler": "Inhaler",
+  "@medsAddFormInhaler": {
+    "description": "Medication-form option name (inhaler)."
+  },
+  "medsAddFormInhalerSub": "Aerosol form",
+  "@medsAddFormInhalerSub": {
+    "description": "Sub-description for the inhaler medication form."
+  },
+  "medsAddFormCream": "Cream / Ointment",
+  "@medsAddFormCream": {
+    "description": "Medication-form option name (cream/ointment)."
+  },
+  "medsAddFormCreamSub": "Topical form",
+  "@medsAddFormCreamSub": {
+    "description": "Sub-description for the cream/ointment medication form."
+  },
+  "medsAddFormSachet": "Sachet",
+  "@medsAddFormSachet": {
+    "description": "Medication-form option name (sachet)."
+  },
+  "medsAddFormSachetSub": "Soluble powder",
+  "@medsAddFormSachetSub": {
+    "description": "Sub-description for the sachet medication form."
+  },
   "errorScreenTitle": "Page not found",
   "@errorScreenTitle": {
     "description": "Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link)."

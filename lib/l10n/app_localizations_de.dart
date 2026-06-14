@@ -64,6 +64,63 @@ class AppLocalizationsDe extends AppLocalizations {
   String get medsAddSaveButton => 'Speichern';
 
   @override
+  String get medsAddFormLabel => 'Medikamentenform';
+
+  @override
+  String get medsAddFormPlaceholder => 'Form wählen';
+
+  @override
+  String get medsAddFormGridTitle => 'Typische Formen';
+
+  @override
+  String get medsAddFormTablet => 'Tablette';
+
+  @override
+  String get medsAddFormTabletSub => 'Gepresste Form';
+
+  @override
+  String get medsAddFormCapsule => 'Kapsel';
+
+  @override
+  String get medsAddFormCapsuleSub => 'Harte Gelatinehülle';
+
+  @override
+  String get medsAddFormSyrup => 'Sirup';
+
+  @override
+  String get medsAddFormSyrupSub => 'Flüssige Darreichungsform';
+
+  @override
+  String get medsAddFormDrops => 'Tropfen';
+
+  @override
+  String get medsAddFormDropsSub => 'Flüssige Tropfenform';
+
+  @override
+  String get medsAddFormInjection => 'Injektion';
+
+  @override
+  String get medsAddFormInjectionSub => 'Intramuskulär / i.v.';
+
+  @override
+  String get medsAddFormInhaler => 'Inhalator';
+
+  @override
+  String get medsAddFormInhalerSub => 'Aerosolform';
+
+  @override
+  String get medsAddFormCream => 'Creme / Salbe';
+
+  @override
+  String get medsAddFormCreamSub => 'Äußerliche Form';
+
+  @override
+  String get medsAddFormSachet => 'Sachet';
+
+  @override
+  String get medsAddFormSachetSub => 'Lösliches Pulver';
+
+  @override
   String get errorScreenTitle => 'Seite nicht gefunden';
 
   @override
