@@ -322,6 +322,90 @@ abstract class AppLocalizations {
   /// **'Soluble powder'**
   String get medsAddFormSachetSub;
 
+  /// Label for the dose amount text field (liquid forms)
+  ///
+  /// In en, this message translates to:
+  /// **'Dose'**
+  String get medsAddDoseLabel;
+
+  /// Label for the dose unit dropdown
+  ///
+  /// In en, this message translates to:
+  /// **'Unit'**
+  String get medsAddDoseUnitLabel;
+
+  /// Floating label for the quantity-per-intake stepper (tablet/capsule)
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity per intake'**
+  String get medsAddQuantityLabel;
+
+  /// Header of the pack-stock card
+  ///
+  /// In en, this message translates to:
+  /// **'Pack stock'**
+  String get medsAddStockTitle;
+
+  /// Explanatory note under the pack-stock card header
+  ///
+  /// In en, this message translates to:
+  /// **'For capsules, tablets and similar forms. Decreases automatically after each intake.'**
+  String get medsAddStockNote;
+
+  /// Label for the remaining-in-pack stock input
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining'**
+  String get medsAddStockRemainingLabel;
+
+  /// Label for the total-in-pack stock input
+  ///
+  /// In en, this message translates to:
+  /// **'Total in pack'**
+  String get medsAddStockTotalLabel;
+
+  /// Label for the low-stock warning threshold input
+  ///
+  /// In en, this message translates to:
+  /// **'Warn when remaining reaches'**
+  String get medsAddStockWarnLabel;
+
+  /// Dose unit abbreviation: millilitres
+  ///
+  /// In en, this message translates to:
+  /// **'ml'**
+  String get medsAddUnitMl;
+
+  /// Dose unit abbreviation: milligrams
+  ///
+  /// In en, this message translates to:
+  /// **'mg'**
+  String get medsAddUnitMg;
+
+  /// Dose unit: international units (IU) — e.g. insulin, vitamins
+  ///
+  /// In en, this message translates to:
+  /// **'IU'**
+  String get medsAddUnitUnits;
+
+  /// Dose unit abbreviation: drops
+  ///
+  /// In en, this message translates to:
+  /// **'drops'**
+  String get medsAddUnitDrops;
+
+  /// Quantity unit abbreviation: tablets
+  ///
+  /// In en, this message translates to:
+  /// **'tab'**
+  String get medsAddUnitTablet;
+
+  /// Quantity unit abbreviation: capsules
+  ///
+  /// In en, this message translates to:
+  /// **'cap'**
+  String get medsAddUnitCapsule;
+
   /// Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link).
   ///
   /// In en, this message translates to:

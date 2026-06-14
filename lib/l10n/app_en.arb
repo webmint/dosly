@@ -148,6 +148,62 @@
   "@medsAddFormSachetSub": {
     "description": "Sub-description for the sachet medication form."
   },
+  "medsAddDoseLabel": "Dose",
+  "@medsAddDoseLabel": {
+    "description": "Label for the dose amount text field (liquid forms)"
+  },
+  "medsAddDoseUnitLabel": "Unit",
+  "@medsAddDoseUnitLabel": {
+    "description": "Label for the dose unit dropdown"
+  },
+  "medsAddQuantityLabel": "Quantity per intake",
+  "@medsAddQuantityLabel": {
+    "description": "Floating label for the quantity-per-intake stepper (tablet/capsule)"
+  },
+  "medsAddStockTitle": "Pack stock",
+  "@medsAddStockTitle": {
+    "description": "Header of the pack-stock card"
+  },
+  "medsAddStockNote": "For capsules, tablets and similar forms. Decreases automatically after each intake.",
+  "@medsAddStockNote": {
+    "description": "Explanatory note under the pack-stock card header"
+  },
+  "medsAddStockRemainingLabel": "Remaining",
+  "@medsAddStockRemainingLabel": {
+    "description": "Label for the remaining-in-pack stock input"
+  },
+  "medsAddStockTotalLabel": "Total in pack",
+  "@medsAddStockTotalLabel": {
+    "description": "Label for the total-in-pack stock input"
+  },
+  "medsAddStockWarnLabel": "Warn when remaining reaches",
+  "@medsAddStockWarnLabel": {
+    "description": "Label for the low-stock warning threshold input"
+  },
+  "medsAddUnitMl": "ml",
+  "@medsAddUnitMl": {
+    "description": "Dose unit abbreviation: millilitres"
+  },
+  "medsAddUnitMg": "mg",
+  "@medsAddUnitMg": {
+    "description": "Dose unit abbreviation: milligrams"
+  },
+  "medsAddUnitUnits": "IU",
+  "@medsAddUnitUnits": {
+    "description": "Dose unit: international units (IU) — e.g. insulin, vitamins"
+  },
+  "medsAddUnitDrops": "drops",
+  "@medsAddUnitDrops": {
+    "description": "Dose unit abbreviation: drops"
+  },
+  "medsAddUnitTablet": "tab",
+  "@medsAddUnitTablet": {
+    "description": "Quantity unit abbreviation: tablets"
+  },
+  "medsAddUnitCapsule": "cap",
+  "@medsAddUnitCapsule": {
+    "description": "Quantity unit abbreviation: capsules"
+  },
   "errorScreenTitle": "Page not found",
   "@errorScreenTitle": {
     "description": "Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link)."

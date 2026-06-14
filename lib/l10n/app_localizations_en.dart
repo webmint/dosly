@@ -121,6 +121,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medsAddFormSachetSub => 'Soluble powder';
 
   @override
+  String get medsAddDoseLabel => 'Dose';
+
+  @override
+  String get medsAddDoseUnitLabel => 'Unit';
+
+  @override
+  String get medsAddQuantityLabel => 'Quantity per intake';
+
+  @override
+  String get medsAddStockTitle => 'Pack stock';
+
+  @override
+  String get medsAddStockNote =>
+      'For capsules, tablets and similar forms. Decreases automatically after each intake.';
+
+  @override
+  String get medsAddStockRemainingLabel => 'Remaining';
+
+  @override
+  String get medsAddStockTotalLabel => 'Total in pack';
+
+  @override
+  String get medsAddStockWarnLabel => 'Warn when remaining reaches';
+
+  @override
+  String get medsAddUnitMl => 'ml';
+
+  @override
+  String get medsAddUnitMg => 'mg';
+
+  @override
+  String get medsAddUnitUnits => 'IU';
+
+  @override
+  String get medsAddUnitDrops => 'drops';
+
+  @override
+  String get medsAddUnitTablet => 'tab';
+
+  @override
+  String get medsAddUnitCapsule => 'cap';
+
+  @override
   String get errorScreenTitle => 'Page not found';
 
   @override

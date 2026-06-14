@@ -253,4 +253,259 @@ void main() {
       },
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // AC-14: Form-dependent fields (spec 028-form-dependent-fields)
+  // ---------------------------------------------------------------------------
+  group('AddMedicationModal form-dependent fields', () {
+    // (a) No selection — only the name TextField is in the tree.
+    testWidgets(
+      'no selection shows only name field; stepper, dose and stock absent',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('medsAddQtyValue')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('medsAddDoseField')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('medsAddStockRemaining')),
+          findsNothing,
+        );
+        // Only the medication-name TextField is present before any selection.
+        expect(find.byType(TextField), findsOneWidget);
+      },
+    );
+
+    // (b) Tablet → stepper + stock visible; dose field absent.
+    testWidgets(
+      'Tablet shows quantity stepper and stock card; dose field absent',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Tablet'));
+        await tester.pumpAndSettle();
+
+        // Stepper value present and initialised to the tablet minimum (0.5).
+        expect(
+          find.byKey(const ValueKey('medsAddQtyValue')),
+          findsOneWidget,
+        );
+        final qtyText = tester.widget<Text>(
+          find.byKey(const ValueKey('medsAddQtyValue')),
+        );
+        expect(qtyText.data, '0.5');
+
+        // Stepper label and unit are rendered.
+        expect(find.text('Quantity per intake'), findsOneWidget);
+        expect(find.text('tab'), findsOneWidget);
+
+        // Stock card fields are present.
+        expect(find.text('Remaining'), findsOneWidget);
+        expect(find.text('Total in pack'), findsOneWidget);
+        expect(find.text('Warn when remaining reaches'), findsOneWidget);
+
+        // Dose field is absent for tablet.
+        expect(
+          find.byKey(const ValueKey('medsAddDoseField')),
+          findsNothing,
+        );
+      },
+    );
+
+    // (c) Stepper math — increment, decrement, clamp; then switch to Capsule.
+    testWidgets(
+      'stepper increments and decrements correctly and clamps at minimum',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        // Select Tablet (min 0.5, step 0.5).
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Tablet'));
+        await tester.pumpAndSettle();
+
+        final qtyFinder = find.byKey(const ValueKey('medsAddQtyValue'));
+        final incrementFinder =
+            find.byKey(const ValueKey('medsAddQtyIncrement'));
+        final decrementFinder =
+            find.byKey(const ValueKey('medsAddQtyDecrement'));
+
+        // Initial value is 0.5.
+        expect(tester.widget<Text>(qtyFinder).data, '0.5');
+
+        // Increment once → 1.
+        await tester.tap(incrementFinder);
+        await tester.pump();
+        expect(tester.widget<Text>(qtyFinder).data, '1');
+
+        // Increment again → 1.5.
+        await tester.tap(incrementFinder);
+        await tester.pump();
+        expect(tester.widget<Text>(qtyFinder).data, '1.5');
+
+        // Decrement → 1.
+        await tester.tap(decrementFinder);
+        await tester.pump();
+        expect(tester.widget<Text>(qtyFinder).data, '1');
+
+        // Decrement → 0.5 (the minimum).
+        await tester.tap(decrementFinder);
+        await tester.pump();
+        expect(tester.widget<Text>(qtyFinder).data, '0.5');
+
+        // Decrement again — must clamp at 0.5.
+        await tester.tap(decrementFinder);
+        await tester.pump();
+        expect(tester.widget<Text>(qtyFinder).data, '0.5');
+
+        // Switch to Capsule (min 1, step 1) — resets quantity.
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Capsule'));
+        await tester.pumpAndSettle();
+
+        // Capsule initial value is 1.
+        expect(tester.widget<Text>(qtyFinder).data, '1');
+
+        // Increment → 2.
+        await tester.tap(incrementFinder);
+        await tester.pump();
+        expect(tester.widget<Text>(qtyFinder).data, '2');
+
+        // Decrement → 1.
+        await tester.tap(decrementFinder);
+        await tester.pump();
+        expect(tester.widget<Text>(qtyFinder).data, '1');
+
+        // Decrement again — must clamp at 1.
+        await tester.tap(decrementFinder);
+        await tester.pump();
+        expect(tester.widget<Text>(qtyFinder).data, '1');
+      },
+    );
+
+    // (d) Syrup → dose field + unit dropdown; stepper and stock absent.
+    testWidgets(
+      'Syrup shows dose field with ml unit; stepper and stock absent',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Syrup'));
+        await tester.pumpAndSettle();
+
+        // Dose amount field is present.
+        expect(
+          find.byKey(const ValueKey('medsAddDoseField')),
+          findsOneWidget,
+        );
+
+        // Dose unit dropdown is present and shows ml as the selected value.
+        expect(
+          find.byKey(const ValueKey('medsAddDoseUnit')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddDoseUnit')),
+            matching: find.text('ml'),
+          ),
+          findsOneWidget,
+        );
+
+        // Stepper and stock are absent for Syrup.
+        expect(
+          find.byKey(const ValueKey('medsAddQtyValue')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('medsAddStockRemaining')),
+          findsNothing,
+        );
+      },
+    );
+
+    // (e) Inhaler → no conditional fields at all.
+    testWidgets(
+      'Inhaler shows no conditional fields',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Inhaler'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('medsAddQtyValue')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('medsAddDoseField')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('medsAddStockRemaining')),
+          findsNothing,
+        );
+      },
+    );
+
+    // (f) Reset on switch — Tablet then Syrup clears stepper and stock.
+    testWidgets(
+      'switching from Tablet to Syrup removes stepper and stock; shows dose',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        // Select Tablet — stepper and stock appear.
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Tablet'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('medsAddQtyValue')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('medsAddStockRemaining')),
+          findsOneWidget,
+        );
+
+        // Switch to Syrup.
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Syrup'));
+        await tester.pumpAndSettle();
+
+        // Stepper and stock are gone; dose field is present.
+        expect(
+          find.byKey(const ValueKey('medsAddQtyValue')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('medsAddStockRemaining')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('medsAddDoseField')),
+          findsOneWidget,
+        );
+      },
+    );
+  });
 }

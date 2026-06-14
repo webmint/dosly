@@ -121,6 +121,49 @@ class AppLocalizationsDe extends AppLocalizations {
   String get medsAddFormSachetSub => 'Lösliches Pulver';
 
   @override
+  String get medsAddDoseLabel => 'Dosis';
+
+  @override
+  String get medsAddDoseUnitLabel => 'Einheit';
+
+  @override
+  String get medsAddQuantityLabel => 'Menge pro Einnahme';
+
+  @override
+  String get medsAddStockTitle => 'Packungsbestand';
+
+  @override
+  String get medsAddStockNote =>
+      'Für Kapseln, Tabletten und ähnliche Formen. Verringert sich automatisch nach jeder Einnahme.';
+
+  @override
+  String get medsAddStockRemainingLabel => 'Verbleibend';
+
+  @override
+  String get medsAddStockTotalLabel => 'Gesamt in Packung';
+
+  @override
+  String get medsAddStockWarnLabel => 'Warnen, wenn Restbestand erreicht';
+
+  @override
+  String get medsAddUnitMl => 'ml';
+
+  @override
+  String get medsAddUnitMg => 'mg';
+
+  @override
+  String get medsAddUnitUnits => 'IE';
+
+  @override
+  String get medsAddUnitDrops => 'Tropfen';
+
+  @override
+  String get medsAddUnitTablet => 'Tabl.';
+
+  @override
+  String get medsAddUnitCapsule => 'Kaps.';
+
+  @override
   String get errorScreenTitle => 'Seite nicht gefunden';
 
   @override
