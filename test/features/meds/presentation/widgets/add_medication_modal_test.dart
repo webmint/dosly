@@ -1,5 +1,7 @@
-// Tests for the AddMedicationModal. The body field/Save-button tests enforce
-// spec 026-add-med-name-input; the AppBar back-arrow/title/typography tests carry over from spec 011-meds-add-fab.
+// Tests for the AddMedicationModal.
+// spec 011-meds-add-fab    — AppBar back-arrow / title / typography.
+// spec 026-add-med-name-input — body TextField and Save button structure.
+// spec 027-med-form-picker — medication-form picker (collapse/expand/select).
 import 'package:dosly/core/l10n/locale_resolver.dart';
 import 'package:dosly/features/meds/presentation/widgets/add_medication_modal.dart';
 import 'package:dosly/l10n/app_localizations.dart';
@@ -139,5 +141,116 @@ void main() {
       );
       expect(titleText.style, isNull);
     });
+  });
+
+  // ---------------------------------------------------------------------------
+  // AC-13: Medication-form picker (spec 027-med-form-picker)
+  // ---------------------------------------------------------------------------
+  group('AddMedicationModal form picker', () {
+    // (a) Collapsed initial state — label and placeholder visible, grid absent.
+    testWidgets(
+      'shows label and placeholder before any selection; grid is absent',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        // Display-row label is always present.
+        expect(find.text('Medication form'), findsOneWidget);
+        // Placeholder text shown when nothing is selected.
+        expect(find.text('Choose a form'), findsOneWidget);
+
+        // Grid is conditionally built — absent until the row is tapped.
+        expect(find.text('COMMON FORMS'), findsNothing);
+        expect(find.text('Tablet'), findsNothing);
+        expect(find.text('Syrup'), findsNothing);
+      },
+    );
+
+    // (b) Tapping the display row expands the grid with title + 8 options.
+    testWidgets(
+      'tapping display row expands grid with title and all 8 option names',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        // Tap the chevron icon (stable target inside the InkWell).
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+
+        // Grid title is rendered uppercased by the widget.
+        expect(find.text('COMMON FORMS'), findsOneWidget);
+
+        // All 8 option names must be present.
+        expect(find.text('Tablet'), findsOneWidget);
+        expect(find.text('Capsule'), findsOneWidget);
+        expect(find.text('Syrup'), findsOneWidget);
+        expect(find.text('Drops'), findsOneWidget);
+        expect(find.text('Injection'), findsOneWidget);
+        expect(find.text('Inhaler'), findsOneWidget);
+        expect(find.text('Cream / Ointment'), findsOneWidget);
+        expect(find.text('Sachet'), findsOneWidget);
+      },
+    );
+
+    // (c) Selecting an option updates the display row and collapses the grid.
+    testWidgets(
+      'selecting Syrup updates display row to Syrup / sub and collapses grid',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        // Open the grid.
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+
+        // Tap the Syrup chip.
+        await tester.tap(find.text('Syrup'));
+        await tester.pumpAndSettle();
+
+        // Grid must be collapsed again.
+        expect(find.text('COMMON FORMS'), findsNothing);
+        // Placeholder is gone now that a selection has been made.
+        expect(find.text('Choose a form'), findsNothing);
+
+        // Display row now shows the selected option name and sub-description.
+        // Only one instance of "Syrup" exists — the grid chip is gone.
+        expect(find.text('Syrup'), findsOneWidget);
+        expect(find.text('Liquid dosage form'), findsOneWidget);
+      },
+    );
+
+    // (d) Selecting a second option replaces the first (single-selection).
+    testWidgets(
+      'selecting Injection after Syrup replaces the selection; Syrup sub gone',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        // First selection: Syrup.
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Syrup'));
+        await tester.pumpAndSettle();
+
+        // Re-open using the chevron (display row now shows "Syrup" as name;
+        // the InputDecorator label floats and may not be hittable — use icon).
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+
+        // Second selection: Injection.
+        await tester.tap(find.text('Injection'));
+        await tester.pumpAndSettle();
+
+        // Grid collapsed — only display-row content remains in the tree.
+        expect(find.text('COMMON FORMS'), findsNothing);
+
+        // Display row reflects the latest selection.
+        expect(find.text('Injection'), findsOneWidget);
+        expect(find.text('Intramuscular / IV'), findsOneWidget);
+
+        // Previous selection's sub-description is gone.
+        expect(find.text('Liquid dosage form'), findsNothing);
+      },
+    );
   });
 }

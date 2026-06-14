@@ -2,24 +2,25 @@
 # Session State
 
 ## Current Feature
-026-add-med-name-input — Add-medication form, iteration 1 (VISUAL-ONLY): medication-name field + no-op Save button in AddMedicationModal. Branch `spec/026-add-med-name-input`. All tasks Complete; ready for `/review` → `/verify` → `/summarize` → `/finalize`.
+027-med-form-picker — Add-medication form, iteration 2 (VISUAL-ONLY): medication-form picker (display row + expanding 8-option grid) in AddMedicationModal. Branch `spec/027-med-form-picker`. ALL TASKS COMPLETE — ready for `/review` → `/verify` → `/summarize` → `/finalize`.
 
 ## Progress
-2 of 2 tasks Complete. Task 001 (l10n keys) + Task 002 (modal field + no-op Save button + test). Multi-iteration feature: this is iteration 1; later iterations add the rest of the form; the FINAL iteration adds real data save (drift + domain + repository). Roadmap in research/2026-06-11-add-medication-name-save.md.
+3 of 3 tasks Complete. Presentation-only; no domain/data/Riverpod/persistence; Save stays no-op; selected form held in local state, intentionally unconsumed this iteration.
 
 ## Recently Completed (last 3)
-- Task 002: AddMedicationModal StatelessWidget→StatefulWidget; body = SingleChildScrollView→Padding(16)→Column(stretch) with outlined name TextField + full-width FilledButton.icon(LucideIcons.save) no-op Save; test updated. analyze clean, 294 tests pass, apk built. Review APPROVE-with-warnings → both fixed.
-- Task 001: added medsAddNameLabel + medsAddSaveButton across en/de/uk (@meta en-only), regenerated bindings. analyze clean, 292 tests pass. Review APPROVE.
+- Task 003: added `AddMedicationModal form picker` test group (4 tests, AC-13 a–d) to add_medication_modal_test.dart; header names specs 011/026/027. analyze clean, 299 tests pass. Review APPROVE-with-warnings (3 minor test-polish nits, not actioned — tests correct).
+- Task 002: `_MedicationFormPicker` + `_MedFormOption` + 8-entry list in add_medication_modal.dart, inserted between name field and Save. InputDecorator row + AnimatedSize conditional grid + AnimatedRotation chevron. Review APPROVE-with-warnings → all 4 fixed.
+- Task 001: 19 medsAddForm* l10n keys across en/de/uk (@meta en-only), regenerated bindings.
 
 ## Recent Decisions
-- Save button is an INTENTIONAL documented no-op this iteration (enabled, onPressed: () {}); no persistence/validation/domain/Riverpod (all out-of-scope per spec 026).
-- Plain StatefulWidget (not ConsumerStatefulWidget) — no Riverpod need yet.
-- Explicit `OutlineInputBorder()` overrides the global filled/rounded inputDecorationTheme — deferred reconciliation to the data-save iteration (see MEMORY).
+- Icons: tablets (NOT pills), pill/milk/droplets/syringe/wind/container/package, placeholder=shapes (MEMORY updated).
+- Grid conditionally built (SizedBox.shrink collapsed); tests expand via chevron tap then find.
+- UK capsule "Капсули" (plural) = verbatim design value, left for user/translator (spec §8).
 
 ## Recently Modified Files
-- lib/features/meds/presentation/widgets/add_medication_modal.dart (first TextField / controller-owning StatefulWidget in the project)
+- lib/features/meds/presentation/widgets/add_medication_modal.dart
 - test/features/meds/presentation/widgets/add_medication_modal_test.dart
 - lib/l10n/app_{en,de,uk}.arb (+ regenerated app_localizations*.dart)
 
 ## Verification
-dart analyze: clean | flutter test: 294 pass | flutter build apk --debug: built | code-review: both tasks APPROVE (Task 002 warnings fixed)
+dart analyze: clean | flutter test: 299 pass | apk: built (Task 002) | code-review: all 3 tasks APPROVE-with-warnings (002 fixed, 001/003 noted)

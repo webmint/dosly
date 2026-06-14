@@ -48,11 +48,16 @@ Stroke weight: the default `LucideIcons.foo` matches the template's `stroke-widt
 
 ## The canonical icon set
 
-The 20 icons below are the full set catalogued from the HTML template and are the first-class glyphs for the app:
+The icons below are the full verified set in the app. The original 20 were catalogued from the HTML design template; subsequent entries were added as features shipped.
 
+**Template catalogue (20):**
 `pill` · `house` · `settings` · `history` · `circlePlus` · `thermometer` · `syringe` · `glasses` · `droplets` · `activity` · `clock` · `check` · `chevronDown` · `chevronRight` · `arrowLeft` · `search` · `plus` · `eye` · `x` · `phone`
 
 Plus the three theme-mode glyphs used by the Settings theme selector: `sunMoon` · `sun` · `moon`.
+
+**Added in feature 027 (medication-form picker):** `tablets` · `milk` · `wind` · `container` · `package` · `shapes`
+
+> Note: `pills` (plural) does NOT exist in `lucide_icons_flutter` 3.1.12. Use `tablets` for the compressed-tablet glyph.
 
 New features should prefer icons already in this set before introducing additional Lucide glyphs — when a new one is needed, add it to this list in `icons.md` at the same time.
 
