@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **meds feature** owns the Meds tab — destination index 1 in `AppBottomNav`. The screen has a localized `AppBar`, a `FloatingActionButton` that opens a full-screen modal, and an intentionally empty body (medication list is pending a future spec). The add-medication modal is being built iteratively — feature 026 added the first form controls (name field + Save button); persistence, validation, and the rest of the form are still pending.
+The **meds feature** owns the Meds tab — destination index 1 in `AppBottomNav`. The screen has a localized `AppBar`, a `FloatingActionButton` that opens a full-screen modal, and an intentionally empty body (medication list is pending a future spec). The add-medication modal is being built iteratively (features 026–029): it currently has a name field, a medication-form picker, form-dependent fields (dose, quantity, stock), and an intake-time chips section — all visual only. Persistence, domain layer, and Save wiring are still pending.
 
 Everything in this feature lives under `lib/features/meds/presentation/`. There is no `domain/` or `data/` layer yet.
 
@@ -15,7 +15,7 @@ Everything in this feature lives under `lib/features/meds/presentation/`. There 
 - A `SizedBox.shrink()` body — intentionally empty until the medication-list feature is implemented.
 - A `FloatingActionButton` (Material 3 FAB, `LucideIcons.plus`) with tooltip `context.l10n.medsAddFabTooltip` ("Add medication" in English). Tapping it calls `_openAddMedicationModal(context)`.
 
-## Add-Medication Modal (iteration 3 — visual only)
+## Add-Medication Modal (iteration 4 — visual only)
 
 `AddMedicationModal` (in `lib/features/meds/presentation/widgets/add_medication_modal.dart`) is a `StatefulWidget` that owns five `TextEditingController`s (name, dose, stock-remaining, stock-total, stock-warn) — all disposed in `dispose()`. It is a full-screen modal with:
 
@@ -25,6 +25,7 @@ Everything in this feature lives under `lib/features/meds/presentation/`. There 
   - An outlined `TextField` bound to `_nameController` with label `context.l10n.medsAddNameLabel`. The outlined, transparent styling (2px outline, `primary` on focus) comes from the global `inputDecorationTheme` in `lib/core/theme/app_theme.dart` — no call-site border/color overrides.
   - A medication-form picker (added in iteration 2 — see below).
   - Form-dependent fields gated on the selected form's capability flags (added in iteration 3 — see below).
+  - An intake-time chips section (added in iteration 4 — see below).
   - A full-width `FilledButton.icon` (`LucideIcons.save` + `context.l10n.medsAddSaveButton`) with `onPressed: () {}` — a **deliberate no-op**.
 
 ```dart
@@ -38,6 +39,8 @@ TextField(
 const SizedBox(height: 16),
 // _MedicationFormPicker inserted here (iteration 2)
 const SizedBox(height: 16),
+// _TimeChips inserted here (iteration 4)
+const SizedBox(height: 16),
 FilledButton.icon(
   onPressed: () {},
   icon: const Icon(LucideIcons.save),
@@ -45,7 +48,7 @@ FilledButton.icon(
 ),
 ```
 
-The Save button's empty callback is **intentional and documented** (spec 026 through 028, iterations 1–3). It does not validate input, persist data, pop the modal, or give user feedback. Real save behaviour — drift persistence, domain layer, Riverpod provider — will be wired in the data-save iteration. There is still no `domain/` or `data/` layer for this feature.
+The Save button's empty callback is **intentional and documented** (spec 026 through 029, iterations 1–4). It does not validate input, persist data, pop the modal, or give user feedback. Real save behaviour — drift persistence, domain layer, Riverpod provider — will be wired in the data-save iteration. There is still no `domain/` or `data/` layer for this feature.
 
 ## Medication-Form Picker (iteration 2 — visual only)
 
@@ -142,6 +145,38 @@ Shown for tablet and capsule. A rounded `Container` (`colorScheme.surfaceContain
 
 Switching to a different form clears all conditional field controllers and resets the stepper to the new form's `quantityMin`. This happens inside `setState` in `_AddMedicationModalState._onFormSelected`. Controllers are permanent `State` fields — they are cleared (`.clear()`), not recreated — to avoid use-after-dispose risks.
 
+## Intake-Time Chips (iteration 4 — visual only)
+
+The intake-time section sits between the form-dependent fields and the Save button. It lets users build a list of daily intake times as chips. Like all previous form iterations, nothing is persisted — the list is local widget state only and Save remains a no-op.
+
+### State and ordering
+
+`_AddMedicationModalState` holds a `List<TimeOfDay> _intakeTimes`. After any add or edit, the list is sorted ascending (by hour, then minute) so chips always render in chronological order. Duplicates (identified by the minutes-key `hour * 60 + minute`) are rejected: the list is left unchanged and a localized `SnackBar` informs the user. Editing a chip to its own current value is a silent no-op (no SnackBar).
+
+### `_TimeChips` widget
+
+A private `_TimeChips` widget renders the section inside an `InputDecorator` frame (label `medsAddTimeTitle`) for visual consistency with `_QuantityStepper`. Its content is a `Wrap` containing:
+
+- One **`InputChip`** per `TimeOfDay` in the list:
+  - Leading `LucideIcons.clock` icon.
+  - Label: the time formatted as `HH:MM` in 24-hour format regardless of device locale, via `MaterialLocalizations.formatTimeOfDay(t, alwaysUse24HourFormat: true)`.
+  - `onPressed`: opens `showTimePicker()` pre-filled with the chip's current time. Confirming replaces that chip's time; cancelling is a no-op.
+  - `onDeleted` (the built-in × affordance): removes the chip without opening the picker. `InputChip.onDeleted` provides a natively separate tap target, avoiding overlapping-gesture bugs.
+- One trailing **`ActionChip`** (solid outline, primary color, leading `LucideIcons.plus`, label `medsAddTimeAddChip`) that opens `showTimePicker()` with a fixed default of `08:00` and appends the chosen time on confirm.
+
+### 24-hour format enforcement
+
+The picker dialog is wrapped in `MediaQuery(data: ..., alwaysUse24HourFormat: true)` so the clock face and input field always use 24-hour mode regardless of the device locale. Chip labels use `MaterialLocalizations.formatTimeOfDay(t, alwaysUse24HourFormat: true)` for the same reason.
+
+### Async-safety
+
+`showTimePicker` is awaited. Both add and edit handlers check `if (!context.mounted) return;` before calling `setState` or `ScaffoldMessenger`, satisfying `use_build_context_synchronously`.
+
+### Scope and intentional no-ops
+
+- `_intakeTimes` is **not read by Save** and is **not persisted**. It is discarded when the modal closes.
+- No `domain/` or `data/` files are touched. The `TimeSlot` / `Schedule` domain entities, drift table, and Riverpod wiring are deferred to the data-save iteration.
+
 ## Opening the modal
 
 `MedsScreen` uses a private helper to push the modal:
@@ -235,6 +270,19 @@ Six unit abbreviation keys (resolved at runtime via `context.l10n`):
 
 All 14 keys exist in `app_en.arb` (with `@`-description metadata), `app_de.arb`, and `app_uk.arb`.
 
+### Intake-time chips (added in `029-intake-time-chips`)
+
+Four keys for the time-chips section:
+
+| Key | English | German | Ukrainian |
+|---|---|---|---|
+| `medsAddTimeTitle` | Intake time | Einnahmezeit | Час прийому |
+| `medsAddTimeAddChip` | + time | + Zeit | + час |
+| `medsAddTimeRemoveTooltip` | Remove | Entfernen | Видалити |
+| `medsAddTimeDuplicate` | That time is already added | Diese Zeit ist bereits hinzugefügt | Цей час вже додано |
+
+All 4 keys exist in `app_en.arb` (with `@`-description metadata), `app_de.arb`, and `app_uk.arb`.
+
 ## Routing
 
 `MedsScreen` is mounted at `/meds` as branch index 1 of the `StatefulShellRoute.indexedStack` in `lib/core/routing/app_router.dart`. Navigate to it with:
@@ -252,7 +300,8 @@ The add-medication form is being built iteratively:
 - **Feature 026 (done)** — name `TextField` + Save button (visual only; Save is a no-op).
 - **Feature 027 (done)** — medication-form picker (visual only; selected form is local state, not wired to Save).
 - **Feature 028 (done)** — form-dependent fields: quantity stepper + pack-stock card for tablet/capsule; dose field + unit dropdown for injection/syrup/drops; picker selection hoisted to modal via callback. Still visual only — Save remains a no-op; no persistence.
-- **Pending** — real Save behaviour: `domain/` entities (`Medication`, `MedicationForm` enum), repository interface, `data/` datasource (drift), concrete repository, Riverpod provider wired to the Save button; all controller values and stepper state will be read at this point.
+- **Feature 029 (done)** — intake-time chips: `_TimeChips` widget with `InputChip` per time (tap to edit, × to remove) plus a trailing `ActionChip` to add; auto-sorted ascending, duplicates rejected with SnackBar; 24-hour forced via `MediaQuery` + `MaterialLocalizations`. Still visual only — `_intakeTimes` is local state, not read by Save, not persisted.
+- **Pending** — real Save behaviour: `domain/` entities (`Medication`, `MedicationForm` enum, `TimeSlot`/`Schedule`), repository interface, `data/` datasource (drift), concrete repository, Riverpod provider wired to the Save button; all controller values, stepper state, and `_intakeTimes` will be read at this point.
 - **Pending** — schedule, reminder, and other form fields as future specs are defined.
 - **Pending** — medication list replacing the `SizedBox.shrink()` body of `MedsScreen`.
 
@@ -264,6 +313,7 @@ No changes to the `AppBar` structure, the `/meds` route path, or the modal-openi
 - [`../../specs/026-add-med-name-input/spec.md`](../../specs/026-add-med-name-input/spec.md) — the spec that added the name field and Save button (iteration 1)
 - [`../../specs/027-med-form-picker/spec.md`](../../specs/027-med-form-picker/spec.md) — the spec that added the medication-form picker (iteration 2)
 - [`../../specs/028-form-dependent-fields/spec.md`](../../specs/028-form-dependent-fields/spec.md) — the spec that added form-dependent input fields (iteration 3)
+- [`../../specs/029-intake-time-chips/spec.md`](../../specs/029-intake-time-chips/spec.md) — the spec that added the intake-time chips section (iteration 4)
 - [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen
 - [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology, routing conventions, and the `rootNavigator` context
 - [`i18n.md`](i18n.md) — how ARB keys are added and translated

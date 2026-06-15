@@ -204,6 +204,22 @@
   "@medsAddUnitCapsule": {
     "description": "Quantity unit abbreviation: capsules"
   },
+  "medsAddTimeTitle": "Intake time",
+  "@medsAddTimeTitle": {
+    "description": "Section title for the intake-time chips in the Add-medication modal."
+  },
+  "medsAddTimeAddChip": "Time",
+  "@medsAddTimeAddChip": {
+    "description": "Label of the dashed add chip that opens the time picker to append an intake time."
+  },
+  "medsAddTimeRemoveTooltip": "Remove time",
+  "@medsAddTimeRemoveTooltip": {
+    "description": "Tooltip/semantics label for the delete (×) affordance on an intake-time chip."
+  },
+  "medsAddTimeDuplicate": "This time is already added",
+  "@medsAddTimeDuplicate": {
+    "description": "SnackBar message shown when the user picks an intake time that is already in the list."
+  },
   "errorScreenTitle": "Page not found",
   "@errorScreenTitle": {
     "description": "Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link)."

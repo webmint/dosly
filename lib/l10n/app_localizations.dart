@@ -406,6 +406,30 @@ abstract class AppLocalizations {
   /// **'cap'**
   String get medsAddUnitCapsule;
 
+  /// Section title for the intake-time chips in the Add-medication modal.
+  ///
+  /// In en, this message translates to:
+  /// **'Intake time'**
+  String get medsAddTimeTitle;
+
+  /// Label of the dashed add chip that opens the time picker to append an intake time.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get medsAddTimeAddChip;
+
+  /// Tooltip/semantics label for the delete (×) affordance on an intake-time chip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove time'**
+  String get medsAddTimeRemoveTooltip;
+
+  /// SnackBar message shown when the user picks an intake time that is already in the list.
+  ///
+  /// In en, this message translates to:
+  /// **'This time is already added'**
+  String get medsAddTimeDuplicate;
+
   /// Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link).
   ///
   /// In en, this message translates to:

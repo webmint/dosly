@@ -166,6 +166,18 @@ class AppLocalizationsUk extends AppLocalizations {
   String get medsAddUnitCapsule => 'капс';
 
   @override
+  String get medsAddTimeTitle => 'Час прийому';
+
+  @override
+  String get medsAddTimeAddChip => 'Час';
+
+  @override
+  String get medsAddTimeRemoveTooltip => 'Видалити час';
+
+  @override
+  String get medsAddTimeDuplicate => 'Цей час уже додано';
+
+  @override
   String get errorScreenTitle => 'Сторінку не знайдено';
 
   @override

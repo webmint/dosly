@@ -1,31 +1,30 @@
 <!-- This file is a fixed-size sliding window. Always fully overwritten, never appended. Max ~40 lines. -->
 # Session State
-Last updated after Task 3: Widget tests for the form-dependent fields
 
 ## Current Feature
-028-form-dependent-fields
-
-## Session Stats
-Tasks completed this session: 3
-Estimated context load: moderate (3-5)
+029-intake-time-chips — Add-medication form: intake-time chips (visual-only, iteration 4)
 
 ## Progress
-- Last completed: Task 3 — Widget tests for the form-dependent fields
-- Next pending: none — all 3 tasks Complete
-- Tasks remaining in feature: 0 → ready for /review → /verify → /summarize → /finalize
+All 3 tasks COMPLETE. Ready for `/review` → `/verify` → `/summarize` → `/finalize`.
 
-## Key Decisions This Session (last 3 only)
-- Hoist picker selection via `ValueChanged<_MedFormOption>` callback (not full state-lift) → spec-027 tests untouched.
-- Conditional fields gated on `_selectedForm?.hasX ?? false` → absent before selection → spec-026 single-TextField test preserved.
-- Controllers are permanent State fields cleared on form change; per-form config lives on `_MedFormOption` (no String switch).
+| # | Task | Agent | Status |
+|---|------|-------|--------|
+| 001 | intake-time l10n keys (en/uk/de) | mobile-engineer | Complete |
+| 002 | _TimeChips section in modal | mobile-engineer | Complete |
+| 003 | widget tests (8) | qa-engineer | Complete |
 
-Older decisions are persisted in .claude/memory/MEMORY.md.
+## Recent Decisions
+- `InputChip(onPressed=edit, onDeleted=×)` for chips; `ActionChip` (solid outline) for the add chip — Material has no dashed border.
+- 24h forced via picker `builder` MediaQuery + `formatTimeOfDay(alwaysUse24HourFormat: true)`.
+- Local `List<TimeOfDay> _intakeTimes`, sort ascending + dedupe by minutes-key, reject dup with SnackBar. Save stays a no-op. No domain/data.
 
-## Files Modified Recently (last 3 tasks only)
-- test/features/meds/presentation/widgets/add_medication_modal_test.dart: +6 tests, new `form-dependent fields` group (Task 3)
-- lib/features/meds/presentation/widgets/add_medication_modal.dart: hoist + _DoseField/_QuantityStepper/_StockCard + config + controllers (Task 2)
-- lib/l10n/app_{en,de,uk}.arb (+ regenerated app_localizations*.dart): 14 new keys (Task 1)
+## Recently Modified Files
+- lib/features/meds/presentation/widgets/add_medication_modal.dart (Task 002)
+- lib/l10n/app_en.arb, app_uk.arb, app_de.arb (+ regenerated app_localizations*.dart) (Task 001)
+- test/features/meds/presentation/widgets/add_medication_modal_test.dart (Task 003 — 8 new tests, header fixed)
 
-## Active Constraints
-- Visual-only iteration: Save stays a no-op; no domain/data/persistence.
-- W1 RESOLVED: `medsAddUnitUnits` set to International Units — EN "IU" / DE "IE" / UK "МО" (user choice 2026-06-14).
+## Verification
+dart analyze: clean. flutter test: 313/313 pass. Code reviews: all APPROVE / APPROVE WITH WARNINGS (no Critical); W1/W2/W3/I3 all addressed.
+
+## Notes
+WIP commits accumulated (9) on branch spec/029-intake-time-chips — squashed by `/finalize`. Build: heavy `flutter build apk` deferred; compilation confirmed via clean analyze + full test suite.

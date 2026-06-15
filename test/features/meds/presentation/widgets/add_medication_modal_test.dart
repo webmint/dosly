@@ -2,6 +2,8 @@
 // spec 011-meds-add-fab    — AppBar back-arrow / title / typography.
 // spec 026-add-med-name-input — body TextField and Save button structure.
 // spec 027-med-form-picker — medication-form picker (collapse/expand/select).
+// spec 028-form-dependent-fields — dose/quantity/stock conditional fields.
+// spec 029-intake-time-chips — intake-time chips (add/edit/remove/sort/duplicate).
 import 'package:dosly/core/l10n/locale_resolver.dart';
 import 'package:dosly/features/meds/presentation/widgets/add_medication_modal.dart';
 import 'package:dosly/l10n/app_localizations.dart';
@@ -20,6 +22,46 @@ Widget _harness({required Locale locale}) {
     localeResolutionCallback: resolveAppLocale,
     home: const AddMedicationModal(),
   );
+}
+
+/// Interacts with an open [showTimePicker] dialog in keyboard/text-input mode.
+///
+/// Switches to input mode via the keyboard toggle icon (if not already in that
+/// mode), enters [hour] and [minute] into their respective text fields, then
+/// taps the OK button.  Callers must call [WidgetTester.pumpAndSettle] after
+/// the dialog has been opened and before calling this helper, and again after
+/// it returns to allow the dialog to close.
+///
+/// Implementation note: after switching to text-input mode the hour and minute
+/// fields are located by their Material semantic labels ("Hour" and "Minute"),
+/// which are stable English-locale identifiers set by the framework on the
+/// time-picker input fields.  This is safer than positional indexing because
+/// the full widget tree contains additional TextFields (e.g. the modal's
+/// medication-name field rendered behind the dialog overlay), so a bare
+/// [find.byType] index would be order-dependent and fragile.
+Future<void> _pickTimeInDialog(
+  WidgetTester tester, {
+  required String hour,
+  required String minute,
+}) async {
+  // Switch to text-input mode.  The toggle icon is keyboard_outlined in newer
+  // Material versions; fall back to keyboard if the outlined variant is absent.
+  final keyboardOutlined = find.byIcon(Icons.keyboard_outlined);
+  final keyboard = find.byIcon(Icons.keyboard);
+  if (keyboardOutlined.evaluate().isNotEmpty) {
+    await tester.tap(keyboardOutlined);
+  } else if (keyboard.evaluate().isNotEmpty) {
+    await tester.tap(keyboard);
+  }
+  await tester.pumpAndSettle();
+
+  // Locate the hour and minute fields by their stable semantic labels.
+  await tester.enterText(find.bySemanticsLabel('Hour'), hour);
+  await tester.enterText(find.bySemanticsLabel('Minute'), minute);
+
+  // Confirm the dialog.
+  await tester.tap(find.text('OK'));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -87,41 +129,36 @@ void main() {
       expect(field.decoration?.labelText, 'Medication name');
     });
 
-    testWidgets(
-      'body contains a FilledButton with Save label and save icon',
-      (tester) async {
-        await tester.pumpWidget(_harness(locale: const Locale('en')));
-        await tester.pumpAndSettle();
+    testWidgets('body contains a FilledButton with Save label and save icon', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_harness(locale: const Locale('en')));
+      await tester.pumpAndSettle();
 
-        expect(
-          find.widgetWithText(FilledButton, 'Save'),
-          findsOneWidget,
-        );
+      expect(find.widgetWithText(FilledButton, 'Save'), findsOneWidget);
 
-        // Verify the icon inside the FilledButton is LucideIcons.save.
-        final icon = tester.widget<Icon>(
-          find.descendant(
-            of: find.byType(FilledButton),
-            matching: find.byType(Icon),
-          ),
-        );
-        expect(icon.icon, LucideIcons.save);
-      },
-    );
+      // Verify the icon inside the FilledButton is LucideIcons.save.
+      final icon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byType(FilledButton),
+          matching: find.byType(Icon),
+        ),
+      );
+      expect(icon.icon, LucideIcons.save);
+    });
 
-    testWidgets(
-      'tapping Save does not throw and does not pop the modal',
-      (tester) async {
-        await tester.pumpWidget(_harness(locale: const Locale('en')));
-        await tester.pumpAndSettle();
+    testWidgets('tapping Save does not throw and does not pop the modal', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_harness(locale: const Locale('en')));
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byType(FilledButton));
-        await tester.pump();
+      await tester.tap(find.byType(FilledButton));
+      await tester.pump();
 
-        // The modal must still be in the tree — Save is a no-op in iteration 1.
-        expect(find.byType(AddMedicationModal), findsOneWidget);
-      },
-    );
+      // The modal must still be in the tree — Save is a no-op in iteration 1.
+      expect(find.byType(AddMedicationModal), findsOneWidget);
+    });
   });
 
   group('AddMedicationModal typography', () {
@@ -265,14 +302,8 @@ void main() {
         await tester.pumpWidget(_harness(locale: const Locale('en')));
         await tester.pumpAndSettle();
 
-        expect(
-          find.byKey(const ValueKey('medsAddQtyValue')),
-          findsNothing,
-        );
-        expect(
-          find.byKey(const ValueKey('medsAddDoseField')),
-          findsNothing,
-        );
+        expect(find.byKey(const ValueKey('medsAddQtyValue')), findsNothing);
+        expect(find.byKey(const ValueKey('medsAddDoseField')), findsNothing);
         expect(
           find.byKey(const ValueKey('medsAddStockRemaining')),
           findsNothing,
@@ -295,10 +326,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Stepper value present and initialised to the tablet minimum (0.5).
-        expect(
-          find.byKey(const ValueKey('medsAddQtyValue')),
-          findsOneWidget,
-        );
+        expect(find.byKey(const ValueKey('medsAddQtyValue')), findsOneWidget);
         final qtyText = tester.widget<Text>(
           find.byKey(const ValueKey('medsAddQtyValue')),
         );
@@ -314,10 +342,7 @@ void main() {
         expect(find.text('Warn when remaining reaches'), findsOneWidget);
 
         // Dose field is absent for tablet.
-        expect(
-          find.byKey(const ValueKey('medsAddDoseField')),
-          findsNothing,
-        );
+        expect(find.byKey(const ValueKey('medsAddDoseField')), findsNothing);
       },
     );
 
@@ -335,10 +360,12 @@ void main() {
         await tester.pumpAndSettle();
 
         final qtyFinder = find.byKey(const ValueKey('medsAddQtyValue'));
-        final incrementFinder =
-            find.byKey(const ValueKey('medsAddQtyIncrement'));
-        final decrementFinder =
-            find.byKey(const ValueKey('medsAddQtyDecrement'));
+        final incrementFinder = find.byKey(
+          const ValueKey('medsAddQtyIncrement'),
+        );
+        final decrementFinder = find.byKey(
+          const ValueKey('medsAddQtyDecrement'),
+        );
 
         // Initial value is 0.5.
         expect(tester.widget<Text>(qtyFinder).data, '0.5');
@@ -407,16 +434,10 @@ void main() {
         await tester.pumpAndSettle();
 
         // Dose amount field is present.
-        expect(
-          find.byKey(const ValueKey('medsAddDoseField')),
-          findsOneWidget,
-        );
+        expect(find.byKey(const ValueKey('medsAddDoseField')), findsOneWidget);
 
         // Dose unit dropdown is present and shows ml as the selected value.
-        expect(
-          find.byKey(const ValueKey('medsAddDoseUnit')),
-          findsOneWidget,
-        );
+        expect(find.byKey(const ValueKey('medsAddDoseUnit')), findsOneWidget);
         expect(
           find.descendant(
             of: find.byKey(const ValueKey('medsAddDoseUnit')),
@@ -426,10 +447,7 @@ void main() {
         );
 
         // Stepper and stock are absent for Syrup.
-        expect(
-          find.byKey(const ValueKey('medsAddQtyValue')),
-          findsNothing,
-        );
+        expect(find.byKey(const ValueKey('medsAddQtyValue')), findsNothing);
         expect(
           find.byKey(const ValueKey('medsAddStockRemaining')),
           findsNothing,
@@ -438,31 +456,19 @@ void main() {
     );
 
     // (e) Inhaler → no conditional fields at all.
-    testWidgets(
-      'Inhaler shows no conditional fields',
-      (tester) async {
-        await tester.pumpWidget(_harness(locale: const Locale('en')));
-        await tester.pumpAndSettle();
+    testWidgets('Inhaler shows no conditional fields', (tester) async {
+      await tester.pumpWidget(_harness(locale: const Locale('en')));
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byIcon(LucideIcons.chevronDown));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Inhaler'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(LucideIcons.chevronDown));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Inhaler'));
+      await tester.pumpAndSettle();
 
-        expect(
-          find.byKey(const ValueKey('medsAddQtyValue')),
-          findsNothing,
-        );
-        expect(
-          find.byKey(const ValueKey('medsAddDoseField')),
-          findsNothing,
-        );
-        expect(
-          find.byKey(const ValueKey('medsAddStockRemaining')),
-          findsNothing,
-        );
-      },
-    );
+      expect(find.byKey(const ValueKey('medsAddQtyValue')), findsNothing);
+      expect(find.byKey(const ValueKey('medsAddDoseField')), findsNothing);
+      expect(find.byKey(const ValueKey('medsAddStockRemaining')), findsNothing);
+    });
 
     // (f) Reset on switch — Tablet then Syrup clears stepper and stock.
     testWidgets(
@@ -477,10 +483,7 @@ void main() {
         await tester.tap(find.text('Tablet'));
         await tester.pumpAndSettle();
 
-        expect(
-          find.byKey(const ValueKey('medsAddQtyValue')),
-          findsOneWidget,
-        );
+        expect(find.byKey(const ValueKey('medsAddQtyValue')), findsOneWidget);
         expect(
           find.byKey(const ValueKey('medsAddStockRemaining')),
           findsOneWidget,
@@ -493,18 +496,213 @@ void main() {
         await tester.pumpAndSettle();
 
         // Stepper and stock are gone; dose field is present.
-        expect(
-          find.byKey(const ValueKey('medsAddQtyValue')),
-          findsNothing,
-        );
+        expect(find.byKey(const ValueKey('medsAddQtyValue')), findsNothing);
         expect(
           find.byKey(const ValueKey('medsAddStockRemaining')),
           findsNothing,
         );
-        expect(
-          find.byKey(const ValueKey('medsAddDoseField')),
-          findsOneWidget,
-        );
+        expect(find.byKey(const ValueKey('medsAddDoseField')), findsOneWidget);
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Intake-time chips (spec 029-intake-time-chips)
+  // ---------------------------------------------------------------------------
+  group('AddMedicationModal intake time', () {
+    // (1) Initial empty state — section title + add chip present; no InputChips.
+    testWidgets(
+      'shows section title and add chip; no InputChips on first open',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        // Section title (medsAddTimeTitle).
+        expect(find.text('Intake time'), findsOneWidget);
+        // Trailing add ActionChip (medsAddTimeAddChip).
+        expect(find.widgetWithText(ActionChip, 'Time'), findsOneWidget);
+        // No time chips yet.
+        expect(find.byType(InputChip), findsNothing);
+      },
+    );
+
+    // (2) Add a time — one InputChip with the 24-hour label appears.
+    testWidgets(
+      'tapping add chip, entering 09:00, and confirming adds one InputChip',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        // Open the time picker via the add chip.
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+
+        // Enter 09:00 in text-input mode and confirm.
+        await _pickTimeInDialog(tester, hour: '09', minute: '00');
+
+        // Exactly one InputChip with the 24-hour label.
+        expect(find.byType(InputChip), findsOneWidget);
+        expect(find.text('09:00'), findsOneWidget);
+      },
+    );
+
+    // (3) Cancel adds nothing — InputChip count stays at zero.
+    testWidgets('cancelling the time picker does not add any InputChip', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_harness(locale: const Locale('en')));
+      await tester.pumpAndSettle();
+
+      // Open the time picker via the add chip.
+      await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+      await tester.pumpAndSettle();
+
+      // Tap Cancel instead of OK.
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(InputChip), findsNothing);
+    });
+
+    // (4) Edit replaces — tapping a chip body opens the picker; new time replaces old.
+    testWidgets(
+      'tapping chip body, entering 10:30, replaces 09:00 with 10:30',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        // Add 09:00 first.
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '09', minute: '00');
+
+        // Tap the chip BODY (onPressed — not the delete icon).
+        await tester.tap(find.byType(InputChip));
+        await tester.pumpAndSettle();
+
+        // Edit to 10:30.
+        await _pickTimeInDialog(tester, hour: '10', minute: '30');
+
+        // 09:00 is gone; 10:30 is present; exactly one chip.
+        expect(find.text('10:30'), findsOneWidget);
+        expect(find.text('09:00'), findsNothing);
+        expect(find.byType(InputChip), findsOneWidget);
+      },
+    );
+
+    // (5) Delete via × — chip is removed; no time-picker dialog opens.
+    testWidgets(
+      'tapping the delete icon removes the chip without opening a picker',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        // Add 09:00.
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '09', minute: '00');
+
+        // Tap the × delete icon on the chip.
+        await tester.tap(find.byIcon(LucideIcons.x));
+        await tester.pumpAndSettle();
+
+        // Chip is gone.
+        expect(find.byType(InputChip), findsNothing);
+        // No time-picker dialog is open (its OK button is absent).
+        expect(find.text('OK'), findsNothing);
+      },
+    );
+
+    // (6) Ascending order — chips are sorted regardless of insertion order.
+    testWidgets('adding 20:00 then 08:00 renders 08:00 before 20:00', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_harness(locale: const Locale('en')));
+      await tester.pumpAndSettle();
+
+      // Add 20:00 first.
+      await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+      await tester.pumpAndSettle();
+      await _pickTimeInDialog(tester, hour: '20', minute: '00');
+
+      // Add 08:00 second.
+      await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+      await tester.pumpAndSettle();
+      await _pickTimeInDialog(tester, hour: '08', minute: '00');
+
+      // Both chips exist.
+      expect(find.byType(InputChip), findsNWidgets(2));
+
+      // 08:00 must appear before 20:00 in the widget tree (ascending order).
+      // Compare the vertical position: the chip with the earlier time must
+      // have a smaller or equal dy than the later chip.  Since both chips
+      // are in a Wrap they may share a row (same dy) — in that case compare
+      // the horizontal position (dx).
+      final earlyOffset = tester.getTopLeft(find.text('08:00'));
+      final lateOffset = tester.getTopLeft(find.text('20:00'));
+
+      // A chip that appears first in the Wrap is either on a higher row
+      // (smaller dy) or is to the left on the same row (smaller dx).
+      final isEarlierInLayout =
+          earlyOffset.dy < lateOffset.dy ||
+          (earlyOffset.dy == lateOffset.dy && earlyOffset.dx < lateOffset.dx);
+      expect(isEarlierInLayout, isTrue);
+    });
+
+    // (7) Duplicate rejected — SnackBar shown; chip count stays at one.
+    testWidgets(
+      'adding the same time twice shows duplicate SnackBar and keeps one chip',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        // Add 08:00 the first time.
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '08', minute: '00');
+
+        // Attempt to add 08:00 a second time.
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '08', minute: '00');
+
+        // Still exactly one chip.
+        expect(find.byType(InputChip), findsOneWidget);
+        expect(find.text('08:00'), findsOneWidget);
+
+        // SnackBar with the duplicate message is visible.
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.text('This time is already added'), findsOneWidget);
+      },
+    );
+
+    // (8) AC-9 second half — editing a chip to its own current value is a
+    //     silent no-op: the chip is preserved and no duplicate SnackBar appears.
+    testWidgets(
+      'editing a chip to its own current value is a silent no-op (no SnackBar)',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        // Add 08:00.
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '08', minute: '00');
+
+        // Tap the chip BODY (onPressed — not the delete icon) to open the editor.
+        await tester.tap(find.byType(InputChip));
+        await tester.pumpAndSettle();
+
+        // Confirm the picker with the same value 08:00.
+        await _pickTimeInDialog(tester, hour: '08', minute: '00');
+
+        // The chip must still be present — the edit must not drop it.
+        expect(find.byType(InputChip), findsOneWidget);
+        expect(find.text('08:00'), findsOneWidget);
+
+        // No duplicate SnackBar must appear for an edit-to-own-value.
+        expect(find.text('This time is already added'), findsNothing);
+        expect(find.byType(SnackBar), findsNothing);
       },
     );
   });

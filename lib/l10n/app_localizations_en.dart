@@ -164,6 +164,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medsAddUnitCapsule => 'cap';
 
   @override
+  String get medsAddTimeTitle => 'Intake time';
+
+  @override
+  String get medsAddTimeAddChip => 'Time';
+
+  @override
+  String get medsAddTimeRemoveTooltip => 'Remove time';
+
+  @override
+  String get medsAddTimeDuplicate => 'This time is already added';
+
+  @override
   String get errorScreenTitle => 'Page not found';
 
   @override
