@@ -1,16 +1,17 @@
-/// Meds feature — full-screen modal for the Add-medication flow (iteration 3).
+/// Meds feature — full-screen modal for the Add-medication flow (iteration 4).
 ///
 /// This library hosts [AddMedicationModal], a full-screen modal route
 /// pushed when the user taps the Add-medication FAB on the Meds screen.
 /// The body renders a medication-name text field, a medication-form picker
 /// ([_MedicationFormPicker] — spec 027, iteration 2), form-dependent input
 /// fields ([_DoseField], [_QuantityStepper], [_StockCard] — spec 028,
-/// iteration 3), and a Save button.
+/// iteration 3), an intake-time chips section ([_TimeChips] — spec 029,
+/// iteration 4), and a Save button.
 ///
-/// **Visual-only iteration 3 (spec 028)**: The conditional fields are LOCAL
+/// **Visual-only iteration 4 (spec 029)**: The intake-time list is LOCAL
 /// STATE only — no values are read by Save, validated, or persisted.  The
-/// data-save iteration will wire all controllers and stepper values to a real
-/// persistence layer.  Save remains an intentional no-op.
+/// data-save iteration will wire all state to a real persistence layer.
+/// Save remains an intentional no-op.
 library;
 
 import 'package:flutter/material.dart';
@@ -18,6 +19,16 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../../l10n/l10n_extensions.dart';
+
+// ---------------------------------------------------------------------------
+// Presentation-only constants
+// ---------------------------------------------------------------------------
+
+/// Default [TimeOfDay] used to pre-fill the picker when adding the first time.
+///
+/// Fixed at 08:00 to match the HTML design seed values.  Must NOT be
+/// [TimeOfDay.now()] — a fixed constant ensures deterministic widget tests.
+const _defaultPickerTime = TimeOfDay(hour: 8, minute: 0);
 
 // ---------------------------------------------------------------------------
 // Presentation-only form options data
@@ -227,8 +238,9 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
     // Resolve display content without null-assertion.
     final i = _selectedIndex;
     final selected = i == null ? null : _medFormOptions[i];
-    final displayName =
-        selected == null ? l10n.medsAddFormPlaceholder : selected.name(l10n);
+    final displayName = selected == null
+        ? l10n.medsAddFormPlaceholder
+        : selected.name(l10n);
     final displaySub = selected == null ? null : selected.sub(l10n);
     final displayIcon = selected?.icon ?? LucideIcons.shapes;
 
@@ -246,9 +258,7 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
             // isEmpty:false keeps the label permanently floated so that
             // the outlined border always shows with the label cut-out.
             isEmpty: false,
-            decoration: InputDecoration(
-              labelText: l10n.medsAddFormLabel,
-            ),
+            decoration: InputDecoration(labelText: l10n.medsAddFormLabel),
             child: Row(
               children: [
                 // Icon chip — 32×32, secondaryContainer background.
@@ -272,10 +282,7 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        displayName,
-                        style: textTheme.bodyLarge,
-                      ),
+                      Text(displayName, style: textTheme.bodyLarge),
                       if (displaySub != null)
                         Text(
                           displaySub,
@@ -346,9 +353,7 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.primaryContainer,
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(16),
-        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
       ),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       child: Column(
@@ -371,11 +376,7 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
   }
 
   /// Builds a single option chip for [option] at [index].
-  Widget _buildChip(
-    BuildContext context,
-    _MedFormOption option,
-    int index,
-  ) {
+  Widget _buildChip(BuildContext context, _MedFormOption option, int index) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final isSelected = index == _selectedIndex;
@@ -474,9 +475,7 @@ class _DoseField extends StatelessWidget {
             key: const ValueKey('medsAddDoseField'),
             controller: controller,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: l10n.medsAddDoseLabel,
-            ),
+            decoration: InputDecoration(labelText: l10n.medsAddDoseLabel),
           ),
         ),
         const SizedBox(width: 12),
@@ -485,15 +484,10 @@ class _DoseField extends StatelessWidget {
           child: DropdownButtonFormField<int>(
             key: const ValueKey('medsAddDoseUnit'),
             initialValue: selectedUnitIndex,
-            decoration: InputDecoration(
-              labelText: l10n.medsAddDoseUnitLabel,
-            ),
+            decoration: InputDecoration(labelText: l10n.medsAddDoseUnitLabel),
             items: [
               for (var i = 0; i < units.length; i++)
-                DropdownMenuItem<int>(
-                  value: i,
-                  child: Text(units[i](l10n)),
-                ),
+                DropdownMenuItem<int>(value: i, child: Text(units[i](l10n))),
             ],
             onChanged: onUnitChanged,
           ),
@@ -541,9 +535,7 @@ class _QuantityStepper extends StatelessWidget {
 
     return InputDecorator(
       isEmpty: false,
-      decoration: InputDecoration(
-        labelText: context.l10n.medsAddQuantityLabel,
-      ),
+      decoration: InputDecoration(labelText: context.l10n.medsAddQuantityLabel),
       child: Row(
         children: [
           IconButton(
@@ -623,10 +615,7 @@ class _StockCard extends StatelessWidget {
             children: [
               Icon(LucideIcons.packageOpen, color: colorScheme.secondary),
               const SizedBox(width: 8),
-              Text(
-                l10n.medsAddStockTitle,
-                style: textTheme.titleSmall,
-              ),
+              Text(l10n.medsAddStockTitle, style: textTheme.titleSmall),
             ],
           ),
           const SizedBox(height: 4),
@@ -681,6 +670,83 @@ class _StockCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// _TimeChips widget
+// ---------------------------------------------------------------------------
+
+/// A presentation-only wrapping row of intake-time chips with a trailing
+/// add-chip.
+///
+/// Renders one [InputChip] per entry in [times] (leading clock icon, 24-hour
+/// `HH:MM` label, × delete affordance, body tap → edit) followed by a single
+/// [ActionChip] (dashed solid outline, leading + icon) that calls [onAdd] to
+/// open the time picker.
+///
+/// Visual-only iteration 4 (spec 029): no persistence; [times] is driven by
+/// local state in [_AddMedicationModalState].
+class _TimeChips extends StatelessWidget {
+  /// Creates a [_TimeChips] widget.
+  const _TimeChips({
+    required this.times,
+    required this.onEdit,
+    required this.onRemove,
+    required this.onAdd,
+  });
+
+  /// The ordered list of [TimeOfDay] values to render as chips.
+  final List<TimeOfDay> times;
+
+  /// Called with the chip index when the user taps a chip body to edit it.
+  final void Function(int index) onEdit;
+
+  /// Called with the chip index when the user taps the × affordance to remove.
+  final void Function(int index) onRemove;
+
+  /// Called when the user taps the trailing add chip.
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final localizations = MaterialLocalizations.of(context);
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        // One InputChip per selected time.
+        for (var i = 0; i < times.length; i++)
+          InputChip(
+            avatar: Icon(
+              LucideIcons.clock,
+              size: 18,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            label: Text(
+              localizations.formatTimeOfDay(
+                times[i],
+                alwaysUse24HourFormat: true,
+              ),
+            ),
+            onPressed: () => onEdit(i),
+            onDeleted: () => onRemove(i),
+            deleteIcon: const Icon(LucideIcons.x, size: 16),
+            deleteButtonTooltipMessage: context.l10n.medsAddTimeRemoveTooltip,
+          ),
+
+        // Trailing add chip — solid outline approximates the dashed HTML design.
+        ActionChip(
+          avatar: Icon(LucideIcons.plus, size: 18, color: colorScheme.primary),
+          label: Text(context.l10n.medsAddTimeAddChip),
+          side: BorderSide(color: colorScheme.outline),
+          backgroundColor: Colors.transparent,
+          onPressed: onAdd,
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // AddMedicationModal
 // ---------------------------------------------------------------------------
 
@@ -698,11 +764,13 @@ class _StockCard extends StatelessWidget {
 ///     * [_DoseField] for injection / syrup / drops,
 ///     * [_QuantityStepper] for tablet / capsule,
 ///     * [_StockCard] for tablet / capsule,
+///   - an intake-time chips section [_TimeChips] (spec 029, iteration 4 —
+///     visual-only, times kept in local state only, not read by Save),
 ///   - a full-width [FilledButton.icon] Save button (no-op — data-save
 ///     iteration will wire persistence).
 ///
-/// **Visual-only iteration 3 (spec 028)**: All conditional field values are
-/// local state only.  Save is an intentional no-op.
+/// **Visual-only iterations 3–4 (spec 028–029)**: All conditional field values
+/// and intake-time entries are local state only.  Save is an intentional no-op.
 ///
 /// The modal is pushed via `Navigator.push(MaterialPageRoute(
 /// fullscreenDialog: true, ...))` from `meds_screen.dart`.
@@ -760,6 +828,17 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
   /// Reset to 0 on form change.
   /// Visual-only — not persisted.
   int _selectedDoseUnitIndex = 0;
+
+  // -------------------------------------------------------------------------
+  // Intake-time state (spec 029, visual-only)
+  // -------------------------------------------------------------------------
+
+  /// Sorted list of intake times selected by the user.
+  ///
+  /// Always kept in ascending order by time-of-day (hour × 60 + minute).
+  /// Duplicates are rejected before insertion.
+  /// Visual-only — not read by Save, not persisted.
+  final List<TimeOfDay> _intakeTimes = [];
 
   // -------------------------------------------------------------------------
   // Lifecycle
@@ -830,6 +909,98 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
     final min = _selectedForm?.quantityMin ?? 1;
     setState(() {
       _quantity = (_quantity - step).clamp(min, double.infinity);
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Intake-time logic (spec 029, visual-only)
+  // -------------------------------------------------------------------------
+
+  /// Opens Flutter's built-in [showTimePicker] dialog pre-filled at [initial].
+  ///
+  /// Forces 24-hour display via a [MediaQuery] wrapper regardless of the device
+  /// locale setting, as required by spec 029 AC-10.
+  /// Returns `null` if the user cancels.
+  Future<TimeOfDay?> _pickTime(TimeOfDay initial) {
+    return showTimePicker(
+      context: context,
+      initialTime: initial,
+      builder: (ctx, child) => MediaQuery(
+        data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true),
+        child: child ?? const SizedBox.shrink(),
+      ),
+    );
+  }
+
+  /// Opens the time picker to add a new intake time.
+  ///
+  /// Uses [_defaultPickerTime] as the default `initialTime`.  On confirm,
+  /// delegates to [_commitTime]; on cancel, changes nothing.
+  Future<void> _addTime() async {
+    final picked = await _pickTime(_defaultPickerTime);
+    if (picked == null) return;
+    if (!mounted) return;
+    _commitTime(picked, replacingIndex: null);
+  }
+
+  /// Opens the time picker to edit the chip at [index].
+  ///
+  /// Pre-fills the picker with the chip's current time.  If the user confirms
+  /// the same value (silent no-op) or cancels (`null`), the list is unchanged.
+  /// Otherwise delegates to [_commitTime] with [replacingIndex] set to [index].
+  Future<void> _editTime(int index) async {
+    final current = _intakeTimes[index];
+    final picked = await _pickTime(current);
+    if (picked == null) return;
+    if (!mounted) return;
+    // Silent no-op when the user confirms the chip's own existing value.
+    if (picked.hour == current.hour && picked.minute == current.minute) return;
+    _commitTime(picked, replacingIndex: index);
+  }
+
+  /// Removes the chip at [index] from [_intakeTimes] without opening the picker.
+  void _removeTime(int index) {
+    setState(() => _intakeTimes.removeAt(index));
+  }
+
+  /// Validates [time] for duplicates and, if accepted, inserts or replaces it.
+  ///
+  /// [replacingIndex]: when non-null, the slot being edited (excluded from the
+  /// duplicate check so a chip is never flagged as a duplicate of itself).
+  ///
+  /// If a duplicate is found (another slot at a different index has the same
+  /// minutes-key), a [SnackBar] is shown via [ScaffoldMessenger] and the list
+  /// is left unchanged.
+  ///
+  /// This method touches `context` (via [ScaffoldMessenger]) and therefore
+  /// self-guards with a `mounted` check as its first statement, making it safe
+  /// to call directly after any `await` without an external guard.
+  void _commitTime(TimeOfDay time, {required int? replacingIndex}) {
+    if (!mounted) return;
+    final minutesKey = time.hour * 60 + time.minute;
+
+    // Duplicate check: scan every index except the one being replaced.
+    for (var i = 0; i < _intakeTimes.length; i++) {
+      if (i == replacingIndex) continue;
+      final existing = _intakeTimes[i];
+      if (existing.hour * 60 + existing.minute == minutesKey) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.medsAddTimeDuplicate)),
+        );
+        return;
+      }
+    }
+
+    setState(() {
+      if (replacingIndex != null) {
+        _intakeTimes[replacingIndex] = time;
+      } else {
+        _intakeTimes.add(time);
+      }
+      // Keep chips in ascending chronological order.
+      _intakeTimes.sort(
+        (a, b) => (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute),
+      );
     });
   }
 
@@ -915,8 +1086,22 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
                 ),
               ],
 
+              // Intake-time section (spec 029, iteration 4 — visual-only).
               const SizedBox(height: 16),
-              // Intentional no-op for spec 026/027/028 visual iterations.
+              Text(
+                context.l10n.medsAddTimeTitle,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              _TimeChips(
+                times: _intakeTimes,
+                onEdit: _editTime,
+                onRemove: _removeTime,
+                onAdd: _addTime,
+              ),
+
+              const SizedBox(height: 16),
+              // Intentional no-op for spec 026/027/028/029 visual iterations.
               // The data-save iteration will replace this empty callback
               // with real persistence logic.
               FilledButton.icon(
