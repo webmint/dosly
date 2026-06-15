@@ -176,6 +176,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medsAddTimeDuplicate => 'This time is already added';
 
   @override
+  String get medsAddIntakeTypeTitle => 'Intake type';
+
+  @override
+  String get medsAddIntakeTypeContinuous => 'Continuous';
+
+  @override
+  String get medsAddIntakeTypeCourse => 'Course';
+
+  @override
+  String get medsAddCourseParamsTitle => 'Course parameters';
+
+  @override
+  String get medsAddCourseDurationLabel => 'Duration (days)';
+
+  @override
+  String get medsAddCoursePauseLabel => 'Pause (days)';
+
+  @override
+  String get medsAddCourseStartLabel => 'Start date';
+
+  @override
+  String medsAddCourseRangeLabel(String range, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days',
+      one: '1 day',
+    );
+    return 'Course: $range ($_temp0)';
+  }
+
+  @override
+  String medsAddCourseStartOnly(String date) {
+    return 'Course starts $date';
+  }
+
+  @override
   String get errorScreenTitle => 'Page not found';
 
   @override

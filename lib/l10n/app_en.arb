@@ -220,6 +220,44 @@
   "@medsAddTimeDuplicate": {
     "description": "SnackBar message shown when the user picks an intake time that is already in the list."
   },
+  "medsAddIntakeTypeTitle": "Intake type",
+  "@medsAddIntakeTypeTitle": {
+    "description": "Section title for the intake-type selector in the Add-medication modal."
+  },
+  "medsAddIntakeTypeContinuous": "Continuous",
+  "@medsAddIntakeTypeContinuous": {
+    "description": "Intake-type option label for ongoing/continuous medication use."
+  },
+  "medsAddIntakeTypeCourse": "Course",
+  "@medsAddIntakeTypeCourse": {
+    "description": "Intake-type option label for a fixed-duration medication course."
+  },
+  "medsAddCourseParamsTitle": "Course parameters",
+  "@medsAddCourseParamsTitle": {
+    "description": "Section title for the course-parameter fields (duration, pause, start date)."
+  },
+  "medsAddCourseDurationLabel": "Duration (days)",
+  "@medsAddCourseDurationLabel": {
+    "description": "Label for the course duration input field (value in days)."
+  },
+  "medsAddCoursePauseLabel": "Pause (days)",
+  "@medsAddCoursePauseLabel": {
+    "description": "Label for the pause-between-courses input field (value in days)."
+  },
+  "medsAddCourseStartLabel": "Start date",
+  "@medsAddCourseStartLabel": {
+    "description": "Label for the course start-date picker field."
+  },
+  "medsAddCourseRangeLabel": "Course: {range} ({count, plural, =1{1 day} other{{count} days}})",
+  "@medsAddCourseRangeLabel": {
+    "description": "Course info chip: localized date range plus a pluralized day count.",
+    "placeholders": { "range": { "type": "String" }, "count": { "type": "int" } }
+  },
+  "medsAddCourseStartOnly": "Course starts {date}",
+  "@medsAddCourseStartOnly": {
+    "description": "Course info-chip fallback shown when the duration is empty or not a positive integer.",
+    "placeholders": { "date": { "type": "String" } }
+  },
   "errorScreenTitle": "Page not found",
   "@errorScreenTitle": {
     "description": "Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link)."

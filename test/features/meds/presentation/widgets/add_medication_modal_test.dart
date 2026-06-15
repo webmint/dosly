@@ -4,6 +4,8 @@
 // spec 027-med-form-picker — medication-form picker (collapse/expand/select).
 // spec 028-form-dependent-fields — dose/quantity/stock conditional fields.
 // spec 029-intake-time-chips — intake-time chips (add/edit/remove/sort/duplicate).
+// spec 030-intake-type — intake-type segmented button and course-parameters card.
+import 'package:clock/clock.dart';
 import 'package:dosly/core/l10n/locale_resolver.dart';
 import 'package:dosly/features/meds/presentation/widgets/add_medication_modal.dart';
 import 'package:dosly/l10n/app_localizations.dart';
@@ -703,6 +705,437 @@ void main() {
         // No duplicate SnackBar must appear for an edit-to-own-value.
         expect(find.text('This time is already added'), findsNothing);
         expect(find.byType(SnackBar), findsNothing);
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Intake-type section (spec 030-intake-type)
+  // ---------------------------------------------------------------------------
+
+  /// Fixed test clock: 26 March 2026.
+  ///
+  /// All tests that depend on the default start date (today) must wrap
+  /// [pumpWidget] in [withClock] using this constant so results are
+  /// deterministic regardless of when the suite runs.
+  final fixedClock = Clock.fixed(DateTime(2026, 3, 26));
+
+  /// Selects the "Course" segment inside the [SegmentedButton] (en locale).
+  ///
+  /// Taps the visible "Course" text label.  After this call the caller must
+  /// invoke [WidgetTester.pumpAndSettle] to allow the state update to render
+  /// the CourseCard.
+  Future<void> selectCourse(WidgetTester tester) async {
+    await tester.tap(find.text('Course'));
+    await tester.pumpAndSettle();
+  }
+
+  group('AddMedicationModal intake type', () {
+    // -------------------------------------------------------------------------
+    // AC-3: SegmentedButton present; CourseCard absent by default.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'segmented button is present and course card is absent on open (AC-3)',
+      (tester) async {
+        await withClock(fixedClock, () async {
+          await tester.pumpWidget(_harness(locale: const Locale('en')));
+          await tester.pumpAndSettle();
+        });
+
+        // The segmented button is always visible.
+        expect(
+          find.byKey(const ValueKey('medsAddIntakeTypeSegmented')),
+          findsOneWidget,
+        );
+
+        // The course card (and all its children) must be absent — default is
+        // Continuous.
+        expect(
+          find.byKey(const ValueKey('medsAddCourseDuration')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('medsAddCourseInfoChip')),
+          findsNothing,
+        );
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // AC-2 / AC-4 / AC-6: selecting Course shows the card with defaults.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'selecting Course shows course card with default duration 7 and pause 0 (AC-2/AC-4/AC-6)',
+      (tester) async {
+        await withClock(fixedClock, () async {
+          await tester.pumpWidget(_harness(locale: const Locale('en')));
+          await tester.pumpAndSettle();
+          await selectCourse(tester);
+        });
+
+        // Course card appears.
+        expect(
+          find.byKey(const ValueKey('medsAddCourseDuration')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('medsAddCoursePause')),
+          findsOneWidget,
+        );
+
+        // Duration field pre-filled with "7".
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddCourseDuration')),
+            matching: find.text('7'),
+          ),
+          findsOneWidget,
+        );
+
+        // Pause field pre-filled with "0".
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddCoursePause')),
+            matching: find.text('0'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // AC-5: switching back to Continuous hides the course card.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'switching back to Continuous removes the course card (AC-5)',
+      (tester) async {
+        await withClock(fixedClock, () async {
+          await tester.pumpWidget(_harness(locale: const Locale('en')));
+          await tester.pumpAndSettle();
+
+          // First select Course — card appears.
+          await selectCourse(tester);
+          expect(
+            find.byKey(const ValueKey('medsAddCourseDuration')),
+            findsOneWidget,
+          );
+
+          // Switch back to Continuous.
+          await tester.tap(find.text('Continuous'));
+          await tester.pumpAndSettle();
+        });
+
+        // Course card must be gone.
+        expect(
+          find.byKey(const ValueKey('medsAddCourseDuration')),
+          findsNothing,
+        );
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // AC-7: start-date field shows today formatted with MaterialLocalizations.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'start-date field shows today in en medium format after selecting Course (AC-7)',
+      (tester) async {
+        await withClock(fixedClock, () async {
+          await tester.pumpWidget(_harness(locale: const Locale('en')));
+          await tester.pumpAndSettle();
+          await selectCourse(tester);
+        });
+
+        // The start-date InkWell must be present.
+        expect(
+          find.byKey(const ValueKey('medsAddCourseStartField')),
+          findsOneWidget,
+        );
+
+        // The displayed date for 2026-03-26 in en medium format is "Thu, Mar 26"
+        // (MaterialLocalizations.formatMediumDate includes the day-of-week
+        // abbreviation but omits the year).
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddCourseStartField')),
+            matching: find.text('Thu, Mar 26'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // AC-9: info chip shows inclusive date range with default duration 7.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'info chip shows correct 7-day range (Thu Mar 26 – Wed Apr 1) by default (AC-9)',
+      (tester) async {
+        await withClock(fixedClock, () async {
+          await tester.pumpWidget(_harness(locale: const Locale('en')));
+          await tester.pumpAndSettle();
+          await selectCourse(tester);
+        });
+
+        // The info chip must be present.
+        expect(
+          find.byKey(const ValueKey('medsAddCourseInfoChip')),
+          findsOneWidget,
+        );
+
+        // end = 2026-03-26 + (7-1) days = 2026-04-01 → "Wed, Apr 1".
+        // The label format is: Course: {start} — {end} ({count} days).
+        final infoText = tester.widget<Text>(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddCourseInfoChip')),
+            matching: find.byType(Text),
+          ),
+        );
+        expect(infoText.data, contains('Wed, Apr 1'));
+        expect(infoText.data, contains('7 days'));
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // AC-9 live update: changing duration updates the info chip immediately.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'changing duration to 3 updates info chip to Sat Mar 28 and 3 days (AC-9 live)',
+      (tester) async {
+        await withClock(fixedClock, () async {
+          await tester.pumpWidget(_harness(locale: const Locale('en')));
+          await tester.pumpAndSettle();
+          await selectCourse(tester);
+
+          // Enter "3" into the duration field.
+          await tester.enterText(
+            find.byKey(const ValueKey('medsAddCourseDuration')),
+            '3',
+          );
+          await tester.pumpAndSettle();
+
+          // end = 2026-03-26 + (3-1) days = 2026-03-28 → "Sat, Mar 28".
+          final infoText = tester.widget<Text>(
+            find.descendant(
+              of: find.byKey(const ValueKey('medsAddCourseInfoChip')),
+              matching: find.byType(Text),
+            ),
+          );
+          expect(infoText.data, contains('Sat, Mar 28'));
+          expect(infoText.data, contains('3 days'));
+        });
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // AC-10: invalid / empty duration falls back to start-only label.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'clearing duration shows start-only fallback label (AC-10)',
+      (tester) async {
+        await withClock(fixedClock, () async {
+          await tester.pumpWidget(_harness(locale: const Locale('en')));
+          await tester.pumpAndSettle();
+          await selectCourse(tester);
+
+          // Clear the duration field.
+          await tester.enterText(
+            find.byKey(const ValueKey('medsAddCourseDuration')),
+            '',
+          );
+          await tester.pumpAndSettle();
+
+          // Fallback: "Course starts Thu, Mar 26" — no "days" substring.
+          final infoText = tester.widget<Text>(
+            find.descendant(
+              of: find.byKey(const ValueKey('medsAddCourseInfoChip')),
+              matching: find.byType(Text),
+            ),
+          );
+          expect(infoText.data, contains('Course starts'));
+          expect(infoText.data, contains('Thu, Mar 26'));
+          expect(infoText.data, isNot(contains('days')));
+        });
+      },
+    );
+
+    testWidgets(
+      'non-numeric duration shows start-only fallback label without throwing (AC-10)',
+      (tester) async {
+        await withClock(fixedClock, () async {
+          await tester.pumpWidget(_harness(locale: const Locale('en')));
+          await tester.pumpAndSettle();
+          await selectCourse(tester);
+
+          // Enter non-numeric text.
+          await tester.enterText(
+            find.byKey(const ValueKey('medsAddCourseDuration')),
+            'abc',
+          );
+          await tester.pumpAndSettle();
+
+          // Fallback shown; no "days" range.
+          final infoText = tester.widget<Text>(
+            find.descendant(
+              of: find.byKey(const ValueKey('medsAddCourseInfoChip')),
+              matching: find.byType(Text),
+            ),
+          );
+          expect(infoText.data, contains('Course starts'));
+          expect(infoText.data, isNot(contains('days')));
+        });
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // AC-8: tapping start-date field opens the date picker.
+    //       Cancel: start date and info chip unchanged.
+    //       Confirm: selecting a different day updates the field and info chip.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'tapping Cancel in date picker leaves start date and info chip unchanged (AC-8)',
+      (tester) async {
+        await withClock(fixedClock, () async {
+          await tester.pumpWidget(_harness(locale: const Locale('en')));
+          await tester.pumpAndSettle();
+          await selectCourse(tester);
+        });
+
+        // Tap the start-date field to open the date picker.
+        await tester.tap(find.byKey(const ValueKey('medsAddCourseStartField')));
+        await tester.pumpAndSettle();
+
+        // A DatePickerDialog must now be in the tree.
+        expect(find.byType(DatePickerDialog), findsOneWidget);
+
+        // Tap Cancel — dialog dismisses without changing the date.
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+
+        // Dialog is gone.
+        expect(find.byType(DatePickerDialog), findsNothing);
+
+        // Start-date field still shows the original date.
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddCourseStartField')),
+            matching: find.text('Thu, Mar 26'),
+          ),
+          findsOneWidget,
+        );
+
+        // Info chip still shows the original 7-day range.
+        final infoText = tester.widget<Text>(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddCourseInfoChip')),
+            matching: find.byType(Text),
+          ),
+        );
+        expect(infoText.data, contains('Thu, Mar 26'));
+        expect(infoText.data, contains('7 days'));
+      },
+    );
+
+    testWidgets(
+      'confirming a new date in the date picker updates start field and info chip (AC-8)',
+      (tester) async {
+        await withClock(fixedClock, () async {
+          await tester.pumpWidget(_harness(locale: const Locale('en')));
+          await tester.pumpAndSettle();
+          await selectCourse(tester);
+        });
+
+        // Tap the start-date field to open the date picker.
+        await tester.tap(find.byKey(const ValueKey('medsAddCourseStartField')));
+        await tester.pumpAndSettle();
+
+        // A DatePickerDialog must now be in the tree.
+        expect(find.byType(DatePickerDialog), findsOneWidget);
+
+        // The picker opens in calendar mode for March 2026.
+        // Tap day "15" scoped to the dialog to avoid matching text elsewhere.
+        // Result: March 15, 2026 (formatMediumDate → "Sun, Mar 15").
+        await tester.tap(
+          find.descendant(
+            of: find.byType(DatePickerDialog),
+            matching: find.text('15'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Confirm with OK.
+        await tester.tap(find.text('OK'));
+        await tester.pumpAndSettle();
+
+        // Dialog is dismissed.
+        expect(find.byType(DatePickerDialog), findsNothing);
+
+        // Start-date field now shows "Sun, Mar 15".
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddCourseStartField')),
+            matching: find.text('Sun, Mar 15'),
+          ),
+          findsOneWidget,
+        );
+
+        // Info chip: end = Mar 15 + (7-1) days = Mar 21 → "Sat, Mar 21".
+        final infoText = tester.widget<Text>(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddCourseInfoChip')),
+            matching: find.byType(Text),
+          ),
+        );
+        expect(infoText.data, contains('Sun, Mar 15'));
+        expect(infoText.data, contains('Sat, Mar 21'));
+        expect(infoText.data, contains('7 days'));
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // AC-11: Ukrainian plural forms for 1, 2, and 5 days.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'uk plural: duration 1 → день, 2 → дні, 5 → днів (AC-11)',
+      (tester) async {
+        await withClock(fixedClock, () async {
+          await tester.pumpWidget(_harness(locale: const Locale('uk')));
+          await tester.pumpAndSettle();
+          // Select Course via the uk label "Курс".
+          await tester.tap(find.text('Курс'));
+          await tester.pumpAndSettle();
+        });
+
+        // Helper that reads the info chip text.
+        Text infoChipText() => tester.widget<Text>(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddCourseInfoChip')),
+            matching: find.byType(Text),
+          ),
+        );
+
+        // Duration 1 → "1 день".
+        await tester.enterText(
+          find.byKey(const ValueKey('medsAddCourseDuration')),
+          '1',
+        );
+        await tester.pumpAndSettle();
+        expect(infoChipText().data, contains('день'));
+
+        // Duration 2 → "2 дні".
+        await tester.enterText(
+          find.byKey(const ValueKey('medsAddCourseDuration')),
+          '2',
+        );
+        await tester.pumpAndSettle();
+        expect(infoChipText().data, contains('дні'));
+
+        // Duration 5 → "5 днів".
+        await tester.enterText(
+          find.byKey(const ValueKey('medsAddCourseDuration')),
+          '5',
+        );
+        await tester.pumpAndSettle();
+        expect(infoChipText().data, contains('днів'));
       },
     );
   });

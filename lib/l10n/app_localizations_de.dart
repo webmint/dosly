@@ -176,6 +176,43 @@ class AppLocalizationsDe extends AppLocalizations {
   String get medsAddTimeDuplicate => 'Diese Zeit ist bereits hinzugefügt';
 
   @override
+  String get medsAddIntakeTypeTitle => 'Einnahmeart';
+
+  @override
+  String get medsAddIntakeTypeContinuous => 'Dauerhaft';
+
+  @override
+  String get medsAddIntakeTypeCourse => 'Kur';
+
+  @override
+  String get medsAddCourseParamsTitle => 'Kurparameter';
+
+  @override
+  String get medsAddCourseDurationLabel => 'Dauer (Tage)';
+
+  @override
+  String get medsAddCoursePauseLabel => 'Pause (Tage)';
+
+  @override
+  String get medsAddCourseStartLabel => 'Startdatum';
+
+  @override
+  String medsAddCourseRangeLabel(String range, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tage',
+      one: '1 Tag',
+    );
+    return 'Kur: $range ($_temp0)';
+  }
+
+  @override
+  String medsAddCourseStartOnly(String date) {
+    return 'Kur beginnt $date';
+  }
+
+  @override
   String get errorScreenTitle => 'Seite nicht gefunden';
 
   @override

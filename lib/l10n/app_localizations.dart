@@ -430,6 +430,60 @@ abstract class AppLocalizations {
   /// **'This time is already added'**
   String get medsAddTimeDuplicate;
 
+  /// Section title for the intake-type selector in the Add-medication modal.
+  ///
+  /// In en, this message translates to:
+  /// **'Intake type'**
+  String get medsAddIntakeTypeTitle;
+
+  /// Intake-type option label for ongoing/continuous medication use.
+  ///
+  /// In en, this message translates to:
+  /// **'Continuous'**
+  String get medsAddIntakeTypeContinuous;
+
+  /// Intake-type option label for a fixed-duration medication course.
+  ///
+  /// In en, this message translates to:
+  /// **'Course'**
+  String get medsAddIntakeTypeCourse;
+
+  /// Section title for the course-parameter fields (duration, pause, start date).
+  ///
+  /// In en, this message translates to:
+  /// **'Course parameters'**
+  String get medsAddCourseParamsTitle;
+
+  /// Label for the course duration input field (value in days).
+  ///
+  /// In en, this message translates to:
+  /// **'Duration (days)'**
+  String get medsAddCourseDurationLabel;
+
+  /// Label for the pause-between-courses input field (value in days).
+  ///
+  /// In en, this message translates to:
+  /// **'Pause (days)'**
+  String get medsAddCoursePauseLabel;
+
+  /// Label for the course start-date picker field.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get medsAddCourseStartLabel;
+
+  /// Course info chip: localized date range plus a pluralized day count.
+  ///
+  /// In en, this message translates to:
+  /// **'Course: {range} ({count, plural, =1{1 day} other{{count} days}})'**
+  String medsAddCourseRangeLabel(String range, int count);
+
+  /// Course info-chip fallback shown when the duration is empty or not a positive integer.
+  ///
+  /// In en, this message translates to:
+  /// **'Course starts {date}'**
+  String medsAddCourseStartOnly(String date);
+
   /// Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link).
   ///
   /// In en, this message translates to:
