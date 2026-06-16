@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **meds feature** owns the Meds tab — destination index 1 in `AppBottomNav`. The screen has a localized `AppBar`, a `FloatingActionButton` that opens a full-screen modal, and an intentionally empty body (medication list is pending a future spec). The add-medication modal is being built iteratively (features 026–029): it currently has a name field, a medication-form picker, form-dependent fields (dose, quantity, stock), and an intake-time chips section — all visual only. Persistence, domain layer, and Save wiring are still pending.
+The **meds feature** owns the Meds tab — destination index 1 in `AppBottomNav`. The screen has a localized `AppBar`, a `FloatingActionButton` that opens a full-screen modal, and an intentionally empty body (medication list is pending a future spec). The add-medication modal is being built iteratively (features 026–030): it currently has a name field, a medication-form picker, form-dependent fields (dose, quantity, stock), an intake-time chips section, and an intake-type segmented control with a course-parameters card — all visual only. Persistence, domain layer, and Save wiring are still pending.
 
 Everything in this feature lives under `lib/features/meds/presentation/`. There is no `domain/` or `data/` layer yet.
 
@@ -15,9 +15,9 @@ Everything in this feature lives under `lib/features/meds/presentation/`. There 
 - A `SizedBox.shrink()` body — intentionally empty until the medication-list feature is implemented.
 - A `FloatingActionButton` (Material 3 FAB, `LucideIcons.plus`) with tooltip `context.l10n.medsAddFabTooltip` ("Add medication" in English). Tapping it calls `_openAddMedicationModal(context)`.
 
-## Add-Medication Modal (iteration 4 — visual only)
+## Add-Medication Modal (iteration 5 — visual only)
 
-`AddMedicationModal` (in `lib/features/meds/presentation/widgets/add_medication_modal.dart`) is a `StatefulWidget` that owns five `TextEditingController`s (name, dose, stock-remaining, stock-total, stock-warn) — all disposed in `dispose()`. It is a full-screen modal with:
+`AddMedicationModal` (in `lib/features/meds/presentation/widgets/add_medication_modal.dart`) is a `StatefulWidget` that owns seven `TextEditingController`s (name, dose, stock-remaining, stock-total, stock-warn, course-duration, course-pause) — all disposed in `dispose()`. It is a full-screen modal with:
 
 - A `Scaffold + AppBar` carrying the localized title `context.l10n.medsAddTitle` ("Add medication").
 - A leading `IconButton` (back arrow, `LucideIcons.arrowLeft`) that calls `Navigator.of(context).pop()`.
@@ -26,6 +26,7 @@ Everything in this feature lives under `lib/features/meds/presentation/`. There 
   - A medication-form picker (added in iteration 2 — see below).
   - Form-dependent fields gated on the selected form's capability flags (added in iteration 3 — see below).
   - An intake-time chips section (added in iteration 4 — see below).
+  - An intake-type segmented control and optional course-parameters card (added in iteration 5 — see below).
   - A full-width `FilledButton.icon` (`LucideIcons.save` + `context.l10n.medsAddSaveButton`) with `onPressed: () {}` — a **deliberate no-op**.
 
 ```dart
@@ -48,7 +49,7 @@ FilledButton.icon(
 ),
 ```
 
-The Save button's empty callback is **intentional and documented** (spec 026 through 029, iterations 1–4). It does not validate input, persist data, pop the modal, or give user feedback. Real save behaviour — drift persistence, domain layer, Riverpod provider — will be wired in the data-save iteration. There is still no `domain/` or `data/` layer for this feature.
+The Save button's empty callback is **intentional and documented** (spec 026 through 030, iterations 1–5). It does not validate input, persist data, pop the modal, or give user feedback. Real save behaviour — drift persistence, domain layer, Riverpod provider — will be wired in the data-save iteration. There is still no `domain/` or `data/` layer for this feature.
 
 ## Medication-Form Picker (iteration 2 — visual only)
 
@@ -177,6 +178,68 @@ The picker dialog is wrapped in `MediaQuery(data: ..., alwaysUse24HourFormat: tr
 - `_intakeTimes` is **not read by Save** and is **not persisted**. It is discarded when the modal closes.
 - No `domain/` or `data/` files are touched. The `TimeSlot` / `Schedule` domain entities, drift table, and Riverpod wiring are deferred to the data-save iteration.
 
+## Intake-Type Control (iteration 5 — visual only)
+
+The intake-type section sits between the intake-time chips and the Save button. It lets users choose whether a medication is taken continuously or as a bounded course. Like all previous form iterations, nothing is persisted — all state is local widget state only and Save remains a no-op.
+
+### Toggle
+
+A `SegmentedButton<_IntakeType>` renders two segments:
+
+| Segment | Value | Icon |
+|---|---|---|
+| Continuous | `_IntakeType.continuous` | `LucideIcons.infinity` |
+| Course | `_IntakeType.course` | `LucideIcons.repeat` |
+
+The default selection on modal open is **Continuous**. Switching to Course immediately reveals the `_CourseCard` below; switching back collapses it. The card is absent from the widget tree (not merely hidden) when Continuous is selected.
+
+```dart
+SegmentedButton<_IntakeType>(
+  key: const ValueKey('medsAddIntakeTypeSegmented'),
+  segments: <ButtonSegment<_IntakeType>>[
+    ButtonSegment<_IntakeType>(
+      value: _IntakeType.continuous,
+      label: Text(context.l10n.medsAddIntakeTypeContinuous),
+      icon: const Icon(LucideIcons.infinity),
+    ),
+    ButtonSegment<_IntakeType>(
+      value: _IntakeType.course,
+      label: Text(context.l10n.medsAddIntakeTypeCourse),
+      icon: const Icon(LucideIcons.repeat),
+    ),
+  ],
+  selected: <_IntakeType>{_intakeType},
+  onSelectionChanged: (Set<_IntakeType> selection) {
+    if (selection.isEmpty) return;
+    setState(() => _intakeType = selection.first);
+  },
+),
+```
+
+### Course-parameters card (`_CourseCard`)
+
+Shown only when Course is selected. A rounded `Container` (`colorScheme.surfaceContainerLow` background, `colorScheme.outlineVariant` border, 16 dp radius) containing:
+
+- A header row: `LucideIcons.repeat` (`colorScheme.tertiary`) + title `medsAddCourseParamsTitle`.
+- A side-by-side row: **Duration (days)** (`medsAddCourseDurationLabel`) and **Pause (days)** (`medsAddCoursePauseLabel`) — both numeric `TextField`s. Pre-filled with `"7"` and `"0"` respectively.
+- A **Start-date** tap target (`medsAddCourseStartLabel`) styled as an `InputDecorator` with a `LucideIcons.calendarDays` suffix icon. Tapping opens `showDatePicker`; the chosen date is normalised to midnight via `DateUtils.dateOnly`. Defaults to today via `DateUtils.dateOnly(clock.now())` — using the `clock` package so widget tests can override the clock without affecting real time.
+- A **live info chip** (`colorScheme.tertiaryContainer` background) showing the inclusive course date range.
+
+### Info chip and date-range computation
+
+The info chip recomputes whenever the duration field changes or the start date is updated. The computation in `_courseInfoLabel`:
+
+- If `_durationController` contains a valid integer ≥ 1: renders `medsAddCourseRangeLabel(range, count)` where `range` is `"<start> — <end>"` and `end = start + (duration − 1)` days (inclusive). Both dates are formatted via `MaterialLocalizations.formatMediumDate` — no `intl`/`DateFormat` dependency.
+- Otherwise: falls back to `medsAddCourseStartOnly(date)` showing only the start date.
+
+This is the project's first **ICU-plural + placeholder** ARB message. `medsAddCourseRangeLabel` uses a mixed `{range}` String placeholder and a `{count}` plural selector. Ukrainian uses four plural categories: `one/few/many/other`.
+
+### Scope and intentional no-ops
+
+- `_intakeType`, `_durationController`, `_pauseController`, and `_startDate` are **not read by Save** and are **not persisted**. They are discarded when the modal closes.
+- No `domain/` or `data/` files are touched. The `Schedule` / `Course` domain entities and drift table are deferred to the data-save iteration.
+- The `clock` package is now a **direct dependency** (promoted from transitive). Default start date = `DateUtils.dateOnly(clock.now())`; tests override via `withClock(Clock.fixed(...), ...)`.
+
 ## Opening the modal
 
 `MedsScreen` uses a private helper to push the modal:
@@ -283,6 +346,24 @@ Four keys for the time-chips section:
 
 All 4 keys exist in `app_en.arb` (with `@`-description metadata), `app_de.arb`, and `app_uk.arb`.
 
+### Intake-type control (added in `030-intake-type-control`)
+
+Nine keys for the segmented toggle and the course-parameters card:
+
+| Key | English | German | Ukrainian |
+|---|---|---|---|
+| `medsAddIntakeTypeTitle` | Intake type | Einnahmeart | Тип прийому |
+| `medsAddIntakeTypeContinuous` | Continuous | Dauerhaft | Постійний |
+| `medsAddIntakeTypeCourse` | Course | Kur | Курс |
+| `medsAddCourseParamsTitle` | Course parameters | Kurparameter | Параметри курсу |
+| `medsAddCourseDurationLabel` | Duration (days) | Dauer (Tage) | Тривалість (дні) |
+| `medsAddCoursePauseLabel` | Pause (days) | Pause (Tage) | Пауза (дні) |
+| `medsAddCourseStartLabel` | Start date | Startdatum | Дата початку |
+| `medsAddCourseRangeLabel` | `Course: {range} ({count} day(s))` | `Kur: {range} ({count} Tag(e))` | `Курс: {range} ({count} день/дні/днів)` |
+| `medsAddCourseStartOnly` | `Course starts {date}` | `Kur beginnt {date}` | `Курс починається {date}` |
+
+`medsAddCourseRangeLabel` is the project's **first ICU-plural + placeholder message** — it mixes a `{range}` String placeholder with a `{count}` plural selector. Ukrainian uses four plural categories (`one/few/many/other`); English and German use `=1/other`. All 9 keys exist in `app_en.arb` (with `@`-description metadata), `app_de.arb`, and `app_uk.arb`.
+
 ## Routing
 
 `MedsScreen` is mounted at `/meds` as branch index 1 of the `StatefulShellRoute.indexedStack` in `lib/core/routing/app_router.dart`. Navigate to it with:
@@ -301,7 +382,8 @@ The add-medication form is being built iteratively:
 - **Feature 027 (done)** — medication-form picker (visual only; selected form is local state, not wired to Save).
 - **Feature 028 (done)** — form-dependent fields: quantity stepper + pack-stock card for tablet/capsule; dose field + unit dropdown for injection/syrup/drops; picker selection hoisted to modal via callback. Still visual only — Save remains a no-op; no persistence.
 - **Feature 029 (done)** — intake-time chips: `_TimeChips` widget with `InputChip` per time (tap to edit, × to remove) plus a trailing `ActionChip` to add; auto-sorted ascending, duplicates rejected with SnackBar; 24-hour forced via `MediaQuery` + `MaterialLocalizations`. Still visual only — `_intakeTimes` is local state, not read by Save, not persisted.
-- **Pending** — real Save behaviour: `domain/` entities (`Medication`, `MedicationForm` enum, `TimeSlot`/`Schedule`), repository interface, `data/` datasource (drift), concrete repository, Riverpod provider wired to the Save button; all controller values, stepper state, and `_intakeTimes` will be read at this point.
+- **Feature 030 (done)** — intake-type control: `SegmentedButton<_IntakeType>` (Continuous / Course); selecting Course reveals `_CourseCard` with Duration, Pause, and Start-date fields plus a live date-range info chip. Date defaults to today via `clock.now()` (test-overridable). First ICU-plural ARB message (`medsAddCourseRangeLabel`). Still visual only — all course fields are local state, not read by Save, not persisted.
+- **Pending** — real Save behaviour: `domain/` entities (`Medication`, `MedicationForm` enum, `TimeSlot`/`Schedule`/`Course`), repository interface, `data/` datasource (drift), concrete repository, Riverpod provider wired to the Save button; all controller values, stepper state, `_intakeTimes`, `_intakeType`, and course parameters will be read at this point.
 - **Pending** — schedule, reminder, and other form fields as future specs are defined.
 - **Pending** — medication list replacing the `SizedBox.shrink()` body of `MedsScreen`.
 
@@ -314,6 +396,7 @@ No changes to the `AppBar` structure, the `/meds` route path, or the modal-openi
 - [`../../specs/027-med-form-picker/spec.md`](../../specs/027-med-form-picker/spec.md) — the spec that added the medication-form picker (iteration 2)
 - [`../../specs/028-form-dependent-fields/spec.md`](../../specs/028-form-dependent-fields/spec.md) — the spec that added form-dependent input fields (iteration 3)
 - [`../../specs/029-intake-time-chips/spec.md`](../../specs/029-intake-time-chips/spec.md) — the spec that added the intake-time chips section (iteration 4)
+- [`../../specs/030-intake-type-control/spec.md`](../../specs/030-intake-type-control/spec.md) — the spec that added the intake-type segmented control and course-parameters card (iteration 5)
 - [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen
 - [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology, routing conventions, and the `rootNavigator` context
 - [`i18n.md`](i18n.md) — how ARB keys are added and translated

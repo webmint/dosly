@@ -178,6 +178,45 @@ class AppLocalizationsUk extends AppLocalizations {
   String get medsAddTimeDuplicate => 'Цей час уже додано';
 
   @override
+  String get medsAddIntakeTypeTitle => 'Тип прийому';
+
+  @override
+  String get medsAddIntakeTypeContinuous => 'Постійний';
+
+  @override
+  String get medsAddIntakeTypeCourse => 'Курс';
+
+  @override
+  String get medsAddCourseParamsTitle => 'Параметри курсу';
+
+  @override
+  String get medsAddCourseDurationLabel => 'Тривалість (дні)';
+
+  @override
+  String get medsAddCoursePauseLabel => 'Пауза (дні)';
+
+  @override
+  String get medsAddCourseStartLabel => 'Дата початку';
+
+  @override
+  String medsAddCourseRangeLabel(String range, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count дня',
+      many: '$count днів',
+      few: '$count дні',
+      one: '$count день',
+    );
+    return 'Курс: $range ($_temp0)';
+  }
+
+  @override
+  String medsAddCourseStartOnly(String date) {
+    return 'Курс починається $date';
+  }
+
+  @override
   String get errorScreenTitle => 'Сторінку не знайдено';
 
   @override

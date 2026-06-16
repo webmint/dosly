@@ -1,4 +1,4 @@
-/// Meds feature — full-screen modal for the Add-medication flow (iteration 4).
+/// Meds feature — full-screen modal for the Add-medication flow (iteration 5).
 ///
 /// This library hosts [AddMedicationModal], a full-screen modal route
 /// pushed when the user taps the Add-medication FAB on the Meds screen.
@@ -6,14 +6,17 @@
 /// ([_MedicationFormPicker] — spec 027, iteration 2), form-dependent input
 /// fields ([_DoseField], [_QuantityStepper], [_StockCard] — spec 028,
 /// iteration 3), an intake-time chips section ([_TimeChips] — spec 029,
-/// iteration 4), and a Save button.
+/// iteration 4), an intake-type segmented selector with a course-parameters
+/// card ([_CourseCard] — spec 030, iteration 5), and a Save button.
 ///
-/// **Visual-only iteration 4 (spec 029)**: The intake-time list is LOCAL
-/// STATE only — no values are read by Save, validated, or persisted.  The
-/// data-save iteration will wire all state to a real persistence layer.
+/// **Visual-only iteration 5 (spec 030)**: The intake-type selection and all
+/// course-parameter fields (duration, pause, start date) are LOCAL STATE only
+/// — no values are read by Save, validated, or persisted.  The data-save
+/// iteration will wire all state to a real persistence layer.
 /// Save remains an intentional no-op.
 library;
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -29,6 +32,23 @@ import '../../../../l10n/l10n_extensions.dart';
 /// Fixed at 08:00 to match the HTML design seed values.  Must NOT be
 /// [TimeOfDay.now()] — a fixed constant ensures deterministic widget tests.
 const _defaultPickerTime = TimeOfDay(hour: 8, minute: 0);
+
+// ---------------------------------------------------------------------------
+// Presentation-only intake-type enum
+// ---------------------------------------------------------------------------
+
+/// Describes whether a medication is taken on a continuous (indefinite) basis
+/// or as a bounded course with a defined duration, pause, and start date.
+///
+/// Visual-only (spec 030, iteration 5) — selection is stored in local
+/// [State] only and is never persisted or read by Save.
+enum _IntakeType {
+  /// Medication is taken continuously with no end date.
+  continuous,
+
+  /// Medication is taken as a timed course with duration, pause, and start date.
+  course,
+}
 
 // ---------------------------------------------------------------------------
 // Presentation-only form options data
@@ -747,6 +767,150 @@ class _TimeChips extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// _CourseCard widget
+// ---------------------------------------------------------------------------
+
+/// A presentation-only card displaying course-parameter fields: duration,
+/// pause, start date (with a [showDatePicker] tap target), and a live-computed
+/// info chip showing the inclusive date range.
+///
+/// Visual-only iteration 5 (spec 030) — all controllers and [startDate] are
+/// owned and disposed by [_AddMedicationModalState].  Nothing is persisted;
+/// Save remains a no-op.
+class _CourseCard extends StatelessWidget {
+  /// Creates a [_CourseCard].
+  const _CourseCard({
+    required this.durationController,
+    required this.pauseController,
+    required this.startDate,
+    required this.onPickStart,
+    required this.onDurationChanged,
+    required this.infoLabel,
+  });
+
+  /// Controller for the course-duration field (number of days).
+  final TextEditingController durationController;
+
+  /// Controller for the pause-between-courses field (number of days).
+  final TextEditingController pauseController;
+
+  /// The currently selected course start date.
+  final DateTime startDate;
+
+  /// Called when the user taps the start-date field to open [showDatePicker].
+  final VoidCallback onPickStart;
+
+  /// Called when the user changes the duration field text (drives info-chip recompute).
+  final ValueChanged<String> onDurationChanged;
+
+  /// Pre-computed localized label for the info chip (inclusive date range or start-only).
+  final String infoLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final l10n = context.l10n;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header row: icon + title.
+          Row(
+            children: [
+              Icon(LucideIcons.repeat, color: colorScheme.tertiary),
+              const SizedBox(width: 8),
+              Text(l10n.medsAddCourseParamsTitle, style: textTheme.titleSmall),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Duration + Pause fields side by side.
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('medsAddCourseDuration'),
+                  controller: durationController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: l10n.medsAddCourseDurationLabel,
+                  ),
+                  onChanged: onDurationChanged,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('medsAddCoursePause'),
+                  controller: pauseController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: l10n.medsAddCoursePauseLabel,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Start-date tap target styled like an outlined input field.
+          InkWell(
+            key: const ValueKey('medsAddCourseStartField'),
+            borderRadius: BorderRadius.circular(4),
+            onTap: onPickStart,
+            child: InputDecorator(
+              isEmpty: false,
+              decoration: InputDecoration(
+                labelText: l10n.medsAddCourseStartLabel,
+                suffixIcon: const Icon(LucideIcons.calendarDays),
+              ),
+              child: Text(
+                MaterialLocalizations.of(context).formatMediumDate(startDate),
+                style: textTheme.bodyLarge,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Info chip — tertiaryContainer background, inclusive range text.
+          Container(
+            key: const ValueKey('medsAddCourseInfoChip'),
+            decoration: BoxDecoration(
+              color: colorScheme.tertiaryContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Icon(
+                  LucideIcons.info,
+                  size: 18,
+                  color: colorScheme.onTertiaryContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    infoLabel,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onTertiaryContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // AddMedicationModal
 // ---------------------------------------------------------------------------
 
@@ -841,6 +1005,37 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
   final List<TimeOfDay> _intakeTimes = [];
 
   // -------------------------------------------------------------------------
+  // Intake-type state (spec 030, visual-only)
+  // -------------------------------------------------------------------------
+
+  /// Whether the user has selected Continuous or Course intake.
+  ///
+  /// Drives [SegmentedButton] selection and conditional [_CourseCard]
+  /// visibility.  Visual-only — not read by Save, not persisted.
+  _IntakeType _intakeType = _IntakeType.continuous;
+
+  /// Controller for the course-duration field (days).  Pre-filled with "7".
+  ///
+  /// Visual-only — not read by Save, not persisted.
+  final TextEditingController _durationController =
+      TextEditingController(text: '7');
+
+  /// Controller for the pause-between-courses field (days).  Pre-filled
+  /// with "0".
+  ///
+  /// Visual-only — not read by Save, not persisted.
+  final TextEditingController _pauseController =
+      TextEditingController(text: '0');
+
+  /// The currently selected course start date, normalised to midnight.
+  ///
+  /// Defaults to today via [clock.now()] (not [DateTime.now()]) so tests
+  /// can override the clock.  Normalised with [DateUtils.dateOnly] to strip
+  /// the time component.
+  /// Visual-only — not read by Save, not persisted.
+  DateTime _startDate = DateUtils.dateOnly(clock.now());
+
+  // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
 
@@ -851,6 +1046,8 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
     _stockRemainingController.dispose();
     _stockTotalController.dispose();
     _stockWarnController.dispose();
+    _durationController.dispose();
+    _pauseController.dispose();
     super.dispose();
   }
 
@@ -1005,6 +1202,47 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
   }
 
   // -------------------------------------------------------------------------
+  // Course date-picker logic (spec 030, visual-only)
+  // -------------------------------------------------------------------------
+
+  /// Opens Flutter's built-in [showDatePicker] dialog pre-filled at
+  /// [_startDate].
+  ///
+  /// Guards with `if (picked == null) return` and `if (!mounted) return`
+  /// (in that order) before calling [setState], mirroring the idiom used in
+  /// [_addTime] and [_editTime].  On confirm, normalises the result to
+  /// midnight via [DateUtils.dateOnly].
+  Future<void> _pickStartDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate,
+      firstDate: DateTime(_startDate.year - 1),
+      lastDate: DateTime(_startDate.year + 5),
+    );
+    if (picked == null) return;
+    if (!mounted) return;
+    setState(() => _startDate = DateUtils.dateOnly(picked));
+  }
+
+  /// Computes the localized info-chip label for the [_CourseCard].
+  ///
+  /// When [_durationController] contains a valid integer ≥ 1, returns a
+  /// [AppLocalizations.medsAddCourseRangeLabel] string showing the inclusive
+  /// date range.  Otherwise falls back to
+  /// [AppLocalizations.medsAddCourseStartOnly] showing only the start date.
+  String _courseInfoLabel(AppLocalizations l10n, MaterialLocalizations ml) {
+    final n = int.tryParse(_durationController.text.trim());
+    if (n != null && n >= 1) {
+      final end = _startDate.add(Duration(days: n - 1));
+      return l10n.medsAddCourseRangeLabel(
+        '${ml.formatMediumDate(_startDate)} — ${ml.formatMediumDate(end)}',
+        n,
+      );
+    }
+    return l10n.medsAddCourseStartOnly(ml.formatMediumDate(_startDate));
+  }
+
+  // -------------------------------------------------------------------------
   // Build
   // -------------------------------------------------------------------------
 
@@ -1100,8 +1338,52 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
                 onAdd: _addTime,
               ),
 
+              // Intake-type section (spec 030, iteration 5 — visual-only).
               const SizedBox(height: 16),
-              // Intentional no-op for spec 026/027/028/029 visual iterations.
+              Text(
+                context.l10n.medsAddIntakeTypeTitle,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<_IntakeType>(
+                key: const ValueKey('medsAddIntakeTypeSegmented'),
+                segments: <ButtonSegment<_IntakeType>>[
+                  ButtonSegment<_IntakeType>(
+                    value: _IntakeType.continuous,
+                    label: Text(context.l10n.medsAddIntakeTypeContinuous),
+                    icon: const Icon(LucideIcons.infinity),
+                  ),
+                  ButtonSegment<_IntakeType>(
+                    value: _IntakeType.course,
+                    label: Text(context.l10n.medsAddIntakeTypeCourse),
+                    icon: const Icon(LucideIcons.repeat),
+                  ),
+                ],
+                selected: <_IntakeType>{_intakeType},
+                onSelectionChanged: (Set<_IntakeType> selection) {
+                  if (selection.isEmpty) return;
+                  setState(() => _intakeType = selection.first);
+                },
+              ),
+
+              // Course-parameters card — visible only when Course is selected.
+              if (_intakeType == _IntakeType.course) ...[
+                const SizedBox(height: 16),
+                _CourseCard(
+                  durationController: _durationController,
+                  pauseController: _pauseController,
+                  startDate: _startDate,
+                  onPickStart: _pickStartDate,
+                  onDurationChanged: (_) => setState(() {}),
+                  infoLabel: _courseInfoLabel(
+                    context.l10n,
+                    MaterialLocalizations.of(context),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 16),
+              // Intentional no-op for spec 026/027/028/029/030 visual iterations.
               // The data-save iteration will replace this empty callback
               // with real persistence logic.
               FilledButton.icon(

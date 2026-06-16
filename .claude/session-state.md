@@ -2,29 +2,29 @@
 # Session State
 
 ## Current Feature
-029-intake-time-chips — Add-medication form: intake-time chips (visual-only, iteration 4)
+030-intake-type-control — Add-medication: intake-type control (Continuous/Course) (visual-only, iteration 5)
 
 ## Progress
 All 3 tasks COMPLETE. Ready for `/review` → `/verify` → `/summarize` → `/finalize`.
 
 | # | Task | Agent | Status |
 |---|------|-------|--------|
-| 001 | intake-time l10n keys (en/uk/de) | mobile-engineer | Complete |
-| 002 | _TimeChips section in modal | mobile-engineer | Complete |
-| 003 | widget tests (8) | qa-engineer | Complete |
+| 001 | intake-type l10n keys (en/uk/de) | mobile-engineer | Complete |
+| 002 | intake-type widget + course card (+ promote clock) | mobile-engineer | Complete |
+| 003 | widget tests (11) | qa-engineer | Complete |
 
 ## Recent Decisions
-- `InputChip(onPressed=edit, onDeleted=×)` for chips; `ActionChip` (solid outline) for the add chip — Material has no dashed border.
-- 24h forced via picker `builder` MediaQuery + `formatTimeOfDay(alwaysUse24HourFormat: true)`.
-- Local `List<TimeOfDay> _intakeTimes`, sort ascending + dedupe by minutes-key, reject dup with SnackBar. Save stays a no-op. No domain/data.
+- Default type = Continuous (card hidden on open); info chip = live-computed (end = start + duration-1, inclusive); start date = today via `DateUtils.dateOnly(clock.now())`.
+- First ICU plural + placeholder in project. `medsAddCourseRangeLabel(String,int)` + `medsAddCourseStartOnly(String)`. uk one/few/many/other.
+- `clock` promoted transitive→direct (resolved 1.1.2). Dates via `MaterialLocalizations.formatMediumDate` (en = "Thu, Mar 26", no year).
 
 ## Recently Modified Files
-- lib/features/meds/presentation/widgets/add_medication_modal.dart (Task 002)
-- lib/l10n/app_en.arb, app_uk.arb, app_de.arb (+ regenerated app_localizations*.dart) (Task 001)
-- test/features/meds/presentation/widgets/add_medication_modal_test.dart (Task 003 — 8 new tests, header fixed)
+- lib/l10n/app_{en,uk,de}.arb (+ regenerated app_localizations*.dart) (Task 001)
+- lib/features/meds/presentation/widgets/add_medication_modal.dart, pubspec.yaml (Task 002)
+- test/features/meds/presentation/widgets/add_medication_modal_test.dart (Task 003 — +11 tests)
 
 ## Verification
-dart analyze: clean. flutter test: 313/313 pass. Code reviews: all APPROVE / APPROVE WITH WARNINGS (no Critical); W1/W2/W3/I3 all addressed.
+dart analyze clean; flutter test 324/324 pass. Reviews: 001 APPROVE w/warnings; 002 (checkpoint) APPROVE w/warnings; 003 APPROVE w/warnings (W1/W2 repaired). No Critical anywhere.
 
 ## Notes
-WIP commits accumulated (9) on branch spec/029-intake-time-chips — squashed by `/finalize`. Build: heavy `flutter build apk` deferred; compilation confirmed via clean analyze + full test suite.
+10 WIP commits on branch spec/030-intake-type-control — squashed by /finalize. heavy `flutter build apk` deferred; compile confirmed via clean analyze + full test suite. Two non-blocking notes: pubspec hand-edit (logged), showDatePicker window derived from _startDate (spec-accepted).
