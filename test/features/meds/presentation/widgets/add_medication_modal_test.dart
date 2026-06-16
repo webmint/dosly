@@ -710,6 +710,146 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // Section dividers and section-title styling (spec 031)
+  // ---------------------------------------------------------------------------
+  group('AddMedicationModal dividers', () {
+    // (1) Two Dividers present unconditionally on a freshly pumped modal.
+    testWidgets('renders exactly two Dividers with no form selected', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_harness(locale: const Locale('en')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Divider), findsNWidgets(2));
+    });
+
+    // (2) The first Divider has thickness 1 and color == outlineVariant.
+    testWidgets(
+      'first Divider has thickness 1 and color matching outlineVariant',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        final colorScheme = Theme.of(
+          tester.element(find.byType(AddMedicationModal)),
+        ).colorScheme;
+
+        final divider = tester.widget<Divider>(find.byType(Divider).first);
+        expect(divider.thickness, 1);
+        expect(divider.color, colorScheme.outlineVariant);
+      },
+    );
+
+    // (3) Both section-title Text widgets use color == onSurfaceVariant.
+    testWidgets(
+      'section titles use onSurfaceVariant color',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        final colorScheme = Theme.of(
+          tester.element(find.byType(AddMedicationModal)),
+        ).colorScheme;
+
+        final intakeTimeTitle = tester.widget<Text>(find.text('Intake time'));
+        expect(intakeTimeTitle.style?.color, colorScheme.onSurfaceVariant);
+
+        final intakeTypeTitle = tester.widget<Text>(find.text('Intake type'));
+        expect(intakeTypeTitle.style?.color, colorScheme.onSurfaceVariant);
+      },
+    );
+
+    // (4) AC-1 — two Dividers remain when a form (Tablet) is selected.
+    testWidgets(
+      'renders exactly two Dividers with Tablet form selected',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Tablet'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Divider), findsNWidgets(2));
+      },
+    );
+
+    // (5) AC-1 — two Dividers remain when Course intake type is selected.
+    testWidgets(
+      'renders exactly two Dividers with Course intake type selected',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Course'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Divider), findsNWidgets(2));
+      },
+    );
+
+    // (6) AC-3 — the second Divider also has thickness 1 and color == outlineVariant.
+    testWidgets(
+      'second Divider has thickness 1 and color matching outlineVariant',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        final colorScheme = Theme.of(
+          tester.element(find.byType(AddMedicationModal)),
+        ).colorScheme;
+
+        final divider = tester.widget<Divider>(find.byType(Divider).last);
+        expect(divider.thickness, 1);
+        expect(divider.color, colorScheme.outlineVariant);
+      },
+    );
+
+    // (7) AC-6 — _StockCard header ('Pack stock') is NOT muted with onSurfaceVariant.
+    testWidgets(
+      'Pack stock header uses titleSmall and is not muted with onSurfaceVariant',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Tablet'));
+        await tester.pumpAndSettle();
+
+        final element = tester.element(find.byType(AddMedicationModal));
+        final textTheme = Theme.of(element).textTheme;
+        final colorScheme = Theme.of(element).colorScheme;
+
+        final stockHeader = tester.widget<Text>(find.text('Pack stock'));
+        expect(stockHeader.style, textTheme.titleSmall);
+        expect(stockHeader.style?.color, isNot(colorScheme.onSurfaceVariant));
+      },
+    );
+
+    // (8) AC-6 — _CourseCard header ('Course parameters') is NOT muted with onSurfaceVariant.
+    testWidgets(
+      'Course parameters header uses titleSmall and is not muted with onSurfaceVariant',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Course'));
+        await tester.pumpAndSettle();
+
+        final element = tester.element(find.byType(AddMedicationModal));
+        final textTheme = Theme.of(element).textTheme;
+        final colorScheme = Theme.of(element).colorScheme;
+
+        final courseHeader = tester.widget<Text>(find.text('Course parameters'));
+        expect(courseHeader.style, textTheme.titleSmall);
+        expect(courseHeader.style?.color, isNot(colorScheme.onSurfaceVariant));
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------------
   // Intake-type section (spec 030-intake-type)
   // ---------------------------------------------------------------------------
 

@@ -1,19 +1,21 @@
-/// Meds feature — full-screen modal for the Add-medication flow (iteration 5).
+/// Meds feature — full-screen modal for the Add-medication flow (iteration 6).
 ///
 /// This library hosts [AddMedicationModal], a full-screen modal route
 /// pushed when the user taps the Add-medication FAB on the Meds screen.
-/// The body renders a medication-name text field, a medication-form picker
-/// ([_MedicationFormPicker] — spec 027, iteration 2), form-dependent input
-/// fields ([_DoseField], [_QuantityStepper], [_StockCard] — spec 028,
-/// iteration 3), an intake-time chips section ([_TimeChips] — spec 029,
-/// iteration 4), an intake-type segmented selector with a course-parameters
-/// card ([_CourseCard] — spec 030, iteration 5), and a Save button.
+/// The body renders three visual groups separated by two full-bleed section
+/// dividers ([_sectionDivider]):
 ///
-/// **Visual-only iteration 5 (spec 030)**: The intake-type selection and all
-/// course-parameter fields (duration, pause, start date) are LOCAL STATE only
-/// — no values are read by Save, validated, or persisted.  The data-save
-/// iteration will wire all state to a real persistence layer.
-/// Save remains an intentional no-op.
+/// * **Group A** — medication name, form picker, and form-dependent fields
+///   ([_DoseField], [_QuantityStepper], [_StockCard] — spec 028, iteration 3).
+/// * **Group B** — intake-time section title + [_TimeChips] (spec 029,
+///   iteration 4).
+/// * **Group C** — intake-type title + [SegmentedButton], optional
+///   [_CourseCard] (spec 030, iteration 5), and Save button.
+///
+/// **Visual-only iteration 6 (spec 031)**: Layout restructured to match the
+/// HTML design template (three groups + two full-bleed dividers, muted section
+/// titles, updated spacing).  All state, persistence, and Save behaviour are
+/// unchanged from iteration 5.  Save remains an intentional no-op.
 library;
 
 import 'package:clock/clock.dart';
@@ -375,7 +377,7 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
         color: colorScheme.primaryContainer,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -411,7 +413,7 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
         widget.onFormSelected(_medFormOptions[index]);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
               ? colorScheme.primary
@@ -638,7 +640,7 @@ class _StockCard extends StatelessWidget {
               Text(l10n.medsAddStockTitle, style: textTheme.titleSmall),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             l10n.medsAddStockNote,
             style: textTheme.bodySmall?.copyWith(
@@ -1243,12 +1245,29 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
   }
 
   // -------------------------------------------------------------------------
+  // Section-divider helper
+  // -------------------------------------------------------------------------
+
+  /// Full-bleed section divider matching the template's `.s-div`
+  /// (1px outlineVariant hairline, 4px above / 8px below, edge-to-edge).
+  Widget _sectionDivider(ColorScheme colorScheme) => Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 8),
+        child: Divider(
+          height: 1,
+          thickness: 1,
+          color: colorScheme.outlineVariant,
+        ),
+      );
+
+  // -------------------------------------------------------------------------
   // Build
   // -------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
     final selectedForm = _selectedForm;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -1260,139 +1279,181 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
         title: Text(context.l10n.medsAddTitle),
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: _nameController,
-                // Outline/label styling comes from the global
-                // `inputDecorationTheme` (outlined, transparent) — no
-                // call-site border/color overrides.
-                decoration: InputDecoration(
-                  labelText: context.l10n.medsAddNameLabel,
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Medication-form picker — visual-only iteration 2 (spec 027).
-              // Selection is local to _MedicationFormPicker; _onFormSelected
-              // hoists it to the parent for conditional field rendering.
-              _MedicationFormPicker(onFormSelected: _onFormSelected),
-
-              // ----------------------------------------------------------------
-              // Form-dependent fields (spec 028, iteration 3 — visual-only).
-              // Each block is gated on the selected form's capability flags so
-              // that NO conditional widget appears in the tree when no form is
-              // selected (preserving the spec-026 test assertion).
-              // ----------------------------------------------------------------
-
-              // Dose field: injection, syrup, drops.
-              if (selectedForm?.hasDose ?? false) ...[
-                const SizedBox(height: 16),
-                _DoseField(
-                  controller: _doseController,
-                  units: selectedForm?.doseUnits ?? const [],
-                  selectedUnitIndex: _selectedDoseUnitIndex,
-                  onUnitChanged: (value) {
-                    if (value != null) {
-                      setState(() => _selectedDoseUnitIndex = value);
-                    }
-                  },
-                ),
-              ],
-
-              // Quantity stepper: tablet, capsule.
-              if (selectedForm?.hasQuantity ?? false) ...[
-                const SizedBox(height: 16),
-                _QuantityStepper(
-                  formattedValue: _formatQuantity(_quantity),
-                  unitLabel:
-                      selectedForm?.quantityUnit?.call(context.l10n) ?? '',
-                  onIncrement: _incrementQuantity,
-                  onDecrement: _decrementQuantity,
-                ),
-              ],
-
-              // Pack-stock card: tablet, capsule.
-              if (selectedForm?.hasStock ?? false) ...[
-                const SizedBox(height: 16),
-                _StockCard(
-                  remainingController: _stockRemainingController,
-                  totalController: _stockTotalController,
-                  warnController: _stockWarnController,
-                ),
-              ],
-
-              // Intake-time section (spec 029, iteration 4 — visual-only).
-              const SizedBox(height: 16),
-              Text(
-                context.l10n.medsAddTimeTitle,
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              _TimeChips(
-                times: _intakeTimes,
-                onEdit: _editTime,
-                onRemove: _removeTime,
-                onAdd: _addTime,
-              ),
-
-              // Intake-type section (spec 030, iteration 5 — visual-only).
-              const SizedBox(height: 16),
-              Text(
-                context.l10n.medsAddIntakeTypeTitle,
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              SegmentedButton<_IntakeType>(
-                key: const ValueKey('medsAddIntakeTypeSegmented'),
-                segments: <ButtonSegment<_IntakeType>>[
-                  ButtonSegment<_IntakeType>(
-                    value: _IntakeType.continuous,
-                    label: Text(context.l10n.medsAddIntakeTypeContinuous),
-                    icon: const Icon(LucideIcons.infinity),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ------------------------------------------------------------------
+            // Group A: name field, form picker, form-dependent fields.
+            // ------------------------------------------------------------------
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _nameController,
+                    // Outline/label styling comes from the global
+                    // `inputDecorationTheme` (outlined, transparent) — no
+                    // call-site border/color overrides.
+                    decoration: InputDecoration(
+                      labelText: context.l10n.medsAddNameLabel,
+                    ),
                   ),
-                  ButtonSegment<_IntakeType>(
-                    value: _IntakeType.course,
-                    label: Text(context.l10n.medsAddIntakeTypeCourse),
-                    icon: const Icon(LucideIcons.repeat),
+                  const SizedBox(height: 16),
+                  // Medication-form picker — visual-only iteration 2 (spec 027).
+                  // Selection is local to _MedicationFormPicker; _onFormSelected
+                  // hoists it to the parent for conditional field rendering.
+                  _MedicationFormPicker(onFormSelected: _onFormSelected),
+
+                  // ----------------------------------------------------------------
+                  // Form-dependent fields (spec 028, iteration 3 — visual-only).
+                  // Each block is gated on the selected form's capability flags so
+                  // that NO conditional widget appears in the tree when no form is
+                  // selected (preserving the spec-026 test assertion).
+                  // ----------------------------------------------------------------
+
+                  // Dose field: injection, syrup, drops.
+                  if (selectedForm?.hasDose ?? false) ...[
+                    const SizedBox(height: 16),
+                    _DoseField(
+                      controller: _doseController,
+                      units: selectedForm?.doseUnits ?? const [],
+                      selectedUnitIndex: _selectedDoseUnitIndex,
+                      onUnitChanged: (value) {
+                        if (value != null) {
+                          setState(() => _selectedDoseUnitIndex = value);
+                        }
+                      },
+                    ),
+                  ],
+
+                  // Quantity stepper: tablet, capsule.
+                  if (selectedForm?.hasQuantity ?? false) ...[
+                    const SizedBox(height: 16),
+                    _QuantityStepper(
+                      formattedValue: _formatQuantity(_quantity),
+                      unitLabel:
+                          selectedForm?.quantityUnit?.call(context.l10n) ?? '',
+                      onIncrement: _incrementQuantity,
+                      onDecrement: _decrementQuantity,
+                    ),
+                  ],
+
+                  // Pack-stock card: tablet, capsule.
+                  if (selectedForm?.hasStock ?? false) ...[
+                    const SizedBox(height: 16),
+                    _StockCard(
+                      remainingController: _stockRemainingController,
+                      totalController: _stockTotalController,
+                      warnController: _stockWarnController,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // DIVIDER A — full-bleed, direct child of outer Column.
+            _sectionDivider(colorScheme),
+
+            // ------------------------------------------------------------------
+            // Group B: intake-time section title + time chips.
+            // ------------------------------------------------------------------
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 4),
+                  // Intake-time section (spec 029, iteration 4 — visual-only).
+                  Text(
+                    context.l10n.medsAddTimeTitle,
+                    style: textTheme.titleSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  _TimeChips(
+                    times: _intakeTimes,
+                    onEdit: _editTime,
+                    onRemove: _removeTime,
+                    onAdd: _addTime,
                   ),
                 ],
-                selected: <_IntakeType>{_intakeType},
-                onSelectionChanged: (Set<_IntakeType> selection) {
-                  if (selection.isEmpty) return;
-                  setState(() => _intakeType = selection.first);
-                },
               ),
+            ),
 
-              // Course-parameters card — visible only when Course is selected.
-              if (_intakeType == _IntakeType.course) ...[
-                const SizedBox(height: 16),
-                _CourseCard(
-                  durationController: _durationController,
-                  pauseController: _pauseController,
-                  startDate: _startDate,
-                  onPickStart: _pickStartDate,
-                  onDurationChanged: (_) => setState(() {}),
-                  infoLabel: _courseInfoLabel(
-                    context.l10n,
-                    MaterialLocalizations.of(context),
+            // DIVIDER B — full-bleed, direct child of outer Column.
+            _sectionDivider(colorScheme),
+
+            // ------------------------------------------------------------------
+            // Group C: intake-type section title, segmented button, course card,
+            //          Save button, and bottom spacer.
+            // ------------------------------------------------------------------
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 4),
+                  // Intake-type section (spec 030, iteration 5 — visual-only).
+                  Text(
+                    context.l10n.medsAddIntakeTypeTitle,
+                    style: textTheme.titleSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  SegmentedButton<_IntakeType>(
+                    key: const ValueKey('medsAddIntakeTypeSegmented'),
+                    segments: <ButtonSegment<_IntakeType>>[
+                      ButtonSegment<_IntakeType>(
+                        value: _IntakeType.continuous,
+                        label: Text(context.l10n.medsAddIntakeTypeContinuous),
+                        icon: const Icon(LucideIcons.infinity),
+                      ),
+                      ButtonSegment<_IntakeType>(
+                        value: _IntakeType.course,
+                        label: Text(context.l10n.medsAddIntakeTypeCourse),
+                        icon: const Icon(LucideIcons.repeat),
+                      ),
+                    ],
+                    selected: <_IntakeType>{_intakeType},
+                    onSelectionChanged: (Set<_IntakeType> selection) {
+                      if (selection.isEmpty) return;
+                      setState(() => _intakeType = selection.first);
+                    },
+                  ),
 
-              const SizedBox(height: 16),
-              // Intentional no-op for spec 026/027/028/029/030 visual iterations.
-              // The data-save iteration will replace this empty callback
-              // with real persistence logic.
-              FilledButton.icon(
-                onPressed: () {},
-                icon: const Icon(LucideIcons.save),
-                label: Text(context.l10n.medsAddSaveButton),
+                  // Course-parameters card — visible only when Course is selected.
+                  if (_intakeType == _IntakeType.course) ...[
+                    const SizedBox(height: 16),
+                    _CourseCard(
+                      durationController: _durationController,
+                      pauseController: _pauseController,
+                      startDate: _startDate,
+                      onPickStart: _pickStartDate,
+                      onDurationChanged: (_) => setState(() {}),
+                      infoLabel: _courseInfoLabel(
+                        context.l10n,
+                        MaterialLocalizations.of(context),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 16),
+                  // Intentional no-op for spec 026/027/028/029/030 visual iterations.
+                  // The data-save iteration will replace this empty callback
+                  // with real persistence logic.
+                  FilledButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(LucideIcons.save),
+                    label: Text(context.l10n.medsAddSaveButton),
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

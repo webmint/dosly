@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **meds feature** owns the Meds tab — destination index 1 in `AppBottomNav`. The screen has a localized `AppBar`, a `FloatingActionButton` that opens a full-screen modal, and an intentionally empty body (medication list is pending a future spec). The add-medication modal is being built iteratively (features 026–030): it currently has a name field, a medication-form picker, form-dependent fields (dose, quantity, stock), an intake-time chips section, and an intake-type segmented control with a course-parameters card — all visual only. Persistence, domain layer, and Save wiring are still pending.
+The **meds feature** owns the Meds tab — destination index 1 in `AppBottomNav`. The screen has a localized `AppBar`, a `FloatingActionButton` that opens a full-screen modal, and an intentionally empty body (medication list is pending a future spec). The add-medication modal is being built iteratively (features 026–031): it currently has a name field, a medication-form picker, form-dependent fields (dose, quantity, stock), an intake-time chips section, and an intake-type segmented control with a course-parameters card — all grouped by two full-bleed section dividers matching the HTML design template. All visual only. Persistence, domain layer, and Save wiring are still pending.
 
 Everything in this feature lives under `lib/features/meds/presentation/`. There is no `domain/` or `data/` layer yet.
 
@@ -15,41 +15,31 @@ Everything in this feature lives under `lib/features/meds/presentation/`. There 
 - A `SizedBox.shrink()` body — intentionally empty until the medication-list feature is implemented.
 - A `FloatingActionButton` (Material 3 FAB, `LucideIcons.plus`) with tooltip `context.l10n.medsAddFabTooltip` ("Add medication" in English). Tapping it calls `_openAddMedicationModal(context)`.
 
-## Add-Medication Modal (iteration 5 — visual only)
+## Add-Medication Modal (iteration 6 — visual only)
 
 `AddMedicationModal` (in `lib/features/meds/presentation/widgets/add_medication_modal.dart`) is a `StatefulWidget` that owns seven `TextEditingController`s (name, dose, stock-remaining, stock-total, stock-warn, course-duration, course-pause) — all disposed in `dispose()`. It is a full-screen modal with:
 
 - A `Scaffold + AppBar` carrying the localized title `context.l10n.medsAddTitle` ("Add medication").
 - A leading `IconButton` (back arrow, `LucideIcons.arrowLeft`) that calls `Navigator.of(context).pop()`.
-- A `SingleChildScrollView → Padding(16) → Column(crossAxisAlignment: stretch)` body containing:
-  - An outlined `TextField` bound to `_nameController` with label `context.l10n.medsAddNameLabel`. The outlined, transparent styling (2px outline, `primary` on focus) comes from the global `inputDecorationTheme` in `lib/core/theme/app_theme.dart` — no call-site border/color overrides.
-  - A medication-form picker (added in iteration 2 — see below).
-  - Form-dependent fields gated on the selected form's capability flags (added in iteration 3 — see below).
-  - An intake-time chips section (added in iteration 4 — see below).
-  - An intake-type segmented control and optional course-parameters card (added in iteration 5 — see below).
-  - A full-width `FilledButton.icon` (`LucideIcons.save` + `context.l10n.medsAddSaveButton`) with `onPressed: () {}` — a **deliberate no-op**.
+- A `SingleChildScrollView` body whose content is structured as an outer un-padded `Column`, with each of the three form groups wrapped in `Padding(horizontal: 16)` and two full-bleed section dividers as direct siblings between them:
 
-```dart
-TextField(
-  controller: _nameController,
-  // Outline/label styling inherited from the global inputDecorationTheme.
-  decoration: InputDecoration(
-    labelText: context.l10n.medsAddNameLabel,
-  ),
-),
-const SizedBox(height: 16),
-// _MedicationFormPicker inserted here (iteration 2)
-const SizedBox(height: 16),
-// _TimeChips inserted here (iteration 4)
-const SizedBox(height: 16),
-FilledButton.icon(
-  onPressed: () {},
-  icon: const Icon(LucideIcons.save),
-  label: Text(context.l10n.medsAddSaveButton),
-),
-```
+  | Group | Contents |
+  |---|---|
+  | **"What medicine"** | Name `TextField`, medication-form picker, form-dependent fields (dose, quantity, stock) |
+  | **"When"** | Section title (`medsAddTimeTitle`, muted), intake-time chips |
+  | **"Type"** | Section title (`medsAddIntakeTypeTitle`, muted), intake-type segmented control, optional course-parameters card |
 
-The Save button's empty callback is **intentional and documented** (spec 026 through 030, iterations 1–5). It does not validate input, persist data, pop the modal, or give user feedback. Real save behaviour — drift persistence, domain layer, Riverpod provider — will be wired in the data-save iteration. There is still no `domain/` or `data/` layer for this feature.
+  Below the last group: a full-width `FilledButton.icon` (`LucideIcons.save` + `context.l10n.medsAddSaveButton`) with `onPressed: () {}` — a **deliberate no-op** — followed by a 24px bottom spacer.
+
+### Section dividers
+
+Two `_sectionDivider(ColorScheme)` widgets separate the three groups. Each renders a 1px `Divider` colored `colorScheme.outlineVariant`, with ~4px space above and ~8px space below, spanning the **full scroll viewport width** (no horizontal inset — dividers are direct children of the outer un-padded `Column`, outside any content `Padding`).
+
+### Section-title labels
+
+The "Intake time" and "Intake type" labels use `colorScheme.onSurfaceVariant` (muted) with ~4px space above and 12px space below. `_StockCard` and `_CourseCard` headers intentionally remain at full-emphasis `colorScheme.onSurface` — they are card headers, not section titles.
+
+The Save button's empty callback is **intentional and documented** (spec 026 through 031, iterations 1–6). It does not validate input, persist data, pop the modal, or give user feedback. Real save behaviour — drift persistence, domain layer, Riverpod provider — will be wired in the data-save iteration. There is still no `domain/` or `data/` layer for this feature.
 
 ## Medication-Form Picker (iteration 2 — visual only)
 
@@ -383,6 +373,7 @@ The add-medication form is being built iteratively:
 - **Feature 028 (done)** — form-dependent fields: quantity stepper + pack-stock card for tablet/capsule; dose field + unit dropdown for injection/syrup/drops; picker selection hoisted to modal via callback. Still visual only — Save remains a no-op; no persistence.
 - **Feature 029 (done)** — intake-time chips: `_TimeChips` widget with `InputChip` per time (tap to edit, × to remove) plus a trailing `ActionChip` to add; auto-sorted ascending, duplicates rejected with SnackBar; 24-hour forced via `MediaQuery` + `MaterialLocalizations`. Still visual only — `_intakeTimes` is local state, not read by Save, not persisted.
 - **Feature 030 (done)** — intake-type control: `SegmentedButton<_IntakeType>` (Continuous / Course); selecting Course reveals `_CourseCard` with Duration, Pause, and Start-date fields plus a live date-range info chip. Date defaults to today via `clock.now()` (test-overridable). First ICU-plural ARB message (`medsAddCourseRangeLabel`). Still visual only — all course fields are local state, not read by Save, not persisted.
+- **Feature 031 (done)** — section dividers and spacing alignment: the modal body is restructured from a single outer `Padding(16)` to an outer un-padded `Column` with per-group horizontal insets, enabling two full-bleed 1px `outlineVariant` dividers between the three form groups. Section-title labels ("Intake time", "Intake type") are muted to `onSurfaceVariant`. Minor spacing corrections: 24px bottom spacer after Save, stock card header→note gap 8px, form-option chip padding 12/10, picker grid-card padding `fromLTRB(12,12,12,14)`. No new l10n keys; no behavior change; Save remains a no-op.
 - **Pending** — real Save behaviour: `domain/` entities (`Medication`, `MedicationForm` enum, `TimeSlot`/`Schedule`/`Course`), repository interface, `data/` datasource (drift), concrete repository, Riverpod provider wired to the Save button; all controller values, stepper state, `_intakeTimes`, `_intakeType`, and course parameters will be read at this point.
 - **Pending** — schedule, reminder, and other form fields as future specs are defined.
 - **Pending** — medication list replacing the `SizedBox.shrink()` body of `MedsScreen`.
@@ -397,6 +388,7 @@ No changes to the `AppBar` structure, the `/meds` route path, or the modal-openi
 - [`../../specs/028-form-dependent-fields/spec.md`](../../specs/028-form-dependent-fields/spec.md) — the spec that added form-dependent input fields (iteration 3)
 - [`../../specs/029-intake-time-chips/spec.md`](../../specs/029-intake-time-chips/spec.md) — the spec that added the intake-time chips section (iteration 4)
 - [`../../specs/030-intake-type-control/spec.md`](../../specs/030-intake-type-control/spec.md) — the spec that added the intake-type segmented control and course-parameters card (iteration 5)
+- [`../../specs/031-add-med-dividers/spec.md`](../../specs/031-add-med-dividers/spec.md) — the spec that added full-bleed section dividers and aligned spacing/styling to the HTML design template (iteration 6)
 - [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen
 - [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology, routing conventions, and the `rootNavigator` context
 - [`i18n.md`](i18n.md) — how ARB keys are added and translated

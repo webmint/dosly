@@ -2,29 +2,27 @@
 # Session State
 
 ## Current Feature
-030-intake-type-control — Add-medication: intake-type control (Continuous/Course) (visual-only, iteration 5)
+031-add-med-dividers — Add-medication modal: full-bleed section dividers + section-title/spacing alignment to HTML template (visual-only)
 
 ## Progress
-All 3 tasks COMPLETE. Ready for `/review` → `/verify` → `/summarize` → `/finalize`.
+All tasks COMPLETE. Ready for `/review` → `/verify` → `/summarize` → `/finalize`.
 
 | # | Task | Agent | Status |
 |---|------|-------|--------|
-| 001 | intake-type l10n keys (en/uk/de) | mobile-engineer | Complete |
-| 002 | intake-type widget + course card (+ promote clock) | mobile-engineer | Complete |
-| 003 | widget tests (11) | qa-engineer | Complete |
+| 001 | Full-bleed dividers, group restructure, section-title restyle & spacing | mobile-engineer | Complete |
+| 002 | Widget tests for dividers & section-title color | qa-engineer | Complete |
 
 ## Recent Decisions
-- Default type = Continuous (card hidden on open); info chip = live-computed (end = start + duration-1, inclusive); start date = today via `DateUtils.dateOnly(clock.now())`.
-- First ICU plural + placeholder in project. `medsAddCourseRangeLabel(String,int)` + `medsAddCourseStartOnly(String)`. uk one/few/many/other.
-- `clock` promoted transitive→direct (resolved 1.1.2). Dates via `MaterialLocalizations.formatMediumDate` (en = "Thu, Mar 26", no year).
+- Full-bleed model: outer `Padding(all:16)` replaced by 3 group `Column`s (each `Padding(horizontal:16)`) with 2 `_sectionDivider(colorScheme)` calls as direct children of the outer stretch `Column`.
+- `_sectionDivider` = `Padding(top:4,bottom:8) → Divider(height:1, thickness:1, color: outlineVariant)`. App `DividerThemeData` already defaults to outlineVariant/thickness1 (helper re-specifies for clarity).
+- Section titles (Time/Intake-type) → `titleSmall.copyWith(color: onSurfaceVariant)`, 4px above / 12px below. Card headers (_StockCard/_CourseCard) left at onSurface.
 
 ## Recently Modified Files
-- lib/l10n/app_{en,uk,de}.arb (+ regenerated app_localizations*.dart) (Task 001)
-- lib/features/meds/presentation/widgets/add_medication_modal.dart, pubspec.yaml (Task 002)
-- test/features/meds/presentation/widgets/add_medication_modal_test.dart (Task 003 — +11 tests)
+- lib/features/meds/presentation/widgets/add_medication_modal.dart (Task 001)
+- test/features/meds/presentation/widgets/add_medication_modal_test.dart (Task 002 — +3 tests)
 
 ## Verification
-dart analyze clean; flutter test 324/324 pass. Reviews: 001 APPROVE w/warnings; 002 (checkpoint) APPROVE w/warnings; 003 APPROVE w/warnings (W1/W2 repaired). No Critical anywhere.
+dart analyze clean; flutter test 327/327 pass (324 prior + 3 new). Reviews: 001 APPROVE w/warnings (textTheme nit repaired); 002 APPROVE. No Critical anywhere.
 
 ## Notes
-10 WIP commits on branch spec/030-intake-type-control — squashed by /finalize. heavy `flutter build apk` deferred; compile confirmed via clean analyze + full test suite. Two non-blocking notes: pubspec hand-edit (logged), showDatePicker window derived from _startDate (spec-accepted).
+Branch spec/031-add-med-dividers. WIP commits accumulate; squashed by /finalize. Checkpoints 8a5ef58 (t1), 7b49f08 (t2).
