@@ -217,6 +217,26 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
+  String get medsAddSaveSuccess => 'Ліки збережено';
+
+  @override
+  String get medsAddSaveErrorName => 'Введіть назву ліків';
+
+  @override
+  String get medsAddSaveErrorTimes => 'Додайте принаймні один час прийому';
+
+  @override
+  String get medsAddSaveErrorDuration =>
+      'Тривалість курсу має бути не менше 1 дня';
+
+  @override
+  String get medsAddSaveErrorDose => 'Введіть дозу більшу за нуль';
+
+  @override
+  String get medsAddSaveErrorGeneric =>
+      'Не вдалося зберегти ліки. Спробуйте ще раз.';
+
+  @override
   String get errorScreenTitle => 'Сторінку не знайдено';
 
   @override

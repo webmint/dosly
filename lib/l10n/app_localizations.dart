@@ -484,6 +484,42 @@ abstract class AppLocalizations {
   /// **'Course starts {date}'**
   String medsAddCourseStartOnly(String date);
 
+  /// SnackBar message shown when a medication is successfully saved from the Add-medication modal.
+  ///
+  /// In en, this message translates to:
+  /// **'Medication saved'**
+  String get medsAddSaveSuccess;
+
+  /// Validation error shown when the user attempts to save without entering a medication name.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a medication name'**
+  String get medsAddSaveErrorName;
+
+  /// Validation error shown when the user attempts to save without adding any intake times.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one intake time'**
+  String get medsAddSaveErrorTimes;
+
+  /// Validation error shown when the course duration is set to zero or is missing.
+  ///
+  /// In en, this message translates to:
+  /// **'Course duration must be at least 1 day'**
+  String get medsAddSaveErrorDuration;
+
+  /// Validation error shown when a dose-based form has a non-positive dose value.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a dose greater than zero'**
+  String get medsAddSaveErrorDose;
+
+  /// Generic SnackBar error message shown when saving a medication fails for an unexpected reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save medication. Please try again.'**
+  String get medsAddSaveErrorGeneric;
+
   /// Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link).
   ///
   /// In en, this message translates to:

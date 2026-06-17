@@ -5,17 +5,103 @@
 // spec 028-form-dependent-fields — dose/quantity/stock conditional fields.
 // spec 029-intake-time-chips — intake-time chips (add/edit/remove/sort/duplicate).
 // spec 030-intake-type — intake-type segmented button and course-parameters card.
+// spec 032-med-persistence — wired Save: valid input persists + pops; invalid
+//                            shows localized error SnackBar and stays open.
+import 'dart:async';
+
 import 'package:clock/clock.dart';
+import 'package:dosly/core/error/failures.dart';
+import 'package:dosly/core/id/id_generator.dart';
 import 'package:dosly/core/l10n/locale_resolver.dart';
+import 'package:dosly/features/meds/domain/entities/dosage.dart';
+import 'package:dosly/features/meds/domain/entities/dose_unit.dart';
+import 'package:dosly/features/meds/domain/entities/medication.dart';
+import 'package:dosly/features/meds/domain/entities/medication_form.dart';
+import 'package:dosly/features/meds/domain/entities/medication_type.dart';
+import 'package:dosly/features/meds/domain/entities/schedule.dart';
+import 'package:dosly/features/meds/domain/repositories/medication_repository.dart';
+import 'package:dosly/features/meds/domain/usecases/add_medication.dart';
+import 'package:dosly/features/meds/domain/value_objects/medication_id.dart';
+import 'package:dosly/features/meds/presentation/providers/medication_providers.dart';
 import 'package:dosly/features/meds/presentation/widgets/add_medication_modal.dart';
 import 'package:dosly/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-/// Builds a widget tree rendering [AddMedicationModal] directly as [home].
+// ---------------------------------------------------------------------------
+// Fakes for persistence tests (spec 032)
+// ---------------------------------------------------------------------------
+
+/// A fake [MedicationRepository] that returns [Right] for every [add] call.
 ///
-/// The modal IS its own [Scaffold], so it does not need to be wrapped.
+/// Inject this into [AddMedication] inside [addMedicationProvider.overrideWith]
+/// so no real drift database is touched during widget tests.
+class _FakeMedicationRepository implements MedicationRepository {
+  /// If non-null, the next [add] call will complete this instead of returning
+  /// immediately.  Used to test the "button disabled while saving" scenario.
+  Completer<Either<Failure, Medication>>? completer;
+
+  @override
+  Future<Either<Failure, Medication>> add(Medication medication) {
+    if (completer != null) {
+      return completer!.future;
+    }
+    return Future.value(Right(medication));
+  }
+}
+
+/// A recording [MedicationRepository] that captures the last [Medication]
+/// passed to [add] and always returns [Right].
+///
+/// Used by the Gap-1 and Gap-2 widget tests so assertions can inspect the
+/// exact [Medication] the modal built — proving correct field mapping without
+/// hitting any real drift database.
+class _RecordingMedicationRepository implements MedicationRepository {
+  /// The [Medication] from the most recent [add] call, or `null` if [add] has
+  /// not been called yet.
+  Medication? captured;
+
+  @override
+  Future<Either<Failure, Medication>> add(Medication medication) async {
+    captured = medication;
+    return Right(medication);
+  }
+}
+
+/// A fake [IdGenerator] that returns deterministic sequential IDs.
+class _FakeIdGenerator implements IdGenerator {
+  int _counter = 0;
+
+  @override
+  String newId() => 'test-id-${++_counter}';
+}
+
+/// Builds a test [Medication] value for assertions in the success path.
+///
+/// The exact entity is not checked field-by-field in the widget test — we only
+/// need the Right branch to exist and carry a [Medication] so the modal pops.
+Medication _fakeMinimalMedication() => Medication(
+  id: const MedicationId('test-id-1'),
+  name: 'Test Med',
+  form: MedicationForm.inhaler,
+  type: MedicationType.continuous(
+    startDate: DateTime.utc(2026, 3, 26),
+  ),
+  schedule: const Schedule(slots: []),
+  createdAt: DateTime.utc(2026, 3, 26),
+);
+
+// ---------------------------------------------------------------------------
+// Test harnesses
+// ---------------------------------------------------------------------------
+
+/// Builds a [MaterialApp] that renders [AddMedicationModal] **directly as
+/// [home]** (no ProviderScope).  Used by the non-persistence tests (specs
+/// 026–031) to keep those tests unchanged and dependency-free.
 Widget _harness({required Locale locale}) {
   return MaterialApp(
     locale: locale,
@@ -24,6 +110,51 @@ Widget _harness({required Locale locale}) {
     localeResolutionCallback: resolveAppLocale,
     home: const AddMedicationModal(),
   );
+}
+
+/// Builds a localized [ProviderScope] + [MaterialApp] where the modal is
+/// pushed **on top of a base route** so that [Navigator.pop] is observable.
+///
+/// Strategy: the [home] is a plain [Scaffold] with a button; tapping the
+/// button pushes [AddMedicationModal] via [Navigator.push].  After the push
+/// only the modal is visible.  After a successful save the modal pops and the
+/// base scaffold is visible again, which lets us assert the modal is gone.
+///
+/// [overrides] receives the [addMedicationProvider] override so no real drift
+/// DB is ever touched.
+Widget _persistenceHarness({
+  required Locale locale,
+  required List<Override> overrides,
+}) {
+  return ProviderScope(
+    overrides: overrides,
+    child: MaterialApp(
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeResolutionCallback: resolveAppLocale,
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: ElevatedButton(
+            key: const ValueKey('openModal'),
+            onPressed: () => Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(
+                fullscreenDialog: true,
+                builder: (_) => const AddMedicationModal(),
+              ),
+            ),
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Opens the modal by tapping the launcher button in [_persistenceHarness].
+Future<void> _openModal(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('openModal')));
+  await tester.pumpAndSettle();
 }
 
 /// Interacts with an open [showTimePicker] dialog in keyboard/text-input mode.
@@ -148,19 +279,553 @@ void main() {
       );
       expect(icon.icon, LucideIcons.save);
     });
+  });
 
-    testWidgets('tapping Save does not throw and does not pop the modal', (
-      tester,
-    ) async {
-      await tester.pumpWidget(_harness(locale: const Locale('en')));
-      await tester.pumpAndSettle();
+  // ---------------------------------------------------------------------------
+  // Save behavior — wired persistence (spec 032)
+  //
+  // These tests use _persistenceHarness which pushes the modal on top of a
+  // base route, making Navigator.pop observable.  addMedicationProvider is
+  // overridden with a fake repo (no real drift DB touched).
+  // ---------------------------------------------------------------------------
+  group('AddMedicationModal Save — wired behavior (spec 032)', () {
+    // -------------------------------------------------------------------------
+    // Helper: build an override that wires AddMedication to a given fake repo.
+    // -------------------------------------------------------------------------
+    List<Override> buildOverrides(_FakeMedicationRepository repo) => [
+      addMedicationProvider.overrideWith((_) => AddMedication(repo, _FakeIdGenerator())),
+    ];
 
-      await tester.tap(find.byType(FilledButton));
-      await tester.pump();
+    // -------------------------------------------------------------------------
+    // (1) Valid input → success SnackBar + route popped.
+    //
+    // Uses Inhaler (no dose/stock fields, no extra conditional widgets) so the
+    // test only needs name + one time to satisfy all validation rules.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'valid input: success SnackBar appears and modal is popped (spec 032)',
+      (tester) async {
+        final repo = _FakeMedicationRepository();
 
-      // The modal must still be in the tree — Save is a no-op in iteration 1.
-      expect(find.byType(AddMedicationModal), findsOneWidget);
-    });
+        await tester.pumpWidget(
+          _persistenceHarness(
+            locale: const Locale('en'),
+            overrides: buildOverrides(repo),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await _openModal(tester);
+
+        // Modal must be visible.
+        expect(find.byType(AddMedicationModal), findsOneWidget);
+
+        // Fill in a medication name.
+        await tester.enterText(find.byType(TextField).first, 'Aspirin');
+        await tester.pumpAndSettle();
+
+        // Select Inhaler (no dose/stock/quantity extra fields).
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Inhaler'));
+        await tester.pumpAndSettle();
+
+        // Add one intake time (09:00) to satisfy the times-required validation.
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '09', minute: '00');
+
+        // Tap Save.
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        // Success SnackBar must appear.
+        expect(find.text('Medication saved'), findsOneWidget);
+
+        // Modal must be gone — base route is visible instead.
+        expect(find.byType(AddMedicationModal), findsNothing);
+        expect(find.byKey(const ValueKey('openModal')), findsOneWidget);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (2) Invalid input (empty name) → medsAddSaveErrorName SnackBar, no pop.
+    //
+    // Uses Inhaler + one intake time so the only failing rule is the empty name.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'empty name: medsAddSaveErrorName SnackBar appears and modal stays open (spec 032)',
+      (tester) async {
+        final repo = _FakeMedicationRepository();
+
+        await tester.pumpWidget(
+          _persistenceHarness(
+            locale: const Locale('en'),
+            overrides: buildOverrides(repo),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await _openModal(tester);
+
+        // Select Inhaler so form != null (avoids generic null-form SnackBar).
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Inhaler'));
+        await tester.pumpAndSettle();
+
+        // Add one intake time to avoid the times-required error.
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '09', minute: '00');
+
+        // Leave name empty — do NOT enter any text.
+
+        // Tap Save.
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        // The name-validation error SnackBar must appear.
+        expect(find.text('Enter a medication name'), findsOneWidget);
+
+        // Modal must still be in the tree — it must NOT have popped.
+        expect(find.byType(AddMedicationModal), findsOneWidget);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (3) Save button disabled while save is in flight (prevents double-taps).
+    //
+    // Uses a Completer-backed repo so the save never resolves during the test,
+    // allowing us to assert onPressed == null before the completer fires.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'FilledButton.onPressed is null while save is in flight (spec 032)',
+      (tester) async {
+        final completer = Completer<Either<Failure, Medication>>();
+        final repo = _FakeMedicationRepository()..completer = completer;
+
+        await tester.pumpWidget(
+          _persistenceHarness(
+            locale: const Locale('en'),
+            overrides: buildOverrides(repo),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await _openModal(tester);
+
+        // Fill name + form + time so validation passes.
+        await tester.enterText(find.byType(TextField).first, 'Aspirin');
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Inhaler'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '09', minute: '00');
+
+        // Tap Save — the completer never resolves so the await hangs.
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        // pump() — not pumpAndSettle — so we stay mid-flight.
+        await tester.pump();
+
+        // The button must be disabled while in flight.
+        final button = tester.widget<FilledButton>(find.byType(FilledButton));
+        expect(button.onPressed, isNull);
+
+        // Resolve the completer to clean up pending timers so the test runner
+        // doesn't report outstanding async work.
+        completer.complete(Right(_fakeMinimalMedication()));
+        await tester.pumpAndSettle();
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (4) Gap 1 Tablet: success + captured.dosePerIntake.unit == tablet,
+    //     form == tablet, stock == null (stock fields left blank).
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'Gap1-Tablet: success SnackBar + pop; captured dose unit is tablet, stock is null (spec 032)',
+      (tester) async {
+        final recordingRepo = _RecordingMedicationRepository();
+        final overrides = [
+          addMedicationProvider.overrideWith(
+            (_) => AddMedication(recordingRepo, _FakeIdGenerator()),
+          ),
+        ];
+
+        await tester.pumpWidget(
+          _persistenceHarness(
+            locale: const Locale('en'),
+            overrides: overrides,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await _openModal(tester);
+
+        // Fill medication name.
+        await tester.enterText(find.byType(TextField).first, 'Paracetamol');
+        await tester.pumpAndSettle();
+
+        // Select Tablet form via the chevron + grid.
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Tablet'));
+        await tester.pumpAndSettle();
+
+        // Add one intake time (08:00) — uses existing _pickTimeInDialog helper.
+        // Tablet adds a stepper + stock card, so the time chip may be off-screen:
+        // scroll it into view before tapping.
+        await tester.ensureVisible(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '08', minute: '00');
+
+        // Leave all stock fields blank (do NOT touch them).
+
+        // Tap Save — scroll it into view first.
+        await tester.ensureVisible(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        // Success SnackBar.
+        expect(find.text('Medication saved'), findsOneWidget);
+
+        // Modal is popped — base route visible.
+        expect(find.byType(AddMedicationModal), findsNothing);
+        expect(find.byKey(const ValueKey('openModal')), findsOneWidget);
+
+        // The recording repo must have been called.
+        final captured = recordingRepo.captured;
+        expect(captured, isNotNull);
+
+        // Dose: quantity stepper defaults to 0.5 tab for Tablet.
+        expect(captured!.dosePerIntake, isNotNull);
+        expect(captured.dosePerIntake!.unit, DoseUnit.tablet);
+        expect(captured.dosePerIntake!.amount, greaterThan(0));
+
+        // Form round-tripped correctly.
+        expect(captured.form, MedicationForm.tablet);
+
+        // Stock fields were blank → stock must be null.
+        expect(captured.stock, isNull);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (5) Gap 1 Syrup: success + captured.dosePerIntake == Dosage(5, ml),
+    //     stock == null.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'Gap1-Syrup: success SnackBar + pop; captured dose is 5ml, stock is null (spec 032)',
+      (tester) async {
+        final recordingRepo = _RecordingMedicationRepository();
+        final overrides = [
+          addMedicationProvider.overrideWith(
+            (_) => AddMedication(recordingRepo, _FakeIdGenerator()),
+          ),
+        ];
+
+        await tester.pumpWidget(
+          _persistenceHarness(
+            locale: const Locale('en'),
+            overrides: overrides,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await _openModal(tester);
+
+        // Fill medication name.
+        await tester.enterText(find.byType(TextField).first, 'Amoxicillin Syrup');
+        await tester.pumpAndSettle();
+
+        // Select Syrup form.
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Syrup'));
+        await tester.pumpAndSettle();
+
+        // Enter "5" into the dose field.
+        await tester.enterText(
+          find.byKey(const ValueKey('medsAddDoseField')),
+          '5',
+        );
+        await tester.pumpAndSettle();
+
+        // Add one intake time (12:00).
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '12', minute: '00');
+
+        // Tap Save.
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        // Success.
+        expect(find.text('Medication saved'), findsOneWidget);
+        expect(find.byType(AddMedicationModal), findsNothing);
+
+        final captured = recordingRepo.captured;
+        expect(captured, isNotNull);
+
+        // Dose field value: 5 ml.
+        expect(
+          captured!.dosePerIntake,
+          const Dosage(amount: 5, unit: DoseUnit.ml),
+        );
+
+        // Syrup has no stock card → stock must be null.
+        expect(captured.stock, isNull);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (6) Gap 1 PackStock partial-input: only remaining filled → stock == null.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'Gap1-PackStock-partial: only remaining stock field filled → captured.stock is null (spec 032)',
+      (tester) async {
+        final recordingRepo = _RecordingMedicationRepository();
+        final overrides = [
+          addMedicationProvider.overrideWith(
+            (_) => AddMedication(recordingRepo, _FakeIdGenerator()),
+          ),
+        ];
+
+        await tester.pumpWidget(
+          _persistenceHarness(
+            locale: const Locale('en'),
+            overrides: overrides,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await _openModal(tester);
+
+        // Fill medication name.
+        await tester.enterText(find.byType(TextField).first, 'Aspirin');
+        await tester.pumpAndSettle();
+
+        // Select Tablet (has stock card).
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Tablet'));
+        await tester.pumpAndSettle();
+
+        // Fill ONLY the remaining-stock field — leave total blank.
+        await tester.enterText(
+          find.byKey(const ValueKey('medsAddStockRemaining')),
+          '10',
+        );
+        await tester.pumpAndSettle();
+
+        // Add one intake time (08:00). Tablet shows stepper + stock, so the
+        // time chip may be below the 600px test viewport — scroll first.
+        await tester.ensureVisible(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '08', minute: '00');
+
+        // Tap Save — scroll it into view first.
+        await tester.ensureVisible(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        // Success.
+        expect(find.text('Medication saved'), findsOneWidget);
+        expect(find.byType(AddMedicationModal), findsNothing);
+
+        final captured = recordingRepo.captured;
+        expect(captured, isNotNull);
+
+        // Both remaining AND total must parse for PackStock to be built.
+        // Total was left blank → stock must be null.
+        expect(captured!.stock, isNull);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (7) Gap 2 times error: no intake time added → medsAddSaveErrorTimes SnackBar.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'Gap2-times-error: no time added shows medsAddSaveErrorTimes SnackBar and modal stays (spec 032)',
+      (tester) async {
+        final recordingRepo = _RecordingMedicationRepository();
+        final overrides = [
+          addMedicationProvider.overrideWith(
+            (_) => AddMedication(recordingRepo, _FakeIdGenerator()),
+          ),
+        ];
+
+        await tester.pumpWidget(
+          _persistenceHarness(
+            locale: const Locale('en'),
+            overrides: overrides,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await _openModal(tester);
+
+        // Fill name and select Inhaler (no extra conditional fields).
+        await tester.enterText(find.byType(TextField).first, 'Ventolin');
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Inhaler'));
+        await tester.pumpAndSettle();
+
+        // Do NOT add any intake time.
+
+        // Tap Save.
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        // Error SnackBar for missing times.
+        expect(find.text('Add at least one intake time'), findsOneWidget);
+
+        // Modal must NOT have popped.
+        expect(find.byType(AddMedicationModal), findsOneWidget);
+
+        // The recording repo must NOT have been called (validation fires first).
+        expect(recordingRepo.captured, isNull);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (8) Gap 2 duration error: Course selected + duration cleared → medsAddSaveErrorDuration.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'Gap2-duration-error: Course with blank duration shows medsAddSaveErrorDuration SnackBar (spec 032)',
+      (tester) async {
+        final recordingRepo = _RecordingMedicationRepository();
+        final overrides = [
+          addMedicationProvider.overrideWith(
+            (_) => AddMedication(recordingRepo, _FakeIdGenerator()),
+          ),
+        ];
+
+        await tester.pumpWidget(
+          _persistenceHarness(
+            locale: const Locale('en'),
+            overrides: overrides,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await _openModal(tester);
+
+        // Fill name and select Inhaler.
+        await tester.enterText(find.byType(TextField).first, 'Ventolin');
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Inhaler'));
+        await tester.pumpAndSettle();
+
+        // Add one intake time so the times-required validation passes.
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '09', minute: '00');
+
+        // Switch to Course intake type.
+        await tester.tap(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddIntakeTypeSegmented')),
+            matching: find.text('Course'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Clear the duration field — leaves it blank (parses as 0 → invalid).
+        // Scroll the duration field into view first (Course card may be below viewport).
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('medsAddCourseDuration')),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('medsAddCourseDuration')),
+          '',
+        );
+        await tester.pumpAndSettle();
+
+        // Tap Save — scroll into view since Course card pushes it further down.
+        await tester.ensureVisible(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        // Error SnackBar for invalid duration.
+        expect(
+          find.text('Course duration must be at least 1 day'),
+          findsOneWidget,
+        );
+
+        // Modal must NOT have popped.
+        expect(find.byType(AddMedicationModal), findsOneWidget);
+
+        // Repo was not called.
+        expect(recordingRepo.captured, isNull);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (9) dose error (new): Syrup with blank dose field → medsAddSaveErrorDose.
+    //
+    // When hasDose is true and the dose field is blank, _onSave builds
+    // Dosage(amount: 0, unit: ml), which the use case rejects with
+    // ValidationFailure(field: 'dose').
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'dose-error: Syrup with blank dose field shows medsAddSaveErrorDose SnackBar (spec 032)',
+      (tester) async {
+        final recordingRepo = _RecordingMedicationRepository();
+        final overrides = [
+          addMedicationProvider.overrideWith(
+            (_) => AddMedication(recordingRepo, _FakeIdGenerator()),
+          ),
+        ];
+
+        await tester.pumpWidget(
+          _persistenceHarness(
+            locale: const Locale('en'),
+            overrides: overrides,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await _openModal(tester);
+
+        // Fill name and select Syrup (shows dose field).
+        await tester.enterText(find.byType(TextField).first, 'Amoxicillin Syrup');
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(LucideIcons.chevronDown));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Syrup'));
+        await tester.pumpAndSettle();
+
+        // Leave the dose field BLANK — do NOT enter any text.
+
+        // Add one intake time so the times-required validation passes.
+        await tester.tap(find.widgetWithText(ActionChip, 'Time'));
+        await tester.pumpAndSettle();
+        await _pickTimeInDialog(tester, hour: '08', minute: '00');
+
+        // Tap Save.
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        // Error SnackBar for zero/blank dose.
+        expect(find.text('Enter a dose greater than zero'), findsOneWidget);
+
+        // Modal must NOT have popped.
+        expect(find.byType(AddMedicationModal), findsOneWidget);
+
+        // Repo was not called — validation short-circuited.
+        expect(recordingRepo.captured, isNull);
+      },
+    );
   });
 
   group('AddMedicationModal typography', () {

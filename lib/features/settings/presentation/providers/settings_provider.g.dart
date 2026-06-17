@@ -353,11 +353,12 @@ abstract class _$SettingsNotifier extends $Notifier<AppSettings> {
 /// pre-subscription events (accepted — see spec 022 OQ-2).
 ///
 /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
-/// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes
-/// when a listener mounts and disposes when the last listener detaches. The
-/// underlying [StreamController] lives on the kept-alive
-/// [settingsNotifierProvider], so failures emitted while no listener is
-/// subscribed are simply not buffered (the stream is event-driven, not state).
+/// errors to the user — typically as a SnackBar. This wrapper is autoDispose:
+/// it re-runs (re-reading the same long-lived stream) as listeners come and go.
+/// The broadcast [StreamController] itself lives for the lifetime of the
+/// kept-alive [settingsNotifierProvider] and is never re-created per listener,
+/// so failures emitted while no listener is subscribed are simply not buffered
+/// (the stream is event-driven, not state).
 
 @ProviderFor(settingsErrors)
 final settingsErrorsProvider = SettingsErrorsProvider._();
@@ -370,11 +371,12 @@ final settingsErrorsProvider = SettingsErrorsProvider._();
 /// pre-subscription events (accepted — see spec 022 OQ-2).
 ///
 /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
-/// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes
-/// when a listener mounts and disposes when the last listener detaches. The
-/// underlying [StreamController] lives on the kept-alive
-/// [settingsNotifierProvider], so failures emitted while no listener is
-/// subscribed are simply not buffered (the stream is event-driven, not state).
+/// errors to the user — typically as a SnackBar. This wrapper is autoDispose:
+/// it re-runs (re-reading the same long-lived stream) as listeners come and go.
+/// The broadcast [StreamController] itself lives for the lifetime of the
+/// kept-alive [settingsNotifierProvider] and is never re-created per listener,
+/// so failures emitted while no listener is subscribed are simply not buffered
+/// (the stream is event-driven, not state).
 
 final class SettingsErrorsProvider
     extends $FunctionalProvider<AsyncValue<Failure>, Failure, Stream<Failure>>
@@ -387,11 +389,12 @@ final class SettingsErrorsProvider
   /// pre-subscription events (accepted — see spec 022 OQ-2).
   ///
   /// Consumers (e.g. [SettingsScreen]) listen via `ref.listen` to surface
-  /// errors to the user — typically as a SnackBar. AutoDispose: re-subscribes
-  /// when a listener mounts and disposes when the last listener detaches. The
-  /// underlying [StreamController] lives on the kept-alive
-  /// [settingsNotifierProvider], so failures emitted while no listener is
-  /// subscribed are simply not buffered (the stream is event-driven, not state).
+  /// errors to the user — typically as a SnackBar. This wrapper is autoDispose:
+  /// it re-runs (re-reading the same long-lived stream) as listeners come and go.
+  /// The broadcast [StreamController] itself lives for the lifetime of the
+  /// kept-alive [settingsNotifierProvider] and is never re-created per listener,
+  /// so failures emitted while no listener is subscribed are simply not buffered
+  /// (the stream is event-driven, not state).
   SettingsErrorsProvider._()
     : super(
         from: null,

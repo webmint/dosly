@@ -2,27 +2,39 @@
 # Session State
 
 ## Current Feature
-031-add-med-dividers — Add-medication modal: full-bleed section dividers + section-title/spacing alignment to HTML template (visual-only)
+032-med-persistence — Persist the Medication entity from the add-medication form to a local drift database (first meds domain+data layers; modal Save wired).
 
 ## Progress
-All tasks COMPLETE. Ready for `/review` → `/verify` → `/summarize` → `/finalize`.
+ALL 14 tasks COMPLETE. Ready for `/review` → `/verify` → `/summarize` → `/finalize`.
 
 | # | Task | Agent | Status |
 |---|------|-------|--------|
-| 001 | Full-bleed dividers, group restructure, section-title restyle & spacing | mobile-engineer | Complete |
-| 002 | Widget tests for dividers & section-title color | qa-engineer | Complete |
+| 001 | Add drift + uuid deps | architect | Complete |
+| 002 | Domain enums + ID value objects | architect | Complete |
+| 003 | Domain value objects (Dosage/PackStock/TimeSlot) | architect | Complete |
+| 004 | Domain aggregate (MedicationType/Schedule/Medication) | architect | Complete |
+| 005 | drift database (tables/AppDatabase/provider) | architect | Complete |
+| 006 | IdGenerator (interface/uuid impl/provider) | architect | Complete |
+| 007 | MedicationRepository + AddMedication use case | architect | Complete |
+| 008 | Data layer (mapper/datasource/repo impl) | architect | Complete |
+| 009 | Presentation providers (composition seam) | architect | Complete |
+| 010 | l10n Save strings (en/de/uk) | mobile-engineer | Complete |
+| 011 | Wire modal Save | mobile-engineer | Complete |
+| 012 | AddMedication unit tests | qa-engineer | Complete |
+| 013 | Data-layer tests (in-memory drift) | qa-engineer | Complete |
+| 014 | Modal widget tests (wired Save) | qa-engineer | Complete |
 
 ## Recent Decisions
-- Full-bleed model: outer `Padding(all:16)` replaced by 3 group `Column`s (each `Padding(horizontal:16)`) with 2 `_sectionDivider(colorScheme)` calls as direct children of the outer stretch `Column`.
-- `_sectionDivider` = `Padding(top:4,bottom:8) → Divider(height:1, thickness:1, color: outlineVariant)`. App `DividerThemeData` already defaults to outlineVariant/thickness1 (helper re-specifies for clarity).
-- Section titles (Time/Intake-type) → `titleSmall.copyWith(color: onSurfaceVariant)`, 4px above / 12px below. Card headers (_StockCard/_CourseCard) left at onSurface.
-
-## Recently Modified Files
-- lib/features/meds/presentation/widgets/add_medication_modal.dart (Task 001)
-- test/features/meds/presentation/widgets/add_medication_modal_test.dart (Task 002 — +3 tests)
+- IdGenerator injection (core/id) instead of MedicationId.generate() — keeps domain uuid-free (§2.1); refined spec AC-7/AC-9.
+- drift stack pinned 2.31.x (analyzer 9.0.0 SDK ceiling); add whole stack in one pub-add solve.
+- startDate stored as DateTime.utc(y,m,d) calendar date; atomic insert via _db.transaction.
 
 ## Verification
-dart analyze clean; flutter test 327/327 pass (324 prior + 3 new). Reviews: 001 APPROVE w/warnings (textTheme nit repaired); 002 APPROVE. No Critical anywhere.
+dart analyze clean; flutter test 384/384 pass. Code reviews: T005 APPROVE, T008 APPROVE w/W1 (warnAt ?? 0 silent default — deferred), T011 APPROVE w/warnings (W1+I7 fixed; W2 zero-dose spec gap deferred to /review).
+
+## Open items for /review-/verify
+- W2: blank dose field persists Dosage(amount:0.0) — use case doesn't validate dose>0 (outside AC set).
+- T008 W1: mapper read-back warnAt ?? 0 silent default (non-triggering; optional hardening to StateError).
 
 ## Notes
-Branch spec/031-add-med-dividers. WIP commits accumulate; squashed by /finalize. Checkpoints 8a5ef58 (t1), 7b49f08 (t2).
+Branch spec/032-med-persistence. WIP commits accumulate; squashed by /finalize. Generated *.g.dart/*.freezed.dart committed.

@@ -12,7 +12,7 @@
 | Architecture | Clean Architecture (see [`architecture.md`](architecture.md)) |
 | State management | Riverpod (`flutter_riverpod`) |
 | Error handling | `Either<Failure, T>` via `fpdart` |
-| Persistence | `shared_preferences` (settings); `drift` SQLite (planned for medication data) |
+| Persistence | `shared_preferences` (settings); `drift` SQLite (medication data — `AppDatabase`, `schemaVersion=1`) |
 | Icon set | Lucide via [`lucide_icons_flutter`](features/icons.md) (matches the HTML design template) |
 | Network | None. Fully offline. |
 
@@ -25,8 +25,8 @@ Features shipped so far:
 - **[`004-lucide-icons`](features/icons.md)** — Adopted Lucide (via `lucide_icons_flutter`) as the app-wide icon set, replacing Material `Icons.*`.
 - **[`005-bottom-nav`](features/home.md)** — Material 3 bottom navigation bar with three destinations (Today · Meds · History).
 - **[`009-theme-settings`](features/settings.md)** — Settings screen with a "Use system theme" toggle and a Light/Dark segmented button. Introduced Riverpod, `shared_preferences`, and the `Either<Failure, T>` error-handling pattern.
-
-No medication logic exists yet.
+- **`026–031` (meds modal)** — The add-medication modal built iteratively: name field, form picker, form-dependent fields (dose, quantity, stock), intake-time chips, intake-type toggle with course-parameters card, and section dividers.
+- **[`032-med-persistence`](features/medication-persistence.md)** — The app's first drift database and full Clean-Architecture meds vertical slice. Tapping Save now persists a `Medication` aggregate (domain entities, drift tables, transactional insert, `Either`-returning repository, `@riverpod` composition seam).
 
 ## Getting started
 
@@ -48,10 +48,12 @@ flutter run -d android  # Android emulator
 
 ## Further reading
 
-- [`architecture.md`](architecture.md) — layer boundaries, Riverpod bootstrap, SharedPreferences, Failure hierarchy
+- [`architecture.md`](architecture.md) — layer boundaries, Riverpod bootstrap, SharedPreferences, drift database, Failure hierarchy
 - [`features/theme.md`](features/theme.md) — the Material 3 theme feature
 - [`features/home.md`](features/home.md) — the home screen and its bottom navigation bar
 - [`features/icons.md`](features/icons.md) — the Lucide icon set
 - [`features/settings.md`](features/settings.md) — Settings screen and theme-mode persistence
+- [`features/meds.md`](features/meds.md) — the Meds tab, FAB, and add-medication modal (visual iterations 026–031)
+- [`features/medication-persistence.md`](features/medication-persistence.md) — drift schema, domain model, and Save flow (feature 032)
 - [`../constitution.md`](../constitution.md) — non-negotiable project rules
 - [`../specs/`](../specs/) — per-feature specs, plans, and task breakdowns

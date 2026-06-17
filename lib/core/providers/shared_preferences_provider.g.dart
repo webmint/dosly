@@ -90,40 +90,28 @@ String _$sharedPreferencesInitHash() =>
 
 /// Provides the application-wide [SharedPreferencesWithCache] instance.
 ///
-/// This provider uses a throwing placeholder — failing to inject an override
-/// is a programmer error that surfaces immediately at startup. The override is
-/// injected by `AppBootstrap`'s data branch (a nested [ProviderScope]) once
-/// [sharedPreferencesInit] resolves:
-///
-/// ```dart
-/// // Inside AppBootstrap.build — data branch
-/// ProviderScope(
-///   overrides: [
-///     sharedPreferencesProvider.overrideWithValue(prefs),
-///   ],
-///   child: const DoslyApp(),
-/// );
-/// ```
+/// Returns the value resolved by [sharedPreferencesInit] via `requireValue`,
+/// giving the settings provider tree a synchronous read. `AppBootstrap` only
+/// mounts `DoslyApp` (and therefore the settings providers that read this) in
+/// its `data` branch — after [sharedPreferencesInit] has resolved — so
+/// `requireValue` always has a value. If this is read while
+/// [sharedPreferencesInit] is still loading or in error, `requireValue` throws,
+/// surfacing the programmer error immediately. Tests may still override this
+/// provider directly with a fake or in-memory instance.
 
 @ProviderFor(sharedPreferences)
 final sharedPreferencesProvider = SharedPreferencesProvider._();
 
 /// Provides the application-wide [SharedPreferencesWithCache] instance.
 ///
-/// This provider uses a throwing placeholder — failing to inject an override
-/// is a programmer error that surfaces immediately at startup. The override is
-/// injected by `AppBootstrap`'s data branch (a nested [ProviderScope]) once
-/// [sharedPreferencesInit] resolves:
-///
-/// ```dart
-/// // Inside AppBootstrap.build — data branch
-/// ProviderScope(
-///   overrides: [
-///     sharedPreferencesProvider.overrideWithValue(prefs),
-///   ],
-///   child: const DoslyApp(),
-/// );
-/// ```
+/// Returns the value resolved by [sharedPreferencesInit] via `requireValue`,
+/// giving the settings provider tree a synchronous read. `AppBootstrap` only
+/// mounts `DoslyApp` (and therefore the settings providers that read this) in
+/// its `data` branch — after [sharedPreferencesInit] has resolved — so
+/// `requireValue` always has a value. If this is read while
+/// [sharedPreferencesInit] is still loading or in error, `requireValue` throws,
+/// surfacing the programmer error immediately. Tests may still override this
+/// provider directly with a fake or in-memory instance.
 
 final class SharedPreferencesProvider
     extends
@@ -135,20 +123,14 @@ final class SharedPreferencesProvider
     with $Provider<SharedPreferencesWithCache> {
   /// Provides the application-wide [SharedPreferencesWithCache] instance.
   ///
-  /// This provider uses a throwing placeholder — failing to inject an override
-  /// is a programmer error that surfaces immediately at startup. The override is
-  /// injected by `AppBootstrap`'s data branch (a nested [ProviderScope]) once
-  /// [sharedPreferencesInit] resolves:
-  ///
-  /// ```dart
-  /// // Inside AppBootstrap.build — data branch
-  /// ProviderScope(
-  ///   overrides: [
-  ///     sharedPreferencesProvider.overrideWithValue(prefs),
-  ///   ],
-  ///   child: const DoslyApp(),
-  /// );
-  /// ```
+  /// Returns the value resolved by [sharedPreferencesInit] via `requireValue`,
+  /// giving the settings provider tree a synchronous read. `AppBootstrap` only
+  /// mounts `DoslyApp` (and therefore the settings providers that read this) in
+  /// its `data` branch — after [sharedPreferencesInit] has resolved — so
+  /// `requireValue` always has a value. If this is read while
+  /// [sharedPreferencesInit] is still loading or in error, `requireValue` throws,
+  /// surfacing the programmer error immediately. Tests may still override this
+  /// provider directly with a fake or in-memory instance.
   SharedPreferencesProvider._()
     : super(
         from: null,
@@ -183,4 +165,4 @@ final class SharedPreferencesProvider
   }
 }
 
-String _$sharedPreferencesHash() => r'f2b43e76162afdd7d5e9308c20f0f0cefde90913';
+String _$sharedPreferencesHash() => r'2a44669c5602bf62d81c0df5aafa1aea13c4f674';

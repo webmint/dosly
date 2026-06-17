@@ -1,4 +1,4 @@
-/// Meds feature — full-screen modal for the Add-medication flow (iteration 6).
+/// Meds feature — full-screen modal for the Add-medication flow (iteration 7).
 ///
 /// This library hosts [AddMedicationModal], a full-screen modal route
 /// pushed when the user taps the Add-medication FAB on the Meds screen.
@@ -12,18 +12,27 @@
 /// * **Group C** — intake-type title + [SegmentedButton], optional
 ///   [_CourseCard] (spec 030, iteration 5), and Save button.
 ///
-/// **Visual-only iteration 6 (spec 031)**: Layout restructured to match the
-/// HTML design template (three groups + two full-bleed dividers, muted section
-/// titles, updated spacing).  All state, persistence, and Save behaviour are
-/// unchanged from iteration 5.  Save remains an intentional no-op.
+/// **Persistence iteration 7 (spec 032)**: [AddMedicationModal] is now a
+/// [ConsumerStatefulWidget]. The Save button invokes [AddMedication] via
+/// [addMedicationProvider], maps form state to typed domain inputs, and
+/// handles both the success (pop + SnackBar) and failure (field-mapped SnackBar,
+/// stays open) branches. The button is disabled while a save is in flight.
 library;
 
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/error/failures.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../l10n/l10n_extensions.dart';
+import '../../domain/entities/dosage.dart';
+import '../../domain/entities/dose_unit.dart';
+import '../../domain/entities/medication_form.dart';
+import '../../domain/entities/medication_type.dart';
+import '../../domain/entities/pack_stock.dart';
+import '../providers/medication_providers.dart';
 
 // ---------------------------------------------------------------------------
 // Presentation-only constants
@@ -42,8 +51,9 @@ const _defaultPickerTime = TimeOfDay(hour: 8, minute: 0);
 /// Describes whether a medication is taken on a continuous (indefinite) basis
 /// or as a bounded course with a defined duration, pause, and start date.
 ///
-/// Visual-only (spec 030, iteration 5) — selection is stored in local
-/// [State] only and is never persisted or read by Save.
+/// Selection is stored in [_AddMedicationModalState._intakeType] and read by
+/// [_AddMedicationModalState._onSave] to determine the persisted
+/// [MedicationType] (spec 030 / 032, iterations 5 and 7).
 enum _IntakeType {
   /// Medication is taken continuously with no end date.
   continuous,
@@ -59,7 +69,10 @@ enum _IntakeType {
 /// An immutable descriptor for a single medication-form option displayed in
 /// [_MedicationFormPicker].
 ///
-/// Visual-only (spec 027 / 028, iterations 2–3): instances are never persisted.
+/// Spec 027 / 028, iterations 2–3: instances are static configuration — they
+/// are not written to storage, but their capability flags ([hasDose],
+/// [hasQuantity], [hasStock], [doseUnitValues]) are read by
+/// [_AddMedicationModalState._onSave] to build typed domain inputs.
 /// The [key] string matches the planned domain enum name so future wiring
 /// is a straightforward search-and-replace.
 @immutable
@@ -73,6 +86,7 @@ class _MedFormOption {
     this.hasQuantity = false,
     this.hasStock = false,
     this.doseUnits = const [],
+    this.doseUnitValues = const [],
     this.quantityStep = 1,
     this.quantityMin = 1,
     this.quantityUnit,
@@ -92,48 +106,66 @@ class _MedFormOption {
 
   /// Whether this form shows the dose amount + unit fields.
   ///
-  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  /// Drives conditional rendering (spec 028, iteration 3) and is read by
+  /// [_AddMedicationModalState._onSave] to determine the [Dosage] branch.
   final bool hasDose;
 
   /// Whether this form shows the quantity-per-intake stepper.
   ///
-  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  /// Drives conditional rendering (spec 028, iteration 3) and is read by
+  /// [_AddMedicationModalState._onSave] to determine the [Dosage] branch.
   final bool hasQuantity;
 
   /// Whether this form shows the pack-stock card.
   ///
-  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  /// Drives conditional rendering (spec 028, iteration 3) and is read by
+  /// [_AddMedicationModalState._onSave] to determine the [PackStock] value.
   final bool hasStock;
 
   /// Ordered list of localized dose-unit label builders for this form.
   ///
   /// Only meaningful when [hasDose] is `true`.
-  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  /// Read by [_AddMedicationModalState._onSave] alongside [doseUnitValues]
+  /// to build the [Dosage] unit label (spec 028, iteration 3).
   final List<String Function(AppLocalizations l10n)> doseUnits;
+
+  /// Typed [DoseUnit] values parallel to [doseUnits], aligned index-for-index.
+  ///
+  /// Used by [_AddMedicationModalState._onSave] to resolve the selected unit
+  /// to a domain [DoseUnit] without string-based lookup. Only meaningful when
+  /// [hasDose] is `true`; defaults to an empty list for forms that do not use
+  /// a dose text field. For [hasQuantity] forms (tablet/capsule) the unit is
+  /// inferred from the form key instead.
+  final List<DoseUnit> doseUnitValues;
 
   /// The increment / decrement step for the quantity stepper.
   ///
   /// Only meaningful when [hasQuantity] is `true`.
-  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  /// Read by [_AddMedicationModalState._incrementQuantity] and
+  /// [_AddMedicationModalState._decrementQuantity] (spec 028, iteration 3).
   final double quantityStep;
 
   /// The minimum allowed value for the quantity stepper (also the reset value).
   ///
   /// Only meaningful when [hasQuantity] is `true`.
-  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  /// Read by [_AddMedicationModalState._resetConditionalFields] and
+  /// [_AddMedicationModalState._decrementQuantity] (spec 028, iteration 3).
   final double quantityMin;
 
   /// Localized unit label builder for the quantity stepper (e.g. "tab", "cap").
   ///
   /// `null` when [hasQuantity] is `false`.
-  /// Visual-only — spec 028, iteration 3.  Not persisted.
+  /// Used in [_AddMedicationModalState.build] to label the stepper
+  /// (spec 028, iteration 3).
   final String Function(AppLocalizations l10n)? quantityUnit;
 }
 
 /// The 8 medication-form options shown in [_MedicationFormPicker], in the
 /// grid order: tablet, capsule, syrup, drops, injection, inhaler, cream, sachet.
 ///
-/// Visual-only (spec 027 / 028, iterations 2–3) — not persisted anywhere.
+/// Static configuration (spec 027 / 028, iterations 2–3) — the list itself
+/// is not written to storage, but entries are consulted by
+/// [_AddMedicationModalState._onSave] via the selected [_MedFormOption].
 // Cannot be `const`: items hold `String Function(AppLocalizations)` closures.
 final List<_MedFormOption> _medFormOptions = [
   _MedFormOption(
@@ -165,6 +197,7 @@ final List<_MedFormOption> _medFormOptions = [
     sub: (l10n) => l10n.medsAddFormSyrupSub,
     hasDose: true,
     doseUnits: [(l10n) => l10n.medsAddUnitMl],
+    doseUnitValues: const [DoseUnit.ml],
   ),
   _MedFormOption(
     key: 'drops',
@@ -173,6 +206,7 @@ final List<_MedFormOption> _medFormOptions = [
     sub: (l10n) => l10n.medsAddFormDropsSub,
     hasDose: true,
     doseUnits: [(l10n) => l10n.medsAddUnitDrops, (l10n) => l10n.medsAddUnitMl],
+    doseUnitValues: const [DoseUnit.drops, DoseUnit.ml],
   ),
   _MedFormOption(
     key: 'injection',
@@ -185,6 +219,7 @@ final List<_MedFormOption> _medFormOptions = [
       (l10n) => l10n.medsAddUnitMg,
       (l10n) => l10n.medsAddUnitUnits,
     ],
+    doseUnitValues: const [DoseUnit.ml, DoseUnit.mg, DoseUnit.units],
   ),
   _MedFormOption(
     key: 'inhaler',
@@ -210,16 +245,15 @@ final List<_MedFormOption> _medFormOptions = [
 // _MedicationFormPicker widget
 // ---------------------------------------------------------------------------
 
-/// A self-contained, presentation-only medication-form picker.
+/// A self-contained medication-form picker.
 ///
 /// Displays a tappable outlined display row (floating label, icon chip, name,
 /// sub-description, animated chevron) that expands an animated grid of the
 /// 8 options from [_medFormOptions].
 ///
-/// Visual-only iteration 2 (spec 027-med-form-picker):
-/// * Selection is stored in local [State] only — it is intentionally NOT
-///   persisted, not passed to a Riverpod provider, and not consumed by the
-///   Save button (which remains a no-op).
+/// Iteration 2 (spec 027-med-form-picker):
+/// * Selection is stored in local [State] and hoisted to the parent via
+///   [onFormSelected]; the parent persists it through [_onSave] (spec 032).
 /// * [onFormSelected] is invoked whenever the user commits a selection so that
 ///   the parent can react (e.g. show form-dependent fields — spec 028).
 ///
@@ -457,12 +491,11 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
 // _DoseField widget
 // ---------------------------------------------------------------------------
 
-/// A presentation-only row with a dose amount [TextField] and a unit
-/// [DropdownButtonFormField].
+/// A row with a dose amount [TextField] and a unit [DropdownButtonFormField].
 ///
-/// Visual-only iteration 3 (spec 028) — the [controller] value and
-/// [selectedUnitIndex] are local state in [_AddMedicationModalState].
-/// Nothing is persisted; Save remains a no-op.
+/// Iteration 3 (spec 028) — the [controller] value and [selectedUnitIndex]
+/// are owned by [_AddMedicationModalState] and read by [_onSave] to build
+/// the persisted [Dosage] (spec 032).
 class _DoseField extends StatelessWidget {
   /// Creates a [_DoseField].
   const _DoseField({
@@ -523,12 +556,12 @@ class _DoseField extends StatelessWidget {
 // _QuantityStepper widget
 // ---------------------------------------------------------------------------
 
-/// A presentation-only quantity-per-intake stepper rendered inside an
-/// [InputDecorator] so it matches the form's outlined field style.
+/// A quantity-per-intake stepper rendered inside an [InputDecorator] so it
+/// matches the form's outlined field style.
 ///
-/// Visual-only iteration 3 (spec 028) — [formattedValue], [onIncrement],
-/// and [onDecrement] are driven by local state in [_AddMedicationModalState].
-/// Nothing is persisted; Save remains a no-op.
+/// Iteration 3 (spec 028) — [formattedValue], [onIncrement], and [onDecrement]
+/// are driven by [_AddMedicationModalState._quantity], which is read by
+/// [_onSave] to build the persisted [Dosage] (spec 032).
 class _QuantityStepper extends StatelessWidget {
   /// Creates a [_QuantityStepper].
   const _QuantityStepper({
@@ -594,11 +627,11 @@ class _QuantityStepper extends StatelessWidget {
 // _StockCard widget
 // ---------------------------------------------------------------------------
 
-/// A presentation-only pack-stock card with remaining, total, and warn fields.
+/// A pack-stock card with remaining, total, and warn fields.
 ///
-/// Visual-only iteration 3 (spec 028) — the three [TextEditingController]s
-/// are owned by [_AddMedicationModalState] and disposed there.  Nothing is
-/// persisted; Save remains a no-op.
+/// Iteration 3 (spec 028) — the three [TextEditingController]s are owned by
+/// [_AddMedicationModalState] and read by [_onSave] to build the persisted
+/// [PackStock] (spec 032).
 class _StockCard extends StatelessWidget {
   /// Creates a [_StockCard].
   const _StockCard({
@@ -703,8 +736,9 @@ class _StockCard extends StatelessWidget {
 /// [ActionChip] (dashed solid outline, leading + icon) that calls [onAdd] to
 /// open the time picker.
 ///
-/// Visual-only iteration 4 (spec 029): no persistence; [times] is driven by
-/// local state in [_AddMedicationModalState].
+/// Iteration 4 (spec 029): [times] is driven by
+/// [_AddMedicationModalState._intakeTimes] and read by [_onSave] to persist
+/// intake schedule (spec 032).
 class _TimeChips extends StatelessWidget {
   /// Creates a [_TimeChips] widget.
   const _TimeChips({
@@ -772,13 +806,13 @@ class _TimeChips extends StatelessWidget {
 // _CourseCard widget
 // ---------------------------------------------------------------------------
 
-/// A presentation-only card displaying course-parameter fields: duration,
-/// pause, start date (with a [showDatePicker] tap target), and a live-computed
-/// info chip showing the inclusive date range.
+/// A card displaying course-parameter fields: duration, pause, start date
+/// (with a [showDatePicker] tap target), and a live-computed info chip showing
+/// the inclusive date range.
 ///
-/// Visual-only iteration 5 (spec 030) — all controllers and [startDate] are
-/// owned and disposed by [_AddMedicationModalState].  Nothing is persisted;
-/// Save remains a no-op.
+/// Iteration 5 (spec 030) — all controllers and [startDate] are owned by
+/// [_AddMedicationModalState] and read by [_onSave] to build the persisted
+/// [MedicationType.course] value (spec 032).
 class _CourseCard extends StatelessWidget {
   /// Creates a [_CourseCard].
   const _CourseCard({
@@ -925,30 +959,34 @@ class _CourseCard extends StatelessWidget {
 /// * a padded [Column] containing:
 ///   - a medication-name [TextField] (spec 026),
 ///   - a medication-form picker [_MedicationFormPicker] (spec 027,
-///     iteration 2 — visual-only, selection not yet persisted),
-///   - form-dependent fields (spec 028, iteration 3 — visual-only):
+///     iteration 2),
+///   - form-dependent fields (spec 028, iteration 3):
 ///     * [_DoseField] for injection / syrup / drops,
 ///     * [_QuantityStepper] for tablet / capsule,
 ///     * [_StockCard] for tablet / capsule,
-///   - an intake-time chips section [_TimeChips] (spec 029, iteration 4 —
-///     visual-only, times kept in local state only, not read by Save),
-///   - a full-width [FilledButton.icon] Save button (no-op — data-save
-///     iteration will wire persistence).
+///   - an intake-time chips section [_TimeChips] (spec 029, iteration 4),
+///   - a full-width [FilledButton.icon] Save button that invokes
+///     [addMedicationProvider] on tap (spec 032, iteration 7).
 ///
-/// **Visual-only iterations 3–4 (spec 028–029)**: All conditional field values
-/// and intake-time entries are local state only.  Save is an intentional no-op.
+/// **Persistence iteration 7 (spec 032)**: [AddMedicationModal] extends
+/// [ConsumerStatefulWidget]. Save maps local form state to typed domain
+/// inputs, calls [AddMedication] via [addMedicationProvider], shows a
+/// success SnackBar and pops on the Right branch, or shows a field-mapped
+/// error SnackBar and stays open on the Left branch. The Save button is
+/// disabled while saving is in flight.
 ///
 /// The modal is pushed via `Navigator.push(MaterialPageRoute(
 /// fullscreenDialog: true, ...))` from `meds_screen.dart`.
-class AddMedicationModal extends StatefulWidget {
+class AddMedicationModal extends ConsumerStatefulWidget {
   /// Creates the Add-medication modal.
   const AddMedicationModal({super.key});
 
   @override
-  State<AddMedicationModal> createState() => _AddMedicationModalState();
+  ConsumerState<AddMedicationModal> createState() =>
+      _AddMedicationModalState();
 }
 
-class _AddMedicationModalState extends State<AddMedicationModal> {
+class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
   // -------------------------------------------------------------------------
   // Controllers
   // -------------------------------------------------------------------------
@@ -957,75 +995,75 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
   final TextEditingController _nameController = TextEditingController();
 
   /// Controller for the dose amount text field (liquid forms — spec 028).
-  /// Visual-only; not read by Save.
+  /// Read by [_onSave] and persisted via [addMedicationProvider].
   final TextEditingController _doseController = TextEditingController();
 
   /// Controller for the "remaining in pack" field in the stock card (spec 028).
-  /// Visual-only; not read by Save.
+  /// Read by [_onSave] and persisted via [addMedicationProvider].
   final TextEditingController _stockRemainingController =
       TextEditingController();
 
   /// Controller for the "total in pack" field in the stock card (spec 028).
-  /// Visual-only; not read by Save.
+  /// Read by [_onSave] and persisted via [addMedicationProvider].
   final TextEditingController _stockTotalController = TextEditingController();
 
   /// Controller for the low-stock warning threshold field (spec 028).
-  /// Visual-only; not read by Save.
+  /// Read by [_onSave] and persisted via [addMedicationProvider].
   final TextEditingController _stockWarnController = TextEditingController();
 
   // -------------------------------------------------------------------------
-  // Form-dependent state (spec 028, visual-only)
+  // Form-dependent state (spec 028)
   // -------------------------------------------------------------------------
 
   /// The medication form currently selected by the user, or `null` if none.
   ///
   /// Drives conditional rendering of [_DoseField], [_QuantityStepper], and
-  /// [_StockCard].  Visual-only — not persisted.
+  /// [_StockCard].  Read by [_onSave] and persisted via [addMedicationProvider].
   _MedFormOption? _selectedForm;
 
   /// Current quantity-per-intake value for the stepper.
   ///
   /// Reset to [_MedFormOption.quantityMin] on form change.
-  /// Visual-only — not persisted.
+  /// Read by [_onSave] and persisted via [addMedicationProvider].
   double _quantity = 0;
 
   /// Currently selected index in the dose-unit dropdown.
   ///
   /// Reset to 0 on form change.
-  /// Visual-only — not persisted.
+  /// Read by [_onSave] and persisted via [addMedicationProvider].
   int _selectedDoseUnitIndex = 0;
 
   // -------------------------------------------------------------------------
-  // Intake-time state (spec 029, visual-only)
+  // Intake-time state (spec 029)
   // -------------------------------------------------------------------------
 
   /// Sorted list of intake times selected by the user.
   ///
   /// Always kept in ascending order by time-of-day (hour × 60 + minute).
   /// Duplicates are rejected before insertion.
-  /// Visual-only — not read by Save, not persisted.
+  /// Read by [_onSave] and persisted via [addMedicationProvider].
   final List<TimeOfDay> _intakeTimes = [];
 
   // -------------------------------------------------------------------------
-  // Intake-type state (spec 030, visual-only)
+  // Intake-type state (spec 030)
   // -------------------------------------------------------------------------
 
   /// Whether the user has selected Continuous or Course intake.
   ///
   /// Drives [SegmentedButton] selection and conditional [_CourseCard]
-  /// visibility.  Visual-only — not read by Save, not persisted.
+  /// visibility.  Read by [_onSave] and persisted via [addMedicationProvider].
   _IntakeType _intakeType = _IntakeType.continuous;
 
   /// Controller for the course-duration field (days).  Pre-filled with "7".
   ///
-  /// Visual-only — not read by Save, not persisted.
+  /// Read by [_onSave] and persisted via [addMedicationProvider].
   final TextEditingController _durationController =
       TextEditingController(text: '7');
 
   /// Controller for the pause-between-courses field (days).  Pre-filled
   /// with "0".
   ///
-  /// Visual-only — not read by Save, not persisted.
+  /// Read by [_onSave] and persisted via [addMedicationProvider].
   final TextEditingController _pauseController =
       TextEditingController(text: '0');
 
@@ -1034,8 +1072,16 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
   /// Defaults to today via [clock.now()] (not [DateTime.now()]) so tests
   /// can override the clock.  Normalised with [DateUtils.dateOnly] to strip
   /// the time component.
-  /// Visual-only — not read by Save, not persisted.
   DateTime _startDate = DateUtils.dateOnly(clock.now());
+
+  // -------------------------------------------------------------------------
+  // Save-in-flight state (spec 032, iteration 7)
+  // -------------------------------------------------------------------------
+
+  /// Whether a save call is currently in flight.
+  ///
+  /// While `true` the Save button is disabled to prevent double-taps.
+  bool _isSaving = false;
 
   // -------------------------------------------------------------------------
   // Lifecycle
@@ -1112,7 +1158,7 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
   }
 
   // -------------------------------------------------------------------------
-  // Intake-time logic (spec 029, visual-only)
+  // Intake-time logic (spec 029)
   // -------------------------------------------------------------------------
 
   /// Opens Flutter's built-in [showTimePicker] dialog pre-filled at [initial].
@@ -1204,7 +1250,7 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
   }
 
   // -------------------------------------------------------------------------
-  // Course date-picker logic (spec 030, visual-only)
+  // Course date-picker logic (spec 030)
   // -------------------------------------------------------------------------
 
   /// Opens Flutter's built-in [showDatePicker] dialog pre-filled at
@@ -1242,6 +1288,140 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
       );
     }
     return l10n.medsAddCourseStartOnly(ml.formatMediumDate(_startDate));
+  }
+
+  // -------------------------------------------------------------------------
+  // Save logic (spec 032, iteration 7)
+  // -------------------------------------------------------------------------
+
+  /// Maps the current form state to typed domain inputs and invokes
+  /// [AddMedication] via [addMedicationProvider].
+  ///
+  /// On the [Right] branch shows a success [SnackBar] and pops the modal.
+  /// On the [Left] branch shows a field-mapped error [SnackBar] and stays
+  /// open so the user can correct the input.  The Save button is disabled
+  /// for the duration of the async call via [_isSaving].
+  ///
+  /// Context objects ([ScaffoldMessenger], [Navigator], l10n) are captured
+  /// before the `await` to satisfy `use_build_context_synchronously`.
+  Future<void> _onSave() async {
+    // Capture context-dependent objects before any await (and before the
+    // null-form guard) to satisfy `use_build_context_synchronously`.
+    final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    final form = _selectedForm;
+    if (form == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.medsAddSaveErrorGeneric)),
+      );
+      return;
+    }
+
+    // --- Resolve typed domain inputs ---
+
+    final medForm = MedicationForm.values.byName(form.key);
+
+    final intakeMinutes = [
+      for (final t in _intakeTimes) t.hour * 60 + t.minute,
+    ];
+
+    // Dosage — varies by form capability.
+    final Dosage? dose;
+    if (form.hasQuantity) {
+      // tablet or capsule: unit name matches the form key exactly.
+      dose = Dosage(
+        amount: _quantity,
+        unit: DoseUnit.values.byName(form.key),
+      );
+    } else if (form.hasDose) {
+      // liquid forms: use the typed unit parallel to the dropdown index.
+      dose = Dosage(
+        amount:
+            double.tryParse(
+              _doseController.text.trim().replaceAll(',', '.'),
+            ) ??
+            0,
+        unit: form.doseUnitValues[_selectedDoseUnitIndex],
+      );
+    } else {
+      // inhaler / cream / sachet: no dose field.
+      dose = null;
+    }
+
+    // Pack stock — only for forms that show the stock card.
+    final PackStock? stock;
+    if (form.hasStock) {
+      final remaining = int.tryParse(_stockRemainingController.text.trim());
+      final total = int.tryParse(_stockTotalController.text.trim());
+      final warn = int.tryParse(_stockWarnController.text.trim()) ?? 0;
+      if (remaining != null &&
+          total != null &&
+          remaining >= 0 &&
+          total >= 0) {
+        stock = PackStock(remaining: remaining, total: total, warnAt: warn);
+      } else {
+        stock = null;
+      }
+    } else {
+      stock = null;
+    }
+
+    // Medication type — continuous or course.
+    final MedicationType type;
+    if (_intakeType == _IntakeType.continuous) {
+      final now = clock.now();
+      type = MedicationType.continuous(
+        startDate: DateTime.utc(now.year, now.month, now.day),
+      );
+    } else {
+      type = MedicationType.course(
+        startDate: DateTime.utc(
+          _startDate.year,
+          _startDate.month,
+          _startDate.day,
+        ),
+        durationDays: int.tryParse(_durationController.text.trim()) ?? 0,
+        pauseDays: int.tryParse(_pauseController.text.trim()) ?? 0,
+      );
+    }
+
+    setState(() => _isSaving = true);
+
+    final result = await ref.read(addMedicationProvider).call(
+      name: _nameController.text,
+      form: medForm,
+      intakeMinutes: intakeMinutes,
+      type: type,
+      dosePerIntake: dose,
+      stock: stock,
+    );
+
+    if (!mounted) return;
+
+    result.fold(
+      (failure) {
+        setState(() => _isSaving = false);
+        final msg = switch (failure) {
+          ValidationFailure(:final field) => switch (field) {
+            'name' => l10n.medsAddSaveErrorName,
+            'times' => l10n.medsAddSaveErrorTimes,
+            'durationDays' => l10n.medsAddSaveErrorDuration,
+            'dose' => l10n.medsAddSaveErrorDose,
+            _ => l10n.medsAddSaveErrorGeneric,
+          },
+          _ => l10n.medsAddSaveErrorGeneric,
+        };
+        messenger.showSnackBar(SnackBar(content: Text(msg)));
+      },
+      (_) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.medsAddSaveSuccess)),
+        );
+        navigator.pop();
+      },
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -1300,13 +1480,13 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Medication-form picker — visual-only iteration 2 (spec 027).
-                  // Selection is local to _MedicationFormPicker; _onFormSelected
-                  // hoists it to the parent for conditional field rendering.
+                  // Medication-form picker (spec 027, iteration 2).
+                  // Selection is hoisted to the parent via _onFormSelected
+                  // for conditional field rendering and persistence in _onSave.
                   _MedicationFormPicker(onFormSelected: _onFormSelected),
 
                   // ----------------------------------------------------------------
-                  // Form-dependent fields (spec 028, iteration 3 — visual-only).
+                  // Form-dependent fields (spec 028, iteration 3).
                   // Each block is gated on the selected form's capability flags so
                   // that NO conditional widget appears in the tree when no form is
                   // selected (preserving the spec-026 test assertion).
@@ -1364,7 +1544,7 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 4),
-                  // Intake-time section (spec 029, iteration 4 — visual-only).
+                  // Intake-time section (spec 029, iteration 4).
                   Text(
                     context.l10n.medsAddTimeTitle,
                     style: textTheme.titleSmall?.copyWith(
@@ -1395,7 +1575,7 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 4),
-                  // Intake-type section (spec 030, iteration 5 — visual-only).
+                  // Intake-type section (spec 030, iteration 5).
                   Text(
                     context.l10n.medsAddIntakeTypeTitle,
                     style: textTheme.titleSmall?.copyWith(
@@ -1441,11 +1621,8 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
                   ],
 
                   const SizedBox(height: 16),
-                  // Intentional no-op for spec 026/027/028/029/030 visual iterations.
-                  // The data-save iteration will replace this empty callback
-                  // with real persistence logic.
                   FilledButton.icon(
-                    onPressed: () {},
+                    onPressed: _isSaving ? null : _onSave,
                     icon: const Icon(LucideIcons.save),
                     label: Text(context.l10n.medsAddSaveButton),
                   ),
