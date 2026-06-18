@@ -328,6 +328,11 @@ All UI wiring happens in `lib/app.dart`. `DoslyApp` is a `ConsumerWidget` rather
 
 The drift database (`appDatabaseProvider`) is a `keepAlive` provider lazy-opened on first access. It does not block startup — no gate in `AppBootstrap` is required because the first database read happens on user action (tapping Save in the add-medication modal), well after startup completes. Future async init work (e.g. schema migration diagnostics) would follow the existing `AppBootstrap` pattern.
 
+## Testing
+
+- **Unit / data / widget tests** live under `test/` and run with `flutter test` (no device required).
+- **On-device integration tests** live under `integration_test/` and run against the real `AppBootstrap` widget tree on a connected device or emulator (`flutter test integration_test -d <device>`). Only two leaf seams are overridden (`appDatabaseProvider`, `sharedPreferencesInitProvider`); the full production router and settings chain run unmodified. See [`guides/testing.md`](guides/testing.md) for the full walkthrough.
+
 ## Related
 
 - [constitution.md](../constitution.md) — the full rule set

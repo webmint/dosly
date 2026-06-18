@@ -308,6 +308,7 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
         // Display row — tappable, inherits global inputDecorationTheme.
         // ----------------------------------------------------------------
         InkWell(
+          key: const ValueKey('medsFormPickerToggle'),
           borderRadius: BorderRadius.circular(4),
           onTap: () => setState(() => _isOpen = !_isOpen),
           child: InputDecorator(
@@ -438,6 +439,7 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
     final isSelected = index == _selectedIndex;
 
     return InkWell(
+      key: ValueKey('medsForm_${option.key}'),
       borderRadius: BorderRadius.circular(12),
       onTap: () {
         setState(() {
@@ -1622,6 +1624,7 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
 
                   const SizedBox(height: 16),
                   FilledButton.icon(
+                    key: const ValueKey('medsAddSaveButton'),
                     onPressed: _isSaving ? null : _onSave,
                     icon: const Icon(LucideIcons.save),
                     label: Text(context.l10n.medsAddSaveButton),

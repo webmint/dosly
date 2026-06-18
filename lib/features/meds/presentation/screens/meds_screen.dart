@@ -41,6 +41,7 @@ class MedsScreen extends StatelessWidget {
       ),
       body: const SizedBox.shrink(),
       floatingActionButton: FloatingActionButton(
+        key: const ValueKey('medsAddFab'),
         onPressed: () => _openAddMedicationModal(context),
         tooltip: context.l10n.medsAddFabTooltip,
         child: const Icon(LucideIcons.plus),
