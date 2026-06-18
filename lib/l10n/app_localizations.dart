@@ -555,6 +555,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get prefsLoadRetry;
+
+  /// AppBar title for the medications list screen.
+  ///
+  /// In en, this message translates to:
+  /// **'My medications'**
+  String get medsListTitle;
+
+  /// Hint text inside the search field on the medications list screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Search medications…'**
+  String get medsListSearchHint;
+
+  /// Tooltip for the search icon button on the medications list screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get medsListSearchTooltip;
+
+  /// Filter chip label showing all medications (active + completed).
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get medsListFilterAll;
+
+  /// Filter chip label showing only active medications.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get medsListFilterActive;
+
+  /// Section header for the continuous-intake medications group in the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Continuous'**
+  String get medsListSectionContinuous;
+
+  /// Section header for the course-intake medications group in the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Courses'**
+  String get medsListSectionCourse;
+
+  /// Placeholder text shown inside a section when no items match the current filter/search.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found'**
+  String get medsListSectionEmpty;
+
+  /// Title of the empty-state illustration shown when the medications list has no entries at all.
+  ///
+  /// In en, this message translates to:
+  /// **'No medications yet'**
+  String get medsListEmptyTitle;
+
+  /// Body text of the empty-state illustration on the medications list screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to add your first medication'**
+  String get medsListEmptyBody;
+
+  /// Status badge label shown on a medication card when the medication is currently active.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get medsListStatusActive;
+
+  /// Status badge label shown on a medication card when the course has been completed.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get medsListStatusCompleted;
+
+  /// Lowercase type label shown in the subtitle of a continuous-intake medication card.
+  ///
+  /// In en, this message translates to:
+  /// **'continuous'**
+  String get medsListTypeContinuous;
+
+  /// Type label shown in the subtitle of a course medication card when the course is in its pause period.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get medsListTypeCoursePaused;
+
+  /// Type label shown in the subtitle of a course medication card indicating current day progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {current}/{total}'**
+  String medsListTypeCourseDay(int current, int total);
+
+  /// Stock indicator shown on a medication card: remaining units out of total pack size.
+  ///
+  /// In en, this message translates to:
+  /// **'{remaining} of {total} pcs'**
+  String medsListStock(int remaining, int total);
+
+  /// Short dose-unit abbreviation for tablets, shown in medication card subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'tab'**
+  String get doseUnitTablet;
+
+  /// Short dose-unit abbreviation for capsules, shown in medication card subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'cap'**
+  String get doseUnitCapsule;
+
+  /// Short dose-unit abbreviation for millilitres, shown in medication card subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'ml'**
+  String get doseUnitMl;
+
+  /// Short dose-unit abbreviation for milligrams, shown in medication card subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'mg'**
+  String get doseUnitMg;
+
+  /// Short dose-unit abbreviation for drops, shown in medication card subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'drops'**
+  String get doseUnitDrops;
+
+  /// Short dose-unit abbreviation for international units (IU), shown in medication card subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'IU'**
+  String get doseUnitUnits;
+
+  /// Short dose-unit abbreviation for inhaler puffs, shown in medication card subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'puff'**
+  String get doseUnitPuff;
+
+  /// Short dose-unit abbreviation for a generic application/dose (cream, ointment), shown in medication card subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'dose'**
+  String get doseUnitApplication;
+
+  /// Short dose-unit abbreviation for sachets, shown in medication card subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'sachet'**
+  String get doseUnitSachet;
 }
 
 class _AppLocalizationsDelegate

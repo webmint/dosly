@@ -254,4 +254,83 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get prefsLoadRetry => 'Повторити';
+
+  @override
+  String get medsListTitle => 'Мої ліки';
+
+  @override
+  String get medsListSearchHint => 'Пошук ліків…';
+
+  @override
+  String get medsListSearchTooltip => 'Пошук';
+
+  @override
+  String get medsListFilterAll => 'Всі';
+
+  @override
+  String get medsListFilterActive => 'Активні';
+
+  @override
+  String get medsListSectionContinuous => 'Постійні';
+
+  @override
+  String get medsListSectionCourse => 'Курсові';
+
+  @override
+  String get medsListSectionEmpty => 'Нічого не знайдено';
+
+  @override
+  String get medsListEmptyTitle => 'Поки що немає ліків';
+
+  @override
+  String get medsListEmptyBody => 'Натисніть +, щоб додати перші ліки';
+
+  @override
+  String get medsListStatusActive => 'Активний';
+
+  @override
+  String get medsListStatusCompleted => 'Завершено';
+
+  @override
+  String get medsListTypeContinuous => 'постійний';
+
+  @override
+  String get medsListTypeCoursePaused => 'Пауза';
+
+  @override
+  String medsListTypeCourseDay(int current, int total) {
+    return 'День $current/$total';
+  }
+
+  @override
+  String medsListStock(int remaining, int total) {
+    return '$remaining з $total шт';
+  }
+
+  @override
+  String get doseUnitTablet => 'таб';
+
+  @override
+  String get doseUnitCapsule => 'кап';
+
+  @override
+  String get doseUnitMl => 'мл';
+
+  @override
+  String get doseUnitMg => 'мг';
+
+  @override
+  String get doseUnitDrops => 'крап';
+
+  @override
+  String get doseUnitUnits => 'МО';
+
+  @override
+  String get doseUnitPuff => 'впорск';
+
+  @override
+  String get doseUnitApplication => 'доза';
+
+  @override
+  String get doseUnitSachet => 'саше';
 }

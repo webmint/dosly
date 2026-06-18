@@ -3,6 +3,7 @@ library;
 
 import 'package:fpdart/fpdart.dart';
 
+import '../../../../core/database/database.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/medication.dart';
 import '../../domain/repositories/medication_repository.dart';
@@ -33,6 +34,25 @@ class MedicationRepositoryImpl implements MedicationRepository {
       return Right(medication);
     } catch (e, st) {
       return Left(Failure.unknown(e, st));
+    }
+  }
+
+  @override
+  Stream<Either<Failure, List<Medication>>> watchAll() async* {
+    try {
+      await for (final rows in _dataSource.watchAllMedications()) {
+        yield Right(
+          <Medication>[
+            for (final (MedicationRow, List<TimeSlotRow>) r in rows)
+              medicationFromRows(r.$1, r.$2),
+          ],
+        );
+      }
+    } catch (e, st) {
+      // Any failure — a query error or a corrupt-row [StateError] thrown by
+      // [medicationFromRows] — is converted to a Left so it never escapes the
+      // data layer.
+      yield Left(Failure.unknown(e, st));
     }
   }
 }

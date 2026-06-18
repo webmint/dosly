@@ -52,6 +52,10 @@ class _FakeMedicationRepository implements MedicationRepository {
     }
     return Future.value(Right(medication));
   }
+
+  @override
+  Stream<Either<Failure, List<Medication>>> watchAll() =>
+      const Stream<Either<Failure, List<Medication>>>.empty();
 }
 
 /// A recording [MedicationRepository] that captures the last [Medication]
@@ -70,6 +74,10 @@ class _RecordingMedicationRepository implements MedicationRepository {
     captured = medication;
     return Right(medication);
   }
+
+  @override
+  Stream<Either<Failure, List<Medication>>> watchAll() =>
+      const Stream<Either<Failure, List<Medication>>>.empty();
 }
 
 /// A fake [IdGenerator] that returns deterministic sequential IDs.
@@ -1378,14 +1386,15 @@ void main() {
   // Section dividers and section-title styling (spec 031)
   // ---------------------------------------------------------------------------
   group('AddMedicationModal dividers', () {
-    // (1) Two Dividers present unconditionally on a freshly pumped modal.
-    testWidgets('renders exactly two Dividers with no form selected', (
+    // (1) Three Dividers present unconditionally on a freshly pumped modal:
+    //     one in the AppBar bottom border (M15) + two section dividers.
+    testWidgets('renders exactly three Dividers with no form selected', (
       tester,
     ) async {
       await tester.pumpWidget(_harness(locale: const Locale('en')));
       await tester.pumpAndSettle();
 
-      expect(find.byType(Divider), findsNWidgets(2));
+      expect(find.byType(Divider), findsNWidgets(3));
     });
 
     // (2) The first Divider has thickness 1 and color == outlineVariant.
@@ -1424,9 +1433,9 @@ void main() {
       },
     );
 
-    // (4) AC-1 — two Dividers remain when a form (Tablet) is selected.
+    // (4) AC-1 — three Dividers remain when a form (Tablet) is selected.
     testWidgets(
-      'renders exactly two Dividers with Tablet form selected',
+      'renders exactly three Dividers with Tablet form selected',
       (tester) async {
         await tester.pumpWidget(_harness(locale: const Locale('en')));
         await tester.pumpAndSettle();
@@ -1436,13 +1445,13 @@ void main() {
         await tester.tap(find.text('Tablet'));
         await tester.pumpAndSettle();
 
-        expect(find.byType(Divider), findsNWidgets(2));
+        expect(find.byType(Divider), findsNWidgets(3));
       },
     );
 
-    // (5) AC-1 — two Dividers remain when Course intake type is selected.
+    // (5) AC-1 — three Dividers remain when Course intake type is selected.
     testWidgets(
-      'renders exactly two Dividers with Course intake type selected',
+      'renders exactly three Dividers with Course intake type selected',
       (tester) async {
         await tester.pumpWidget(_harness(locale: const Locale('en')));
         await tester.pumpAndSettle();
@@ -1450,7 +1459,7 @@ void main() {
         await tester.tap(find.text('Course'));
         await tester.pumpAndSettle();
 
-        expect(find.byType(Divider), findsNWidgets(2));
+        expect(find.byType(Divider), findsNWidgets(3));
       },
     );
 

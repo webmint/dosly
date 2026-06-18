@@ -19,6 +19,7 @@
 /// brings its own [MaterialApp.router].
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -29,6 +30,7 @@ import 'core/providers/shared_preferences_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/prefs_load_error_screen.dart';
 import 'core/widgets/splash_screen.dart';
+import 'features/meds/presentation/providers/medication_providers.dart';
 import 'l10n/app_localizations.dart';
 
 /// Root widget that orchestrates the non-blocking startup sequence.
@@ -61,7 +63,16 @@ class AppBootstrap extends ConsumerWidget {
               onRetry: () => ref.invalidate(sharedPreferencesInitProvider),
             ),
           ),
-          data: (_) => const DoslyApp(),
+          data: (_) {
+            // DEBUG-only, fire-and-forget: reading the FutureProvider starts
+            // the seeder without awaiting it, so startup never blocks. The
+            // provider itself no-ops in release and when the table is already
+            // populated; freshly seeded rows surface via the reactive list.
+            if (kDebugMode) {
+              ref.read(devSeedProvider);
+            }
+            return const DoslyApp();
+          },
         );
   }
 
