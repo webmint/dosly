@@ -249,4 +249,83 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get prefsLoadRetry => 'Retry';
+
+  @override
+  String get medsListTitle => 'My medications';
+
+  @override
+  String get medsListSearchHint => 'Search medications…';
+
+  @override
+  String get medsListSearchTooltip => 'Search';
+
+  @override
+  String get medsListFilterAll => 'All';
+
+  @override
+  String get medsListFilterActive => 'Active';
+
+  @override
+  String get medsListSectionContinuous => 'Continuous';
+
+  @override
+  String get medsListSectionCourse => 'Courses';
+
+  @override
+  String get medsListSectionEmpty => 'Nothing found';
+
+  @override
+  String get medsListEmptyTitle => 'No medications yet';
+
+  @override
+  String get medsListEmptyBody => 'Tap + to add your first medication';
+
+  @override
+  String get medsListStatusActive => 'Active';
+
+  @override
+  String get medsListStatusCompleted => 'Completed';
+
+  @override
+  String get medsListTypeContinuous => 'continuous';
+
+  @override
+  String get medsListTypeCoursePaused => 'Paused';
+
+  @override
+  String medsListTypeCourseDay(int current, int total) {
+    return 'Day $current/$total';
+  }
+
+  @override
+  String medsListStock(int remaining, int total) {
+    return '$remaining of $total pcs';
+  }
+
+  @override
+  String get doseUnitTablet => 'tab';
+
+  @override
+  String get doseUnitCapsule => 'cap';
+
+  @override
+  String get doseUnitMl => 'ml';
+
+  @override
+  String get doseUnitMg => 'mg';
+
+  @override
+  String get doseUnitDrops => 'drops';
+
+  @override
+  String get doseUnitUnits => 'IU';
+
+  @override
+  String get doseUnitPuff => 'puff';
+
+  @override
+  String get doseUnitApplication => 'dose';
+
+  @override
+  String get doseUnitSachet => 'sachet';
 }

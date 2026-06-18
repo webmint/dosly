@@ -21,4 +21,11 @@ abstract interface class MedicationRepository {
   /// Persists [medication] and returns the stored aggregate on success, or a
   /// [Failure] describing why the operation could not be completed.
   Future<Either<Failure, Medication>> add(Medication medication);
+
+  /// Reactively emits all persisted medications, re-emitting on any change.
+  ///
+  /// The stream yields a fresh list every time the underlying store changes, so
+  /// callers can drive a live-updating UI. Errors are surfaced as
+  /// `Left(Failure)`, never thrown.
+  Stream<Either<Failure, List<Medication>>> watchAll();
 }

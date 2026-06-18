@@ -6,6 +6,8 @@
 ///   - Failure path: after the DB is closed, [add] returns [Left(Failure)]
 ///     without throwing — the repository absorbs the SqliteException and wraps
 ///     it as an [UnknownFailure].
+///   - watchAll happy path: emits [Right] with fully-mapped [Medication]s.
+///   - watchAll failure path: emits [Left(Failure)] on error — never throws.
 library;
 
 import 'package:dosly/core/database/database.dart';
@@ -28,7 +30,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 
 // ---------------------------------------------------------------------------
-// Fixture
+// Fixtures
 // ---------------------------------------------------------------------------
 
 /// A minimal valid [Medication] used for repository add tests.
@@ -54,6 +56,28 @@ final _medication = Medication(
   stock: null,
   notes: null,
   createdAt: DateTime.utc(2026, 4, 1, 7, 0),
+);
+
+/// A second valid [Medication] with distinct id and slot ids — used for
+/// watchAll AC-19 re-emission tests where two different meds must coexist.
+final _medicationTwo = Medication(
+  id: const MedicationId('repo-med-002'),
+  name: 'Paracetamol',
+  form: MedicationForm.tablet,
+  type: MedicationType.continuous(startDate: DateTime.utc(2026, 5, 1)),
+  schedule: const Schedule(
+    frequency: ScheduleFrequency.daily,
+    slots: [
+      TimeSlot(
+        id: TimeSlotId('repo-slot-003'),
+        minuteOfDay: 720, // 12:00
+      ),
+    ],
+  ),
+  dosePerIntake: null,
+  stock: null,
+  notes: null,
+  createdAt: DateTime.utc(2026, 5, 1),
 );
 
 // ---------------------------------------------------------------------------
@@ -170,4 +194,139 @@ void main() {
       });
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // watchAll
+  // ---------------------------------------------------------------------------
+  group('MedicationRepositoryImpl.watchAll()', () {
+    group('happy path', () {
+      test(
+        'should emit Right containing an empty list when DB is empty',
+        () async {
+          final result = await repository.watchAll().first;
+
+          result.fold(
+            (f) => fail('expected Right, got Left: $f'),
+            (meds) => expect(meds, isEmpty),
+          );
+        },
+      );
+
+      test(
+        'should emit Right with a Medication that round-trips through the mapper',
+        () async {
+          // Insert via the repository so both tables are populated.
+          await repository.add(_medication);
+
+          final result = await repository.watchAll().first;
+
+          final meds = result.getOrElse((f) => fail('expected Right, got Left: $f'));
+          expect(meds.length, 1);
+
+          final Medication med = meds.single;
+          expect(med.id.value, 'repo-med-001');
+          expect(med.name, 'Ibuprofen');
+          expect(med.form, MedicationForm.tablet);
+          expect(med.dosePerIntake?.amount, 200.0);
+          expect(med.dosePerIntake?.unit, DoseUnit.mg);
+        },
+      );
+
+      test(
+        'should emit Right with all slots preserved in the mapped Medication',
+        () async {
+          await repository.add(_medication);
+
+          final result = await repository.watchAll().first;
+          final meds = result.getOrElse((f) => fail('expected Right, got Left: $f'));
+
+          final slots = meds.single.schedule.slots;
+          expect(slots.length, 2);
+          expect(slots.map((s) => s.minuteOfDay).toSet(), {480, 1200});
+          expect(slots.map((s) => s.id.value).toSet(), {'repo-slot-001', 'repo-slot-002'});
+        },
+      );
+
+      test(
+        'should emit an updated Right after a second medication is added (AC-19)',
+        () async {
+          await repository.add(_medication);
+
+          // Confirm initial state.
+          final firstResult = await repository.watchAll().first;
+          final firstMeds =
+              firstResult.getOrElse((f) => fail('expected Right, got Left: $f'));
+          expect(firstMeds.length, 1);
+
+          // Add a second medication with completely distinct ids (including
+          // slots) so no PK collision occurs on the timeSlots table.
+          await repository.add(_medicationTwo);
+
+          // The next emission must include both medications.
+          final secondResult = await repository.watchAll().first;
+          final secondMeds =
+              secondResult.getOrElse((f) => fail('expected Right, got Left: $f'));
+          expect(secondMeds.length, 2);
+        },
+      );
+    });
+
+    group('failure path', () {
+      test(
+        'should emit Left(Failure) — not throw — when the data source errors',
+        () async {
+          // Use a fake data source whose watchAllMedications() is an error
+          // stream. This exercises the catch block in watchAll() without
+          // needing to corrupt the DB or race against close().
+          final fakeSource = _ErroringDataSource();
+          final errorRepo = MedicationRepositoryImpl(fakeSource);
+
+          final result = await errorRepo.watchAll().first;
+
+          expect(result.isLeft(), isTrue);
+        },
+      );
+
+      test(
+        'should wrap the error in UnknownFailure when the data source errors',
+        () async {
+          final fakeSource = _ErroringDataSource();
+          final errorRepo = MedicationRepositoryImpl(fakeSource);
+
+          final Either<Failure, List<Medication>> result =
+              await errorRepo.watchAll().first;
+
+          result.fold(
+            (failure) => expect(failure, isA<UnknownFailure>()),
+            (_) => fail('expected Left, got Right'),
+          );
+        },
+      );
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Test doubles
+// ---------------------------------------------------------------------------
+
+/// A [MedicationLocalDataSource] subclass whose [watchAllMedications] returns
+/// an error stream. Used to verify [MedicationRepositoryImpl.watchAll()] maps
+/// stream errors to [Left(Failure)] without throwing.
+///
+/// The injected [StateError] stands in for any real I/O failure (e.g. a
+/// SqliteException); what matters is that the repository absorbs it.
+class _ErroringDataSource extends MedicationLocalDataSource {
+  _ErroringDataSource() : super(_unreachableDb());
+
+  // The database passed here is never used — _ErroringDataSource overrides the
+  // only method under test. NativeDatabase.memory() is the smallest valid
+  // constructor argument; it will not be opened because no method calls through
+  // to super.
+  static AppDatabase _unreachableDb() =>
+      AppDatabase(NativeDatabase.memory());
+
+  @override
+  Stream<List<(MedicationRow, List<TimeSlotRow>)>> watchAllMedications() =>
+      Stream.error(StateError('simulated data-source failure'));
 }

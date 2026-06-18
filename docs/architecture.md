@@ -98,6 +98,26 @@ The `meds` feature uses the database through a three-class stack:
 
 The data source writes a medication aggregate atomically: the `Medications` row and all `TimeSlots` rows are inserted inside a single `transaction()`. See [`features/medication-persistence.md`](features/medication-persistence.md) for the full walkthrough.
 
+### Reactive read pattern
+
+Live-updating lists follow a consistent pattern: a watched drift query (typically a left-outer join) surfaces as a `Stream<Either<Failure, List<T>>>` at the repository layer, which is then folded into an `AsyncValue` by a `@riverpod` stream provider.
+
+```dart
+// domain/repositories/medication_repository.dart
+Stream<Either<Failure, List<Medication>>> watchAll();
+
+// presentation/providers/medication_providers.dart
+@riverpod
+Stream<List<Medication>> medicationsList(Ref ref) =>
+    ref.watch(medicationRepositoryProvider).watchAll().map(
+      (either) => either.fold((failure) => throw failure, (meds) => meds),
+    );
+```
+
+The `Left(failure)` → `throw failure` fold causes Riverpod to surface the failure as `AsyncValue.error(failure)`, consistent with the side-channel error-stream pattern used for write operations. Screens consume the provider as `ref.watch(medicationsListProvider)` and handle loading/error/data states with `.when(...)`.
+
+This is the read-side analog of the `Future<Either<Failure, T>>` write methods used by use cases. Use this pattern for any feature that needs a live-updating list driven by drift queries.
+
 ## App-wide state: Riverpod + `SharedPreferences`
 
 Dosly uses **Riverpod** (`flutter_riverpod`) for all feature-level and app-wide reactive state. It was introduced with the `009-theme-settings` feature, which also replaced the earlier `ThemeController` singleton.
@@ -173,6 +193,8 @@ void main() {
 | `medicationLocalDataSourceProvider` | `@riverpod` function (autoDispose) | Wires `MedicationLocalDataSource` to `appDatabaseProvider` |
 | `medicationRepositoryProvider` | `@riverpod` function (autoDispose) | Wires `MedicationRepositoryImpl` to the data source; exposes domain-typed `MedicationRepository` |
 | `addMedicationProvider` | `@riverpod` function (autoDispose) | Wires `AddMedication` use case to the repository and `idGeneratorProvider` |
+| `medicationsListProvider` | `@riverpod` stream (autoDispose) | Watches `MedicationRepository.watchAll()`, folds `Left`→throw; consumed as `AsyncValue<List<Medication>>` |
+| `devSeedProvider` | `@Riverpod(keepAlive: true)` Future | DEBUG-only, empty-table-guarded seeder; inserts 12 demo medications via the real repository write path; no-op in release builds |
 
 ### Failure handling
 

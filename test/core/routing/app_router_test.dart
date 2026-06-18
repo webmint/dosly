@@ -6,6 +6,8 @@
 // approach for verifying branch-stack preservation (AC-11) without polluting
 // production routes.
 
+import 'package:dosly/core/database/database.dart';
+import 'package:dosly/core/database/database_provider.dart';
 import 'package:dosly/core/error/failures.dart';
 import 'package:dosly/core/logging/log_sanitizer.dart';
 import 'package:dosly/core/logging/logger.dart';
@@ -14,6 +16,8 @@ import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
@@ -121,15 +125,33 @@ GoRouter _buildTestRouterWithSentinel() {
 // Pump helper — builds a MaterialApp.router with localization delegates so
 // widgets using context.l10n do not crash. Locale is pinned to English so
 // bottom-nav label text is predictable across all test machines.
+//
+// An in-memory AppDatabase is created per invocation and registered via
+// addTearDown so it is closed after the widget tree is disposed. Pumping
+// an extra frame before close lets drift flush any pending stream-cleanup
+// timers (StreamQueryStore.markAsClosed uses a zero-duration timer) and
+// avoids the "Timer is still pending" assertion from flutter_test.
 // ---------------------------------------------------------------------------
 Future<void> _pumpRouter(
   WidgetTester tester, {
   List<Override> overrides = const [],
 }) async {
+  // closeStreamsSynchronously: true makes drift close streams synchronously
+  // when the DB is closed, so no zero-duration timer remains pending when
+  // flutter_test's _verifyInvariants runs after the widget tree is disposed.
+  final db = AppDatabase(
+    DatabaseConnection(
+      NativeDatabase.memory(),
+      closeStreamsSynchronously: true,
+    ),
+  );
+  addTearDown(db.close);
+
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         settingsRepositoryProvider.overrideWithValue(_FakeSettingsRepository()),
+        appDatabaseProvider.overrideWithValue(db),
         ...overrides,
       ],
       child: Consumer(

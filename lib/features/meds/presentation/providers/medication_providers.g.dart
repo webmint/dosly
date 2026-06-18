@@ -201,3 +201,130 @@ final class AddMedicationProvider
 }
 
 String _$addMedicationHash() => r'abcc2f0b1bc60481670ee87f7601c940bc8fec74';
+
+/// Reactively exposes all persisted medications as `AsyncValue<List<Medication>>`.
+///
+/// Watches the repository's [MedicationRepository.watchAll] stream and folds each
+/// `Either` emission: `Right` becomes a data value, `Left(failure)` is thrown so
+/// Riverpod surfaces it as `AsyncValue.error(failure)` (constitution §3.2).
+
+@ProviderFor(medicationsList)
+final medicationsListProvider = MedicationsListProvider._();
+
+/// Reactively exposes all persisted medications as `AsyncValue<List<Medication>>`.
+///
+/// Watches the repository's [MedicationRepository.watchAll] stream and folds each
+/// `Either` emission: `Right` becomes a data value, `Left(failure)` is thrown so
+/// Riverpod surfaces it as `AsyncValue.error(failure)` (constitution §3.2).
+
+final class MedicationsListProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Medication>>,
+          List<Medication>,
+          Stream<List<Medication>>
+        >
+    with $FutureModifier<List<Medication>>, $StreamProvider<List<Medication>> {
+  /// Reactively exposes all persisted medications as `AsyncValue<List<Medication>>`.
+  ///
+  /// Watches the repository's [MedicationRepository.watchAll] stream and folds each
+  /// `Either` emission: `Right` becomes a data value, `Left(failure)` is thrown so
+  /// Riverpod surfaces it as `AsyncValue.error(failure)` (constitution §3.2).
+  MedicationsListProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'medicationsListProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$medicationsListHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<Medication>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<Medication>> create(Ref ref) {
+    return medicationsList(ref);
+  }
+}
+
+String _$medicationsListHash() => r'441f5ed26b7022c82fe0f16e23bf349cbe898c32';
+
+/// DEBUG-only, idempotent medication seeder.
+///
+/// No-op in release builds (`!kDebugMode`) and whenever the `medications` table
+/// is already non-empty, so it never overwrites or deletes real data. When the
+/// table is empty in a debug build it inserts a representative demo set (see
+/// [devSeedMedications]) through the real repository write path
+/// ([MedicationRepository.add]) so the reactive medications list picks the rows
+/// up automatically.
+///
+/// Best-effort: a failed insert ([Either.left]) is deliberately discarded
+/// rather than thrown, so a seeding error can never crash startup. Medication
+/// names (potential PHI) are never logged.
+
+@ProviderFor(devSeed)
+final devSeedProvider = DevSeedProvider._();
+
+/// DEBUG-only, idempotent medication seeder.
+///
+/// No-op in release builds (`!kDebugMode`) and whenever the `medications` table
+/// is already non-empty, so it never overwrites or deletes real data. When the
+/// table is empty in a debug build it inserts a representative demo set (see
+/// [devSeedMedications]) through the real repository write path
+/// ([MedicationRepository.add]) so the reactive medications list picks the rows
+/// up automatically.
+///
+/// Best-effort: a failed insert ([Either.left]) is deliberately discarded
+/// rather than thrown, so a seeding error can never crash startup. Medication
+/// names (potential PHI) are never logged.
+
+final class DevSeedProvider
+    extends $FunctionalProvider<AsyncValue<void>, void, FutureOr<void>>
+    with $FutureModifier<void>, $FutureProvider<void> {
+  /// DEBUG-only, idempotent medication seeder.
+  ///
+  /// No-op in release builds (`!kDebugMode`) and whenever the `medications` table
+  /// is already non-empty, so it never overwrites or deletes real data. When the
+  /// table is empty in a debug build it inserts a representative demo set (see
+  /// [devSeedMedications]) through the real repository write path
+  /// ([MedicationRepository.add]) so the reactive medications list picks the rows
+  /// up automatically.
+  ///
+  /// Best-effort: a failed insert ([Either.left]) is deliberately discarded
+  /// rather than thrown, so a seeding error can never crash startup. Medication
+  /// names (potential PHI) are never logged.
+  DevSeedProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'devSeedProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$devSeedHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<void> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<void> create(Ref ref) {
+    return devSeed(ref);
+  }
+}
+
+String _$devSeedHash() => r'4aa4a4ed1daad61ac9959eb064a3f4f2b0fc5841';

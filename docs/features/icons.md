@@ -55,9 +55,13 @@ The icons below are the full verified set in the app. The original 20 were catal
 
 Plus the three theme-mode glyphs used by the Settings theme selector: `sunMoon` · `sun` · `moon`.
 
-**Added in feature 027 (medication-form picker):** `tablets` · `milk` · `wind` · `container` · `package` · `shapes`
+**Added in feature 027 (medication-form picker):** `tablets` · `milk` · `wind` · `package` · `shapes`
+
+**Added in feature 034 (meds list):** `bandage` · `packageOpen`
 
 > Note: `pills` (plural) does NOT exist in `lucide_icons_flutter` 3.1.12. Use `tablets` for the compressed-tablet glyph.
+
+> Note: `container` was used for the Cream / Ointment form in the earlier visual-only picker but was incorrect. Feature 034 corrected this to `bandage` in the shared `medicationFormIcon` resolver. The `container` glyph is no longer used in the app.
 
 New features should prefer icons already in this set before introducing additional Lucide glyphs — when a new one is needed, add it to this list in `icons.md` at the same time.
 
@@ -117,11 +121,27 @@ static IconData _iconForMode(ThemeMode mode) {
 }
 ```
 
+## Medication-form icon map
+
+`medicationFormIcon(MedicationForm form)` in `lib/features/meds/presentation/widgets/medication_form_icon.dart` is the **single source of truth** for medication-form icons. It maps every `MedicationForm` enum value to a `LucideIcons.*` constant via an exhaustive `switch` (no `default:` — the compiler enforces completeness when new forms are added). Both the add-medication form picker and the medication-list tile import this function; neither maintains its own local icon mapping.
+
+| `MedicationForm` | `LucideIcons.*` |
+|---|---|
+| `tablet` | `tablets` |
+| `capsule` | `pill` |
+| `syrup` | `milk` |
+| `drops` | `droplets` |
+| `injection` | `syringe` |
+| `inhaler` | `wind` |
+| `cream` | `bandage` |
+| `sachet` | `package` |
+
 ## Rules
 
 - **Never import `package:flutter/material.dart`'s `Icons.*` in feature code.** If you need a glyph, reach for `LucideIcons.*`. The two exceptions are (a) widgets Flutter renders itself (e.g., default `BackButton`) and (b) the odd Cupertino-only situation, which should be explicitly called out.
 - **Never import icons in `domain/`.** Icons are a presentation concern. Use cases, entities, and repositories are pure Dart (constitution §2.1).
 - **Keep this list in sync.** When a feature introduces a new Lucide icon, add it to the canonical set table in `icons.md` so the set stays discoverable.
+- **Use `medicationFormIcon` for medication form icons.** Do not duplicate the mapping in new widgets — import the shared resolver instead.
 
 ## Related
 

@@ -28,6 +28,7 @@ import '../../../../core/error/failures.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../l10n/l10n_extensions.dart';
 import '../../domain/entities/dosage.dart';
+import 'medication_form_icon.dart';
 import '../../domain/entities/dose_unit.dart';
 import '../../domain/entities/medication_form.dart';
 import '../../domain/entities/medication_type.dart';
@@ -170,7 +171,7 @@ class _MedFormOption {
 final List<_MedFormOption> _medFormOptions = [
   _MedFormOption(
     key: 'tablet',
-    icon: LucideIcons.tablets,
+    icon: medicationFormIcon(MedicationForm.tablet),
     name: (l10n) => l10n.medsAddFormTablet,
     sub: (l10n) => l10n.medsAddFormTabletSub,
     hasQuantity: true,
@@ -181,7 +182,7 @@ final List<_MedFormOption> _medFormOptions = [
   ),
   _MedFormOption(
     key: 'capsule',
-    icon: LucideIcons.pill,
+    icon: medicationFormIcon(MedicationForm.capsule),
     name: (l10n) => l10n.medsAddFormCapsule,
     sub: (l10n) => l10n.medsAddFormCapsuleSub,
     hasQuantity: true,
@@ -192,7 +193,7 @@ final List<_MedFormOption> _medFormOptions = [
   ),
   _MedFormOption(
     key: 'syrup',
-    icon: LucideIcons.milk,
+    icon: medicationFormIcon(MedicationForm.syrup),
     name: (l10n) => l10n.medsAddFormSyrup,
     sub: (l10n) => l10n.medsAddFormSyrupSub,
     hasDose: true,
@@ -201,7 +202,7 @@ final List<_MedFormOption> _medFormOptions = [
   ),
   _MedFormOption(
     key: 'drops',
-    icon: LucideIcons.droplets,
+    icon: medicationFormIcon(MedicationForm.drops),
     name: (l10n) => l10n.medsAddFormDrops,
     sub: (l10n) => l10n.medsAddFormDropsSub,
     hasDose: true,
@@ -210,7 +211,7 @@ final List<_MedFormOption> _medFormOptions = [
   ),
   _MedFormOption(
     key: 'injection',
-    icon: LucideIcons.syringe,
+    icon: medicationFormIcon(MedicationForm.injection),
     name: (l10n) => l10n.medsAddFormInjection,
     sub: (l10n) => l10n.medsAddFormInjectionSub,
     hasDose: true,
@@ -223,19 +224,19 @@ final List<_MedFormOption> _medFormOptions = [
   ),
   _MedFormOption(
     key: 'inhaler',
-    icon: LucideIcons.wind,
+    icon: medicationFormIcon(MedicationForm.inhaler),
     name: (l10n) => l10n.medsAddFormInhaler,
     sub: (l10n) => l10n.medsAddFormInhalerSub,
   ),
   _MedFormOption(
     key: 'cream',
-    icon: LucideIcons.container,
+    icon: medicationFormIcon(MedicationForm.cream),
     name: (l10n) => l10n.medsAddFormCream,
     sub: (l10n) => l10n.medsAddFormCreamSub,
   ),
   _MedFormOption(
     key: 'sachet',
-    icon: LucideIcons.package,
+    icon: medicationFormIcon(MedicationForm.sachet),
     name: (l10n) => l10n.medsAddFormSachet,
     sub: (l10n) => l10n.medsAddFormSachetSub,
   ),
@@ -305,17 +306,45 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
       mainAxisSize: MainAxisSize.min,
       children: [
         // ----------------------------------------------------------------
-        // Display row — tappable, inherits global inputDecorationTheme.
+        // Display row — tappable, 1px outlined border per design .fpd-label.
         // ----------------------------------------------------------------
         InkWell(
           key: const ValueKey('medsFormPickerToggle'),
           borderRadius: BorderRadius.circular(4),
           onTap: () => setState(() => _isOpen = !_isOpen),
-          child: InputDecorator(
+          child: Semantics(
+            button: true,
+            label: selected == null
+                ? l10n.medsAddFormPlaceholder
+                : selected.name(l10n),
+            child: InputDecorator(
             // isEmpty:false keeps the label permanently floated so that
             // the outlined border always shows with the label cut-out.
             isEmpty: false,
-            decoration: InputDecoration(labelText: l10n.medsAddFormLabel),
+            decoration: InputDecoration(
+              labelText: l10n.medsAddFormLabel,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(
+                  color: colorScheme.outline,
+                  width: 1,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(
+                  color: colorScheme.outline,
+                  width: 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(
+                  color: colorScheme.primary,
+                  width: 1,
+                ),
+              ),
+            ),
             child: Row(
               children: [
                 // Icon chip — 32×32, secondaryContainer background.
@@ -345,6 +374,7 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
                           displaySub,
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
+                            fontSize: 11,
                           ),
                         ),
                     ],
@@ -357,10 +387,12 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
                   child: Icon(
                     LucideIcons.chevronDown,
                     color: colorScheme.onSurfaceVariant,
+                    size: 20,
                   ),
                 ),
               ],
             ),
+          ),
           ),
         ),
 
@@ -476,6 +508,7 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: textTheme.labelLarge?.copyWith(
+                  fontSize: 13,
                   color: isSelected
                       ? colorScheme.onPrimary
                       : colorScheme.onSurface,
@@ -592,32 +625,71 @@ class _QuantityStepper extends StatelessWidget {
 
     return InputDecorator(
       isEmpty: false,
-      decoration: InputDecoration(labelText: context.l10n.medsAddQuantityLabel),
+      decoration: InputDecoration(
+        labelText: context.l10n.medsAddQuantityLabel,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(
+            color: colorScheme.outline,
+            width: 1,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(
+            color: colorScheme.outline,
+            width: 1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(
+            color: colorScheme.primary,
+            width: 1,
+          ),
+        ),
+      ),
       child: Row(
         children: [
-          IconButton(
-            key: const ValueKey('medsAddQtyDecrement'),
-            icon: const Icon(LucideIcons.minus),
-            onPressed: onDecrement,
+          SizedBox(
+            height: 56,
+            child: IconButton(
+              key: const ValueKey('medsAddQtyDecrement'),
+              icon: const Icon(LucideIcons.minus),
+              iconSize: 20,
+              color: colorScheme.onSurface,
+              onPressed: onDecrement,
+            ),
           ),
           Expanded(
             child: Text(
               formattedValue,
               key: const ValueKey('medsAddQtyValue'),
               textAlign: TextAlign.center,
-              style: textTheme.titleMedium,
+              style: textTheme.titleMedium?.copyWith(
+                fontSize: 18,
+                fontWeight: FontWeight.w400,
+              ),
             ),
           ),
-          Text(
-            unitLabel,
-            style: textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Text(
+              unitLabel,
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-          IconButton(
-            key: const ValueKey('medsAddQtyIncrement'),
-            icon: const Icon(LucideIcons.plus),
-            onPressed: onIncrement,
+          SizedBox(
+            height: 56,
+            child: IconButton(
+              key: const ValueKey('medsAddQtyIncrement'),
+              icon: const Icon(LucideIcons.plus),
+              iconSize: 20,
+              color: colorScheme.onSurface,
+              onPressed: onIncrement,
+            ),
           ),
         ],
       ),
@@ -776,7 +848,7 @@ class _TimeChips extends StatelessWidget {
           InputChip(
             avatar: Icon(
               LucideIcons.clock,
-              size: 18,
+              size: 16,
               color: colorScheme.onSurfaceVariant,
             ),
             label: Text(
@@ -787,7 +859,7 @@ class _TimeChips extends StatelessWidget {
             ),
             onPressed: () => onEdit(i),
             onDeleted: () => onRemove(i),
-            deleteIcon: const Icon(LucideIcons.x, size: 16),
+            deleteIcon: const Icon(LucideIcons.x, size: 14),
             deleteButtonTooltipMessage: context.l10n.medsAddTimeRemoveTooltip,
           ),
 
@@ -795,6 +867,7 @@ class _TimeChips extends StatelessWidget {
         ActionChip(
           avatar: Icon(LucideIcons.plus, size: 18, color: colorScheme.primary),
           label: Text(context.l10n.medsAddTimeAddChip),
+          labelStyle: TextStyle(color: colorScheme.primary),
           side: BorderSide(color: colorScheme.outline),
           backgroundColor: Colors.transparent,
           onPressed: onAdd,
@@ -853,7 +926,6 @@ class _CourseCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
-        border: Border.all(color: colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(16),
       ),
       padding: const EdgeInsets.all(16),
@@ -868,7 +940,7 @@ class _CourseCard extends StatelessWidget {
               Text(l10n.medsAddCourseParamsTitle, style: textTheme.titleSmall),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           // Duration + Pause fields side by side.
           Row(
             children: [
@@ -1459,6 +1531,14 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
         ),
         title: Text(context.l10n.medsAddTitle),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            color: colorScheme.outlineVariant,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -1468,7 +1548,7 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
             // Group A: name field, form picker, form-dependent fields.
             // ------------------------------------------------------------------
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

@@ -2,18 +2,20 @@
 
 ## Overview
 
-The **meds feature** owns the Meds tab — destination index 1 in `AppBottomNav`. The screen has a localized `AppBar`, a `FloatingActionButton` that opens a full-screen modal, and an intentionally empty body (medication list is pending a future spec). The add-medication modal was built iteratively (features 026–031) — it collects a name, medication form, form-dependent fields (dose, quantity, stock), intake-time chips, and an intake-type segmented control with course-parameters card — and wired to real drift persistence in feature 032.
+The **meds feature** owns the Meds tab — destination index 1 in `AppBottomNav`. The screen has a localized `AppBar`, a `FloatingActionButton` that opens a full-screen modal, and a reactive medication list (added in feature 034). The add-medication modal was built iteratively (features 026–031) — it collects a name, medication form, form-dependent fields (dose, quantity, stock), intake-time chips, and an intake-type segmented control with course-parameters card — and wired to real drift persistence in feature 032.
 
 The feature now spans all three Clean-Architecture layers under `lib/features/meds/`: `presentation/` (screens, widgets, providers), `domain/` (entities, value objects, repository contract, use case), and `data/` (mapper, local data source, repository implementation). See [`medication-persistence.md`](medication-persistence.md) for the full persistence walkthrough.
 
 ## MedsScreen
 
-`MedsScreen` (in `lib/features/meds/presentation/screens/meds_screen.dart`) is a `StatelessWidget` that renders a `Scaffold` with:
+`MedsScreen` (in `lib/features/meds/presentation/screens/meds_screen.dart`) is a `ConsumerStatefulWidget` (upgraded from a placeholder `StatelessWidget` in feature 034) that renders a `Scaffold` with:
 
-- An `AppBar` whose title is the localized `bottomNavMeds` string (`context.l10n.bottomNavMeds`), shared with the bottom navigation bar destination label.
-- A 1-px `Divider` pinned to the bottom of the `AppBar` via `PreferredSize`, matching the design template's header border rule.
-- A `SizedBox.shrink()` body — intentionally empty until the medication-list feature is implemented.
+- An `AppBar` whose title alternates between the localized `medsListTitle` string and an inline search `TextField`. A search `IconButton` opens the search field; an × button collapses it and clears the query. A 1-px `Divider` via `PreferredSize` pins to the bottom of the `AppBar`.
+- A filter-chip row with two stadium `FilterChip`s ("All" / "Active").
+- A reactive body — see the [Medication List Screen](#medication-list-screen-feature-034) section for the full layout.
 - A `FloatingActionButton` (Material 3 FAB, `LucideIcons.plus`) with tooltip `context.l10n.medsAddFabTooltip` ("Add medication" in English). Tapping it calls `_openAddMedicationModal(context)`.
+
+All UI state (search open flag, query string, active filter) is ephemeral `State` — no Riverpod providers are created for it.
 
 ## Add-Medication Modal (iteration 6 — visual only)
 
@@ -78,7 +80,7 @@ Forms are defined as a top-level `final List<_MedFormOption>` (a private present
 | 4 | `drops` | Drops | `LucideIcons.droplets` |
 | 5 | `injection` | Injection | `LucideIcons.syringe` |
 | 6 | `inhaler` | Inhaler | `LucideIcons.wind` |
-| 7 | `cream` | Cream / Ointment | `LucideIcons.container` |
+| 7 | `cream` | Cream / Ointment | `LucideIcons.bandage` |
 | 8 | `sachet` | Sachet | `LucideIcons.package` |
 
 > Note: `LucideIcons.pills` (plural) does not exist in `lucide_icons_flutter` 3.1.12 — `LucideIcons.tablets` is used for the Tablet form.
@@ -354,6 +356,50 @@ Nine keys for the segmented toggle and the course-parameters card:
 
 `medsAddCourseRangeLabel` is the project's **first ICU-plural + placeholder message** — it mixes a `{range}` String placeholder with a `{count}` plural selector. Ukrainian uses four plural categories (`one/few/many/other`); English and German use `=1/other`. All 9 keys exist in `app_en.arb` (with `@`-description metadata), `app_de.arb`, and `app_uk.arb`.
 
+### Medication list screen (added in `034-meds-list`)
+
+Chrome, filter, and section keys:
+
+| Key | English | Notes |
+|---|---|---|
+| `medsListTitle` | My medications | AppBar title (not shared with bottom-nav label) |
+| `medsListSearchHint` | Search medications… | Placeholder in inline search field |
+| `medsListSearchTooltip` | Search | Tooltip on the search icon button |
+| `medsListFilterAll` | All | Filter chip — all medications |
+| `medsListFilterActive` | Active | Filter chip — hides completed courses |
+| `medsListSectionContinuous` | Continuous | Section header for continuous medications |
+| `medsListSectionCourse` | Courses | Section header for course medications |
+| `medsListSectionEmpty` | Nothing found | Shown inside a section when filter/search yields no items |
+| `medsListEmptyTitle` | No medications yet | Empty-state title when the DB has no rows |
+| `medsListEmptyBody` | Tap + to add your first medication | Empty-state body |
+
+Chip and subtitle keys:
+
+| Key | English | Notes |
+|---|---|---|
+| `medsListStatusActive` | Active | Status chip for active medications |
+| `medsListStatusCompleted` | Completed | Status chip for completed (finished) courses |
+| `medsListTypeContinuous` | continuous | Type chip for continuous medications |
+| `medsListTypeCoursePaused` | Paused | Type chip during a cyclic course's pause gap |
+| `medsListTypeCourseDay` | `Day {current}/{total}` | Type chip during an active course window |
+| `medsListStock` | `{remaining} of {total} pcs` | Stock segment in the tile subtitle |
+
+Dose-unit abbreviation keys (used in tile subtitle via `doseUnitAbbrev()`):
+
+| Key | English | Used by |
+|---|---|---|
+| `doseUnitTablet` | tab | tablet stepper |
+| `doseUnitCapsule` | cap | capsule stepper |
+| `doseUnitMl` | ml | syrup / drops / injection |
+| `doseUnitMg` | mg | injection |
+| `doseUnitDrops` | drops | drops |
+| `doseUnitUnits` | IU | injection (International Units) |
+| `doseUnitPuff` | puff | inhaler |
+| `doseUnitApplication` | dose | cream |
+| `doseUnitSachet` | sachet | sachet |
+
+All keys exist in `app_en.arb`, `app_de.arb`, and `app_uk.arb` with `@`-description metadata.
+
 ## Routing
 
 `MedsScreen` is mounted at `/meds` as branch index 1 of the `StatefulShellRoute.indexedStack` in `lib/core/routing/app_router.dart`. Navigate to it with:
@@ -363,6 +409,91 @@ context.go('/meds');
 ```
 
 The modal is not a named route — it is pushed imperatively via `Navigator` (see above).
+
+## Medication List Screen (feature 034)
+
+The `SizedBox.shrink()` placeholder body is replaced by a fully reactive medication list. `MedsScreen` is now a `ConsumerStatefulWidget` that watches `medicationsListProvider`, applies local ephemeral state (search, filter), builds a pure view model, and renders two grouped sections.
+
+### Reactive read flow
+
+```
+drift left-outer-join query (medications ⨝ time_slots)
+  → MedicationLocalDataSource.watchAllMedications()   [Stream<List<...>>]
+  → MedicationRepositoryImpl.watchAll()               [Stream<Either<Failure, List<Medication>>>]
+  → MedicationRepository.watchAll()                   [domain contract]
+  → medicationsListProvider (@riverpod Stream)        [maps Left→throw, Right→value]
+  → medicationsListProvider as AsyncValue<List<Medication>>
+  → MedsScreen (ref.watch)
+```
+
+`medicationsListProvider` is a `@riverpod`-annotated function that returns `Stream<List<Medication>>`. It maps each `Either` emission: `Right` becomes a plain data value, `Left(failure)` is re-thrown so Riverpod surfaces it as `AsyncValue.error`. Because it is a stream provider, the `AsyncValue` updates live on every add or delete — no manual refresh is required.
+
+### Activity derivation and course progress
+
+Active/Completed status and course cycle-day counters are **derived at read time** — they are never stored in the drift schema.
+
+`resolveMedicationActivity(medication, now)` (in `domain/value_objects/medication_activity.dart`) computes `MedicationActivityStatus`:
+- `ContinuousType` medications are always **Active**.
+- `CourseType` medications with `pauseDays > 0` (cyclic) are always **Active**.
+- Non-cyclic `CourseType` medications become **Completed** once `daysSinceStart > durationDays - 1`.
+
+`CourseProgress.resolve(course: ..., now: now)` (in `domain/value_objects/course_progress.dart`) produces the cycle-day counter displayed as "Day X/Y" or "Paused" on the type chip:
+- Non-cyclic courses: `currentDay = daysSinceStart + 1`, clamped to `totalDays`.
+- Cyclic courses: position within the repeating `durationDays + pauseDays` window. During the pause gap, `phase = CoursePhase.paused` and `currentDay` pins to `totalDays`.
+
+**DST-safe day math**: both derivations reduce `DateTime` values to UTC-midnight by extracting local year/month/day and reconstructing with `DateTime.utc(year, month, day)`. This means `difference(...).inDays` counts whole calendar days without a spring-forward shift truncating a 23-hour day to the wrong count. `startDate` values from the form are stored the same way (see [medication-persistence.md](medication-persistence.md)).
+
+### View model
+
+`buildMedsListView(meds:, now:, filter:, query:)` (in `presentation/view_models/meds_list_view_model.dart`) is a pure, synchronous function that shapes the raw list. Pipeline:
+
+1. Map each `Medication` to a `MedListItem` — attaches derived `activity` and (for courses) `progress`.
+2. Record `totalCount` before any filtering (distinguishes "empty DB" from "no matches").
+3. Apply `query`: case-insensitive substring match on medication name.
+4. Apply `filter`: `MedsFilter.all` passes everything; `MedsFilter.active` drops `completed` courses.
+5. Group by `MedicationType` (continuous / course), sort each group by name ascending (case-insensitive).
+
+Returns `MedsListView` with `continuous`, `course`, and `totalCount`. `MedsScreen` passes `clock.now()` as `now`, keeping the function unit-testable without pumping widgets.
+
+### Screen layout
+
+`MedsScreen` renders:
+
+1. **AppBar** — title `medsListTitle`, a search `IconButton` that replaces the title inline with an autofocused `TextField` (hint `medsListSearchHint`); an × button collapses it and clears the query.
+2. **Filter-chip row** — two stadium `FilterChip`s ("All" / "Active") with `showCheckmark: false`. Selected chip: solid `primary` background, `onPrimary` label weight 500. Unselected: `secondaryContainer` background.
+3. **Body** — `medicationsListProvider.when(...)`:
+   - loading → `CircularProgressIndicator`
+   - error → muted centered error text
+   - data with `totalCount == 0` → centered `_EmptyState` (title + body, both `onSurfaceVariant`)
+   - data → `ListView` with two `MedicationSection` children (continuous then course), 88 px bottom padding to clear the FAB.
+4. **FAB** (`key: ValueKey('medsAddFab')`) — unchanged from before; opens `AddMedicationModal`.
+
+### Tile anatomy
+
+`MedicationTile` renders one `MedListItem` as a non-interactive `Row` (no `InkWell` — navigation is deferred):
+
+| Slot | Content |
+|------|---------|
+| Leading | 48×48 rounded-square (radius 12) icon badge: `primaryContainer`/`onPrimaryContainer` for continuous, `tertiaryContainer`/`onTertiaryContainer` for course. Icon from `medicationFormIcon(form)`. |
+| Body | Name (`bodyLarge` weight 400, single line ellipsized). Subtitle (`bodySmall`, `onSurfaceVariant`): `dose · times · stock`, joined with ` · `. Stock segment is always bold (`w600`) and turns `error` color when `remaining ≤ warnAt`. Below: `Wrap` of status chip + type chip. |
+| Trailing | `LucideIcons.chevronRight`, 20 dp, `onSurfaceVariant`. |
+
+Status chip colors: Active → `primaryContainer`/`onPrimaryContainer`; Completed → `surfaceContainerHighest`/`onSurfaceVariant`. Type chip for courses: active window (`Day X/Y`) → `tertiaryContainer`/`onTertiaryContainer`; paused → `surfaceContainerHigh`/`onSurfaceVariant`. All chips are non-interactive stadium pill shapes (`borderRadius: 100`).
+
+### Debug seeder
+
+`devSeedMedications(DateTime now)` (in `lib/core/database/dev_seed.dart`) builds 12 representative `Medication` aggregates covering all 8 `MedicationForm` values, both `MedicationType` variants including cyclic-active, cyclic-paused, and completed states, and with/without dose, stock, and low-stock cases.
+
+`devSeedProvider` (`@Riverpod(keepAlive: true)`) reads this list and inserts each entry through `MedicationRepository.add` (the real write path, not direct drift calls). It is guarded by two conditions, both of which must be true:
+- `kDebugMode == true` (no-op in release builds)
+- the `medications` table is currently empty (non-destructive: never overwrites existing data)
+
+Failed inserts are silently discarded so a seeding error never crashes startup. The provider is triggered once in `app_bootstrap.dart` via `ref.read(devSeedProvider.future)`.
+
+### Deferred items
+
+- **Tile-tap navigation** — tapping a `MedicationTile` is a no-op; navigation to a detail/edit screen is deferred.
+- **Archive state** — medications cannot yet be archived; the Completed status is derived from a non-cyclic course's end date, not from an explicit archive flag.
 
 ## Evolution
 
@@ -375,8 +506,10 @@ The add-medication form is being built iteratively:
 - **Feature 030 (done)** — intake-type control: `SegmentedButton<_IntakeType>` (Continuous / Course); selecting Course reveals `_CourseCard` with Duration, Pause, and Start-date fields plus a live date-range info chip. Date defaults to today via `clock.now()` (test-overridable). First ICU-plural ARB message (`medsAddCourseRangeLabel`). Still visual only — all course fields are local state, not read by Save, not persisted.
 - **Feature 031 (done)** — section dividers and spacing alignment: the modal body is restructured from a single outer `Padding(16)` to an outer un-padded `Column` with per-group horizontal insets, enabling two full-bleed 1px `outlineVariant` dividers between the three form groups. Section-title labels ("Intake time", "Intake type") are muted to `onSurfaceVariant`. Minor spacing corrections: 24px bottom spacer after Save, stock card header→note gap 8px, form-option chip padding 12/10, picker grid-card padding `fromLTRB(12,12,12,14)`. No new l10n keys; no behavior change; Save remains a no-op.
 - **Feature 032 (done)** — real Save behaviour wired. `AddMedicationModal` converted to a `ConsumerStatefulWidget`. Pure-Dart domain layer added (`Medication`, `MedicationForm`, `TimeSlot`, `Schedule`, `MedicationType`, `Dosage`, `PackStock`, value-object IDs). Local drift database created (`Medications` + `TimeSlots` tables, `schemaVersion=1`). `AddMedication` use case validates and delegates. Save invokes the use case, pops on success, shows a localized error SnackBar on failure, disables the button during the in-flight call. See [`medication-persistence.md`](medication-persistence.md).
+- **Feature 034 (done)** — medication list screen. `MedsScreen` upgraded from a `StatelessWidget` placeholder to a `ConsumerStatefulWidget`. Reactive `watchAll` query added to the data source and repository. `medicationsListProvider` stream provider wires the live list to the UI. Pure `buildMedsListView` view-model function. `MedicationTile`, `MedicationSection` widgets. Active/Completed and course cycle-day derivations added to domain. Debug seeder (`devSeedMedications` + `devSeedProvider`). See the [Medication List Screen](#medication-list-screen-feature-034) section above.
 - **Pending** — schedule, reminder, and other form fields as future specs are defined.
-- **Pending** — medication list replacing the `SizedBox.shrink()` body of `MedsScreen` (requires `getAll`/`watchAll` query and a FK index on `TimeSlots.medicationId`).
+- **Pending** — tile-tap navigation to a medication detail / edit screen.
+- **Pending** — archive state (explicit flag, not derived from course end date).
 
 No changes to the `AppBar` structure, the `/meds` route path, or the modal-opening pattern are expected.
 
@@ -391,7 +524,8 @@ No changes to the `AppBar` structure, the `/meds` route path, or the modal-openi
 - [`../../specs/030-intake-type-control/spec.md`](../../specs/030-intake-type-control/spec.md) — the spec that added the intake-type segmented control and course-parameters card (iteration 5)
 - [`../../specs/031-add-med-dividers/spec.md`](../../specs/031-add-med-dividers/spec.md) — the spec that added full-bleed section dividers and aligned spacing/styling to the HTML design template (iteration 6)
 - [`../../specs/032-med-persistence/spec.md`](../../specs/032-med-persistence/spec.md) — the spec that wired real Save persistence (iteration 7)
+- [`../../specs/034-meds-list/spec.md`](../../specs/034-meds-list/spec.md) — the spec that built the reactive medication list screen (feature 034)
 - [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen
-- [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology, routing conventions, the `rootNavigator` context, and the local database section
+- [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology, routing conventions, the `rootNavigator` context, the local database section, and the reactive read pattern
 - [`i18n.md`](i18n.md) — how ARB keys are added and translated
-- [`icons.md`](icons.md) — icon conventions (Lucide vs. Material)
+- [`icons.md`](icons.md) — icon conventions (Lucide vs. Material) and the `medicationFormIcon` shared resolver
