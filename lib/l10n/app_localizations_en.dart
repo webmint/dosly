@@ -213,6 +213,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get medsAddSaveSuccess => 'Medication saved';
+
+  @override
+  String get medsAddSaveErrorName => 'Enter a medication name';
+
+  @override
+  String get medsAddSaveErrorTimes => 'Add at least one intake time';
+
+  @override
+  String get medsAddSaveErrorDuration =>
+      'Course duration must be at least 1 day';
+
+  @override
+  String get medsAddSaveErrorDose => 'Enter a dose greater than zero';
+
+  @override
+  String get medsAddSaveErrorGeneric =>
+      'Couldn\'t save medication. Please try again.';
+
+  @override
   String get errorScreenTitle => 'Page not found';
 
   @override

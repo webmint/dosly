@@ -258,6 +258,30 @@
     "description": "Course info-chip fallback shown when the duration is empty or not a positive integer.",
     "placeholders": { "date": { "type": "String" } }
   },
+  "medsAddSaveSuccess": "Medication saved",
+  "@medsAddSaveSuccess": {
+    "description": "SnackBar message shown when a medication is successfully saved from the Add-medication modal."
+  },
+  "medsAddSaveErrorName": "Enter a medication name",
+  "@medsAddSaveErrorName": {
+    "description": "Validation error shown when the user attempts to save without entering a medication name."
+  },
+  "medsAddSaveErrorTimes": "Add at least one intake time",
+  "@medsAddSaveErrorTimes": {
+    "description": "Validation error shown when the user attempts to save without adding any intake times."
+  },
+  "medsAddSaveErrorDuration": "Course duration must be at least 1 day",
+  "@medsAddSaveErrorDuration": {
+    "description": "Validation error shown when the course duration is set to zero or is missing."
+  },
+  "medsAddSaveErrorDose": "Enter a dose greater than zero",
+  "@medsAddSaveErrorDose": {
+    "description": "Validation error shown when a dose-based form has a non-positive dose value."
+  },
+  "medsAddSaveErrorGeneric": "Couldn't save medication. Please try again.",
+  "@medsAddSaveErrorGeneric": {
+    "description": "Generic SnackBar error message shown when saving a medication fails for an unexpected reason."
+  },
   "errorScreenTitle": "Page not found",
   "@errorScreenTitle": {
     "description": "Title in the AppBar of the router error screen shown when navigation lands on a path with no registered route (e.g., a malformed deep link)."

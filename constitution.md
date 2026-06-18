@@ -1,7 +1,7 @@
 # Project Constitution — dosly
 
 Generated: 2026-04-11
-Last updated: 2026-06-09
+Last updated: 2026-06-16
 Mode: Greenfield
 
 > Sections marked `[universal]` are copied verbatim from the AIDevTeamForge template and apply to all projects.
@@ -396,12 +396,13 @@ try { doThing(); } catch (e) {
 
 | Entity | Description |
 |---|---|
-| `Medication` | A single tracked medication. Fields: `id`, `name`, `form`, `defaultDosage`, `type` (course/permanent), `schedule`, optional `notes`, optional `endDate` (course only) |
+| `Medication` | A single tracked medication. Fields: `id`, `name`, `form`, `type` (`Continuous`/`Course`), `schedule`, optional `dosePerIntake` (`Dosage`), optional `stock` (`PackStock`), optional `notes`, `createdAt` (UTC). _(amended 2026-06-16 — see note below)_ |
 | `MedicationForm` | Enum: `tablet`, `capsule`, `injection`, `syrup`, `drops`, `inhaler`, `cream`, `sachet` |
-| `MedicationType` | Sealed union (freezed): `Course({DateTime startDate, DateTime endDate})` \| `Permanent({DateTime startDate})` |
-| `Dosage` | Value object: `value` (double) + `unit` (`pill`, `ml`, `mg`, `puff`, `drop`, `application`, `sachet`) |
-| `Schedule` | When the medication is due. Composed of `frequency` (`daily`, `everyNDays(int n)`, `specificWeekdays(Set<Weekday>)`) and a list of `TimeSlot` |
-| `TimeSlot` | An intended intake within a day: `id`, `time` (HH:mm local), optional `dosage` override (if different from medication default) |
+| `MedicationType` | Sealed union (freezed): `Continuous({DateTime startDate})` \| `Course({DateTime startDate, int durationDays, int pauseDays})`. The inclusive end date is **derived** (`startDate + durationDays − 1`), NOT stored. `pauseDays > 0` makes the course cyclic (on for `durationDays`, off for `pauseDays`, repeat); `pauseDays == 0` is a single bounded course. The UI surfaces `Continuous` as the "Continuous" segment. |
+| `Dosage` | Value object: `amount` (double) + `unit` (`tablet`, `capsule`, `ml`, `mg`, `drops`, `units`, `puff`, `application`, `sachet`). Models both pill **quantity-per-intake** and liquid **dose** — they are the same concept, not two fields. |
+| `PackStock` | Optional pack inventory for pack-based forms (tablet/capsule): `remaining` (int), `total` (int), `warnAt` (int low-stock threshold). `null` for forms that don't track stock. |
+| `Schedule` | When the medication is due. Composed of `frequency` (`daily`, `everyNDays(int n)`, `specificWeekdays(Set<Weekday>)`) and a list of `TimeSlot`. The add-medication form does not yet collect a frequency control, so MVP medications default to `daily`. |
+| `TimeSlot` | An intended intake within a day: `id`, `minuteOfDay` (int `0..1439`, local — domain stays Flutter-free, so NOT `TimeOfDay`; map to/from `TimeOfDay` at the presentation seam), optional `dosage` override (if different from `dosePerIntake`) |
 | `Intake` | A record of an intake event: `id`, `medicationId`, `slotId`, `scheduledAt` (UTC), `confirmedAt` (nullable UTC), `status` (`pending`, `taken`, `missed`, `skipped`), optional `notes` |
 | `IntakeStatus` | Enum: `pending`, `taken`, `missed`, `skipped` |
 | `AdherenceRecord` | A daily/weekly aggregation: `date`, `scheduledCount`, `takenCount`, `missedCount`, `skippedCount`, `adherenceRatio` (double, 0..1) |
@@ -409,13 +410,15 @@ try { doThing(); } catch (e) {
 
 Each entity is a `freezed` immutable class. Each `*Id` field is a typed value object.
 
+> **§5.1 amendment _(2026-06-16)_ — reconciled with the shipped add-medication form (specs 026–031).** The form (`lib/features/meds/presentation/widgets/add_medication_modal.dart`) collects three things the original model lacked or split: (1) pack **stock** (remaining/total/warn) → new `PackStock`; (2) pill **quantity-per-intake** and liquid **dose** were two UI controls for one concept → unified into a single `Dosage`; (3) **cyclic courses** (duration + pause + start) → `Course` now stores `durationDays`/`pauseDays` and derives the end date instead of storing a literal `endDate`. `Permanent` was renamed `Continuous` to match the UI. See `research/2026-06-16-medication-entity-storage.md` for the full rationale and the proposed drift schema. This is the entity contract `/specify` for medication persistence must satisfy.
+
 ### 5.2 Business Rules
 
 #### Schedule resolution
 - A medication's daily intakes are derived from its `Schedule` (which weekdays + which time slots)
 - "Today's schedule" is the union of all intakes due today across all active medications, sorted by time
-- A `Course` medication's intakes are NOT generated past `endDate` (inclusive cutoff at end-of-day local time)
-- A `Permanent` medication's intakes are generated indefinitely until the medication is deleted
+- A `Course` medication's intakes are NOT generated past its **derived** end (`startDate + durationDays − 1`, inclusive cutoff at end-of-day local time). When `pauseDays > 0` the course is cyclic: intakes generate for `durationDays`, pause for `pauseDays`, then repeat from the next start.
+- A `Continuous` medication's intakes are generated indefinitely until the medication is deleted
 - Past intakes (before today) are NOT regenerated — what's persisted is the source of truth
 
 #### Intake state machine

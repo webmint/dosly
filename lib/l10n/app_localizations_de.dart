@@ -213,6 +213,27 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get medsAddSaveSuccess => 'Medikament gespeichert';
+
+  @override
+  String get medsAddSaveErrorName => 'Bitte Medikamentennamen eingeben';
+
+  @override
+  String get medsAddSaveErrorTimes => 'Mindestens eine Einnahmezeit hinzufügen';
+
+  @override
+  String get medsAddSaveErrorDuration =>
+      'Die Kurdauer muss mindestens 1 Tag betragen';
+
+  @override
+  String get medsAddSaveErrorDose =>
+      'Bitte eine Dosis größer als null eingeben';
+
+  @override
+  String get medsAddSaveErrorGeneric =>
+      'Medikament konnte nicht gespeichert werden. Bitte erneut versuchen.';
+
+  @override
   String get errorScreenTitle => 'Seite nicht gefunden';
 
   @override

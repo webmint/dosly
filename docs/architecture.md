@@ -51,6 +51,53 @@ See [`features/theme.md`](features/theme.md) for the full walkthrough.
 
 A grep for `Color(0xFF` outside `lib/core/theme/` is run as part of verification (spec `001-m3-theme` AC-14).
 
+## Local database: drift + SQLite
+
+Medication data (and all future health data) is persisted via **drift** (SQLite wrapper). The database lives in `lib/core/database/` and is the system of record for all non-settings state (constitution §4.2.1).
+
+### AppDatabase
+
+`AppDatabase` (in `lib/core/database/database.dart`) is a `@DriftDatabase` class opened via `drift_flutter`'s `driftDatabase(name: 'dosly')`. It is exposed as a `@Riverpod(keepAlive: true)` singleton in `lib/core/database/database_provider.dart`, with `ref.onDispose(db.close)` bound to the `ProviderScope` lifecycle. Tests inject an in-memory executor via the optional `QueryExecutor` constructor parameter.
+
+Current schema: `schemaVersion = 1`, two tables (`Medications`, `TimeSlots`). Foreign keys are enabled per connection in the `beforeOpen` hook:
+
+```dart
+MigrationStrategy(
+  onCreate: (m) => m.createAll(),
+  beforeOpen: (details) async {
+    await customStatement('pragma foreign_keys = ON;');
+  },
+)
+```
+
+### Schema conventions
+
+- **Enum columns use `textEnum`** — values are stored by **name**, not by index. Reordering enum values is safe; renaming or removing a value breaks stored rows and requires a migration.
+- **Never drop or alter a column** without bumping `schemaVersion` and writing a migration. This is health data.
+- **`@DataClassName`** is used on every table to prevent drift's generated row class from colliding with the domain entity of the same name (`MedicationRow`, `TimeSlotRow`).
+
+### UTC time conventions
+
+All `DateTime` columns follow two rules:
+- **Instants** (e.g. `createdAt`) — stored as `clock.now().toUtc()`.
+- **Calendar dates** (e.g. `startDate`) — stored as `DateTime.utc(year, month, day)`. Using `.toUtc()` on a local midnight would shift the date across timezone boundaries; the explicit UTC constructor avoids that.
+
+### IdGenerator
+
+`lib/core/id/id_generator.dart` defines an `IdGenerator` abstract interface with a single `newId()` method. The `UuidIdGenerator` implementation (`core/id/uuid_id_generator.dart`) wraps `package:uuid`; it is exposed via `idGeneratorProvider` (`@Riverpod(keepAlive: true)`). Domain code only depends on `IdGenerator`, keeping `package:uuid` out of `domain/` (mirroring `Clock` injection).
+
+### Feature slice: `meds` data layer
+
+The `meds` feature uses the database through a three-class stack:
+
+| Class | Responsibility |
+|-------|---------------|
+| `MedicationLocalDataSource` | Runs drift queries — owns the SQL; never returns `Either` |
+| `MedicationRepositoryImpl` | Catches every exception → `Left(Failure)`; returns `Either<Failure, T>` |
+| `medication_providers.dart` | Composition seam — wires the above and exposes domain-typed providers |
+
+The data source writes a medication aggregate atomically: the `Medications` row and all `TimeSlots` rows are inserted inside a single `transaction()`. See [`features/medication-persistence.md`](features/medication-persistence.md) for the full walkthrough.
+
 ## App-wide state: Riverpod + `SharedPreferences`
 
 Dosly uses **Riverpod** (`flutter_riverpod`) for all feature-level and app-wide reactive state. It was introduced with the `009-theme-settings` feature, which also replaced the earlier `ThemeController` singleton.
@@ -121,6 +168,11 @@ void main() {
 | `settingsNotifierProvider` | `@Riverpod(keepAlive: true, name: 'settingsNotifierProvider')` class form | Current settings + mutation API |
 | `settingsErrorsProvider` | `@riverpod` function (autoDispose) | Broadcast stream of persistence failures from `SettingsNotifier` (added by feature 014) |
 | `loggerProvider` | `@Riverpod(keepAlive: true)` function | App-wide `Logger('dosly')` instance; configures the sanitizing `Logger.root` listener on first read (feature 025) |
+| `appDatabaseProvider` | `@Riverpod(keepAlive: true)` function | App-wide `AppDatabase` singleton; `ref.onDispose(db.close)` bound to the scope |
+| `idGeneratorProvider` | `@Riverpod(keepAlive: true)` function | App-wide `UuidIdGenerator` singleton; keeps `package:uuid` out of `domain/` |
+| `medicationLocalDataSourceProvider` | `@riverpod` function (autoDispose) | Wires `MedicationLocalDataSource` to `appDatabaseProvider` |
+| `medicationRepositoryProvider` | `@riverpod` function (autoDispose) | Wires `MedicationRepositoryImpl` to the data source; exposes domain-typed `MedicationRepository` |
+| `addMedicationProvider` | `@riverpod` function (autoDispose) | Wires `AddMedication` use case to the repository and `idGeneratorProvider` |
 
 ### Failure handling
 
@@ -274,10 +326,14 @@ class AppShell extends StatelessWidget {
 
 All UI wiring happens in `lib/app.dart`. `DoslyApp` is a `ConsumerWidget` rather than a plain `StatelessWidget`. It is mounted directly by `AppBootstrap`'s `data` branch — no nested `ProviderScope` or override is needed because `sharedPreferencesProvider` reads the value already resolved by `sharedPreferencesInitProvider`. See [App-wide state](#app-wide-state-riverpod--sharedpreferences) above.
 
+The drift database (`appDatabaseProvider`) is a `keepAlive` provider lazy-opened on first access. It does not block startup — no gate in `AppBootstrap` is required because the first database read happens on user action (tapping Save in the add-medication modal), well after startup completes. Future async init work (e.g. schema migration diagnostics) would follow the existing `AppBootstrap` pattern.
+
 ## Related
 
 - [constitution.md](../constitution.md) — the full rule set
 - [features/theme.md](features/theme.md) — the theme feature walkthrough
 - [features/settings.md](features/settings.md) — Settings screen and theme-mode selector
+- [features/medication-persistence.md](features/medication-persistence.md) — drift schema, domain model, and Save flow for the meds feature
 - [specs/001-m3-theme/plan.md](../specs/001-m3-theme/plan.md) — the plan that introduced the M3 theme
 - [specs/009-theme-settings/spec.md](../specs/009-theme-settings/spec.md) — the spec that introduced Riverpod, SharedPreferences, and the Failure hierarchy
+- [specs/032-med-persistence/plan.md](../specs/032-med-persistence/plan.md) — the plan that introduced drift, the domain model, and IdGenerator
