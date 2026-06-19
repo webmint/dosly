@@ -3,8 +3,9 @@
 /// This library exports [MedicationSection], a dumb display widget that renders
 /// a localized section header followed by a [Column] of [MedicationTile]s
 /// separated by [Divider]s, or an inline empty-state placeholder when the
-/// [items] list is empty. It carries NO business logic, NO providers, and NO
-/// tap targets.
+/// `[items]` list is empty and a search query is active
+/// (`queryActive && items.isEmpty`). It carries NO business logic, NO
+/// providers, and NO tap targets.
 library;
 
 import 'package:flutter/material.dart';
@@ -17,17 +18,25 @@ import 'medication_tile.dart';
 /// placeholder.
 ///
 /// The [title] string is rendered as a section header (already-localized by the
-/// caller). When [items] is empty, an inline muted placeholder is shown instead
-/// of tiles. When [items] is non-empty, a [Column] of [MedicationTile]s is
-/// rendered, each pair separated by a [Divider].
+/// caller). When [items] is empty AND [queryActive] is `true`, an inline muted
+/// placeholder is shown instead of tiles. When [items] is empty and [queryActive]
+/// is `false`, only the section header is rendered (no placeholder). When [items]
+/// is non-empty, a [Column] of [MedicationTile]s is rendered, each pair separated
+/// by a [Divider].
+///
+/// [queryActive] should be `true` when the user has entered a non-empty search
+/// query — this gates the per-section empty-state placeholder so it only appears
+/// as search-results feedback, not as permanent UI noise on the initial list view.
 ///
 /// Uses a plain [Column] (not a nested scrollable) — the scroll context belongs
 /// to the parent screen.
 class MedicationSection extends StatelessWidget {
-  /// Creates a [MedicationSection] with the given [title] and [items].
+  /// Creates a [MedicationSection] with the given [title], [items], and
+  /// [queryActive] flag.
   const MedicationSection({
     required this.title,
     required this.items,
+    required this.queryActive,
     super.key,
   });
 
@@ -36,6 +45,13 @@ class MedicationSection extends StatelessWidget {
 
   /// The medication items to render; may be empty.
   final List<MedListItem> items;
+
+  /// Whether the user has an active (non-empty) search query.
+  ///
+  /// When `true` and [items] is empty, an inline placeholder is rendered to
+  /// indicate no search results. When `false` and [items] is empty, only the
+  /// section header is shown (no placeholder).
+  final bool queryActive;
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +63,7 @@ class MedicationSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _SectionHeader(title: title),
-        if (items.isEmpty)
+        if (items.isEmpty && queryActive)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: Text(
@@ -57,7 +73,7 @@ class MedicationSection extends StatelessWidget {
               ),
             ),
           )
-        else
+        else if (items.isNotEmpty)
           ..._buildTileList(context, items),
       ],
     );

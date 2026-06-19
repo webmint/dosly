@@ -45,40 +45,50 @@ class MedicationTile extends StatelessWidget {
     final ColorScheme cs = Theme.of(context).colorScheme;
 
     final bool isContinuous = item.medication.type is ContinuousType;
+    final bool isCompleted = item.activity == MedicationActivityStatus.completed;
 
-    final Color badgeBg =
-        isContinuous ? cs.primaryContainer : cs.tertiaryContainer;
-    final Color badgeFg =
-        isContinuous ? cs.onPrimaryContainer : cs.onTertiaryContainer;
+    final Color badgeBg = isCompleted
+        ? cs.surfaceContainerHighest
+        : isContinuous
+            ? cs.primaryContainer
+            : cs.tertiaryContainer;
+    final Color badgeFg = isCompleted
+        ? cs.onSurfaceVariant
+        : isContinuous
+            ? cs.onPrimaryContainer
+            : cs.onTertiaryContainer;
 
-    return Padding(
+    return Opacity(
       key: ValueKey('medTile-${item.medication.id.value}'),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          // ── Icon badge (.med-iconify) ──────────────────────────────────────
-          Container(
-            width: 48,
-            height: 48,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: badgeBg,
-              borderRadius: BorderRadius.circular(12),
+      opacity: isCompleted ? 0.65 : 1.0,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            // ── Icon badge (.med-iconify) ────────────────────────────────────
+            Container(
+              width: 48,
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: badgeBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                medicationFormIcon(item.medication.form),
+                size: 26,
+                color: badgeFg,
+              ),
             ),
-            child: Icon(
-              medicationFormIcon(item.medication.form),
-              size: 26,
-              color: badgeFg,
-            ),
-          ),
-          const SizedBox(width: 16),
-          // ── Body column (.mlt-body) ────────────────────────────────────────
-          Expanded(child: _TileBody(item: item)),
-          const SizedBox(width: 16),
-          // ── Trailing chevron (.mlt-trail) ──────────────────────────────────
-          Icon(LucideIcons.chevronRight, size: 20, color: cs.onSurfaceVariant),
-        ],
+            const SizedBox(width: 16),
+            // ── Body column (.mlt-body) ──────────────────────────────────────
+            Expanded(child: _TileBody(item: item)),
+            const SizedBox(width: 16),
+            // ── Trailing chevron (.mlt-trail) ────────────────────────────────
+            Icon(LucideIcons.chevronRight, size: 20, color: cs.onSurfaceVariant),
+          ],
+        ),
       ),
     );
   }
@@ -111,14 +121,20 @@ class _TileBody extends StatelessWidget {
         // Subtitle (.mlt-sub)
         _SubtitleText(item: item),
         const SizedBox(height: 6),
-        // Chips (.mlt-chips)
+        // Chips (.mlt-chips) — course: type first; continuous: status first.
         Wrap(
           spacing: 6,
           runSpacing: 4,
-          children: <Widget>[
-            _StatusChip(activity: item.activity),
-            _TypeChip(item: item),
-          ],
+          children: switch (item.medication.type) {
+            CourseType() => <Widget>[
+                _TypeChip(item: item),
+                _StatusChip(activity: item.activity),
+              ],
+            ContinuousType() => <Widget>[
+                _StatusChip(activity: item.activity),
+                _TypeChip(item: item),
+              ],
+          },
         ),
       ],
     );

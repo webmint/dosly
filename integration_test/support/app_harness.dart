@@ -12,10 +12,16 @@
 ///   delegates to [bootAppWithDb]. Use for the golden-flow suite where a
 ///   per-test hermetic temp file is the right choice.
 ///
-/// Both functions override exactly two leaf providers:
+/// Both functions override three leaf providers:
 /// - [appDatabaseProvider] → the supplied [AppDatabase].
 /// - [sharedPreferencesInitProvider] → [InMemorySharedPreferencesAsync],
 ///   so preferences state is deterministic and never persists across runs.
+/// - [devSeedProvider] → a no-op, so the debug seeder (which runs in
+///   `kDebugMode` and integration tests ARE debug builds) does NOT populate the
+///   fresh DB with demo medications. Without this, the golden-flow assertions
+///   that expect an exact row count after a single UI-driven add would see the
+///   seeded rows too. The seeder is debug-only scaffolding, not behavior under
+///   test, so disabling it does not mask any production wiring bug.
 ///
 /// All other providers — including [settingsRepositoryProvider] and the entire
 /// [DoslyApp] router chain — are the real production implementations. This
@@ -37,6 +43,7 @@ import 'package:dosly/core/database/database.dart';
 import 'package:dosly/core/database/database_provider.dart';
 import 'package:dosly/core/providers/shared_preferences_provider.dart';
 import 'package:dosly/core/providers/settings_prefs_keys.dart';
+import 'package:dosly/features/meds/presentation/providers/medication_providers.dart';
 
 /// Boots the real [AppBootstrap] on-device with a caller-supplied [db] and
 /// hermetic in-memory preferences.
@@ -45,6 +52,8 @@ import 'package:dosly/core/providers/settings_prefs_keys.dart';
 /// - [appDatabaseProvider] → [db] (the caller decides which executor backs it).
 /// - [sharedPreferencesInitProvider] → [InMemorySharedPreferencesAsync], which
 ///   is deterministic and never persists between test runs.
+/// - [devSeedProvider] → a no-op, so the `kDebugMode` debug seeder does not
+///   pre-populate [db] with demo medications (integration tests run in debug).
 ///
 /// All other providers are real production code. The real settings provider
 /// chain ([DoslyApp] → [settingsNotifier] → [settingsRepository] →
@@ -80,6 +89,10 @@ Future<void> bootAppWithDb(WidgetTester tester, AppDatabase db) async {
       overrides: [
         appDatabaseProvider.overrideWith((ref) => db),
         sharedPreferencesInitProvider.overrideWith((ref) => Future.value(prefs)),
+        // Disable the debug seeder: integration tests run in kDebugMode, and the
+        // golden-flow assertions expect an exact medication-row count after a
+        // single UI-driven add. Seeding the fresh DB would break that.
+        devSeedProvider.overrideWith((ref) async {}),
       ],
       child: const AppBootstrap(),
     ),

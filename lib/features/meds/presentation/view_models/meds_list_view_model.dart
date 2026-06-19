@@ -10,6 +10,8 @@
 /// widgets or freezing time globally.
 library;
 
+import 'package:dosly/core/utils/fuzzy_name_match.dart';
+
 import '../../domain/entities/medication.dart';
 import '../../domain/entities/medication_activity_status.dart';
 import '../../domain/entities/medication_type.dart';
@@ -27,6 +29,15 @@ enum MedsFilter {
   /// [MedicationActivityStatus.active], hiding completed courses.
   active,
 }
+
+/// Minimum [fuzzyNameScore] for a non-substring fuzzy match to be included in
+/// search results.
+///
+/// Sits below the fuzzy band ceiling (`~0.85`) and well below the substring
+/// bands (`>=0.9`), so any case-insensitive substring/prefix match always
+/// clears it — the substring guarantee holds for free. Tuned against the debug
+/// seed set (OQ-2) to admit one-character typos while dropping unrelated names.
+const double medsSearchIncludeThreshold = 0.6;
 
 /// A single medication ready for rendering, with its derived state attached.
 ///
@@ -94,12 +105,18 @@ class MedsListView {
 ///    continuous medications).
 /// 2. Record [MedsListView.totalCount] as the input length, BEFORE any
 ///    filtering or search.
-/// 3. Apply [query]: when its trimmed form is non-empty, keep only items whose
-///    medication name contains the query as a case-insensitive substring.
+/// 3. Apply [query]: when its trimmed form is non-empty, score each item with
+///    [fuzzyNameScore] and keep those scoring `>= medsSearchIncludeThreshold`.
+///    Because the scorer returns `>=0.9` for any case-insensitive substring or
+///    prefix match, this preserves the substring guarantee while admitting
+///    typo-tolerant fuzzy matches. Each kept item carries its score for
+///    ranking. When the query is blank, every item is kept (no scoring).
 /// 4. Apply [filter]: [MedsFilter.all] keeps everything; [MedsFilter.active]
 ///    drops items whose [activity] is [MedicationActivityStatus.completed].
-/// 5. Group by [MedicationType] — continuous vs course — and sort each group by
-///    medication name, ascending and case-insensitive.
+/// 5. Group by [MedicationType] — continuous vs course. With an active query,
+///    sort each group by descending match score, breaking ties by medication
+///    name (ascending, case-insensitive). With a blank query, sort by name only
+///    (ascending, case-insensitive).
 MedsListView buildMedsListView({
   required List<Medication> meds,
   required DateTime now,
@@ -126,44 +143,75 @@ MedsListView buildMedsListView({
     );
   }).toList();
 
-  // 3. Case-insensitive substring search (skipped when the query is blank).
-  final String normalizedQuery = query.trim().toLowerCase();
-  final Iterable<MedListItem> searched = normalizedQuery.isEmpty
-      ? items
-      : items.where(
-          (MedListItem item) =>
-              item.medication.name.toLowerCase().contains(normalizedQuery),
-        );
+  // 3. Fuzzy search (skipped when the query is blank). Each kept item is paired
+  //    with its match score so step 5 can rank by relevance. Inclusion via
+  //    `fuzzyNameScore >= medsSearchIncludeThreshold` subsumes the substring
+  //    rule: substring/prefix matches always score >= 0.9, well above 0.6.
+  final bool hasQuery = query.trim().isNotEmpty;
+  final List<(double, MedListItem)> scored = <(double, MedListItem)>[];
+  for (final MedListItem item in items) {
+    if (!hasQuery) {
+      scored.add((0.0, item));
+      continue;
+    }
+    final double score = fuzzyNameScore(query, item.medication.name);
+    if (score >= medsSearchIncludeThreshold) {
+      scored.add((score, item));
+    }
+  }
 
-  // 4. Active-only filter (drops completed courses).
-  final Iterable<MedListItem> filtered = switch (filter) {
-    MedsFilter.all => searched,
-    MedsFilter.active => searched.where(
-        (MedListItem item) =>
-            item.activity != MedicationActivityStatus.completed,
+  // 4. Active-only filter (drops completed courses), preserving scores.
+  final Iterable<(double, MedListItem)> filtered = switch (filter) {
+    MedsFilter.all => scored,
+    MedsFilter.active => scored.where(
+        ((double, MedListItem) entry) =>
+            entry.$2.activity != MedicationActivityStatus.completed,
       ),
   };
 
-  // 5. Group by temporal type, then sort each group by name (case-insensitive).
-  final List<MedListItem> continuous = <MedListItem>[];
-  final List<MedListItem> course = <MedListItem>[];
-  for (final MedListItem item in filtered) {
-    switch (item.medication.type) {
+  // 5. Group by temporal type, then sort each group: by descending score (ties
+  //    broken by name) when a query is active, by name alone otherwise.
+  final List<(double, MedListItem)> continuousScored = <(double, MedListItem)>[];
+  final List<(double, MedListItem)> courseScored = <(double, MedListItem)>[];
+  for (final (double, MedListItem) entry in filtered) {
+    switch (entry.$2.medication.type) {
       case ContinuousType():
-        continuous.add(item);
+        continuousScored.add(entry);
       case CourseType():
-        course.add(item);
+        courseScored.add(entry);
     }
   }
-  continuous.sort(_byNameCaseInsensitive);
-  course.sort(_byNameCaseInsensitive);
+
+  final int Function((double, MedListItem), (double, MedListItem)) comparator =
+      hasQuery ? _byScoreThenName : _byScoredName;
+  continuousScored.sort(comparator);
+  courseScored.sort(comparator);
 
   return MedsListView(
-    continuous: continuous,
-    course: course,
+    continuous: <MedListItem>[
+      for (final (double, MedListItem) entry in continuousScored) entry.$2,
+    ],
+    course: <MedListItem>[
+      for (final (double, MedListItem) entry in courseScored) entry.$2,
+    ],
     totalCount: totalCount,
   );
 }
+
+/// Orders scored items by descending match score, breaking ties by name
+/// (ascending, case-insensitive). Used while a search query is active.
+int _byScoreThenName((double, MedListItem) a, (double, MedListItem) b) {
+  final int byScore = b.$1.compareTo(a.$1);
+  if (byScore != 0) {
+    return byScore;
+  }
+  return _byNameCaseInsensitive(a.$2, b.$2);
+}
+
+/// Orders scored items by medication name alone (ascending, case-insensitive),
+/// ignoring score. Used when no search query is active.
+int _byScoredName((double, MedListItem) a, (double, MedListItem) b) =>
+    _byNameCaseInsensitive(a.$2, b.$2);
 
 /// Compares two items by medication name, ascending and case-insensitive.
 int _byNameCaseInsensitive(MedListItem a, MedListItem b) =>

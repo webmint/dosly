@@ -10,7 +10,7 @@ The feature now spans all three Clean-Architecture layers under `lib/features/me
 
 `MedsScreen` (in `lib/features/meds/presentation/screens/meds_screen.dart`) is a `ConsumerStatefulWidget` (upgraded from a placeholder `StatelessWidget` in feature 034) that renders a `Scaffold` with:
 
-- An `AppBar` whose title alternates between the localized `medsListTitle` string and an inline search `TextField`. A search `IconButton` opens the search field; an × button collapses it and clears the query. A 1-px `Divider` via `PreferredSize` pins to the bottom of the `AppBar`.
+- An `AppBar` with an **animated slide-in search bar** mounted in `AppBar.flexibleSpace`. Tapping the trailing search `IconButton` triggers an `AnimationController`-driven `SlideTransition` (220 ms, ease-out) that slides the bar in from the trailing edge while the title fades out via `AnimatedOpacity`. The bar contains a leading search icon, an autofocused `TextField` (hint `medsListSearchHint`), and a trailing × `IconButton` — all inside a `Material` widget colored `ColorScheme.surfaceContainer`. Focus is requested on animation-complete (not synchronously), so the keyboard appears once the bar is settled. Closing (× or animation reverse) clears the query and restores the title. A 1-px `Divider` via `PreferredSize` pins to the bottom of the `AppBar`.
 - A filter-chip row with two stadium `FilterChip`s ("All" / "Active").
 - A reactive body — see the [Medication List Screen](#medication-list-screen-feature-034) section for the full layout.
 - A `FloatingActionButton` (Material 3 FAB, `LucideIcons.plus`) with tooltip `context.l10n.medsAddFabTooltip` ("Add medication" in English). Tapping it calls `_openAddMedicationModal(context)`.
@@ -449,34 +449,56 @@ Active/Completed status and course cycle-day counters are **derived at read time
 
 1. Map each `Medication` to a `MedListItem` — attaches derived `activity` and (for courses) `progress`.
 2. Record `totalCount` before any filtering (distinguishes "empty DB" from "no matches").
-3. Apply `query`: case-insensitive substring match on medication name.
+3. Apply `query` via **fuzzy name matching**: when the trimmed query is non-empty, score each item with `fuzzyNameScore` (from `lib/core/utils/fuzzy_name_match.dart`) and keep those scoring at or above `medsSearchIncludeThreshold` (`0.6`). Substring and prefix matches always score ≥ 0.9 so they clear the threshold without needing special-case code. When the query is blank, all items are kept.
 4. Apply `filter`: `MedsFilter.all` passes everything; `MedsFilter.active` drops `completed` courses.
-5. Group by `MedicationType` (continuous / course), sort each group by name ascending (case-insensitive).
+5. Group by `MedicationType` (continuous / course). While a query is active, sort each group by **descending match score** (ties broken by name ascending, case-insensitive). With no active query, sort by name ascending (case-insensitive only).
 
 Returns `MedsListView` with `continuous`, `course`, and `totalCount`. `MedsScreen` passes `clock.now()` as `now`, keeping the function unit-testable without pumping widgets.
+
+### Fuzzy name matcher (`lib/core/utils/fuzzy_name_match.dart`)
+
+A generic, dependency-free utility (pure Dart, no Flutter imports) used by `buildMedsListView`. Two public symbols:
+
+- `levenshtein(a, b) → int` — classic Levenshtein edit distance, O(m × n) time and O(min length) space, operating on Unicode code points (so Cyrillic and Latin BMP characters each count as one unit).
+- `fuzzyNameScore(query, name) → double` — normalized similarity in `[0.0, 1.0]`. Both arguments are lowercased (Unicode-aware `toLowerCase()`) and the query is trimmed before comparison. Returns one of four disjoint score bands:
+
+  | Band | Score | Condition |
+  |------|-------|-----------|
+  | Exact | `1.0` | `query == name` after normalization |
+  | Prefix | `~0.95` | name starts with the query (non-exact) |
+  | Contains | `~0.9` | name contains the query elsewhere |
+  | Fuzzy-only | `[0.0, 0.85]` | no substring; `1 - levenshtein / maxLength`, clamped below `0.9` |
+
+  The band ordering guarantees that any case-insensitive substring match always outranks a fuzzy-only match. An empty or whitespace-only query returns `0.0`.
+
+Because the matcher is feature-agnostic it lives in `core/utils/` and is reusable by future searchable lists (e.g. medication history).
 
 ### Screen layout
 
 `MedsScreen` renders:
 
-1. **AppBar** — title `medsListTitle`, a search `IconButton` that replaces the title inline with an autofocused `TextField` (hint `medsListSearchHint`); an × button collapses it and clears the query.
+1. **AppBar** — animated slide-in search bar (see [MedsScreen](#medsscreen) above). When search is closed, the localized `medsListTitle` text is shown. A 1-px `Divider` pins to the bottom of the app bar.
 2. **Filter-chip row** — two stadium `FilterChip`s ("All" / "Active") with `showCheckmark: false`. Selected chip: solid `primary` background, `onPrimary` label weight 500. Unselected: `secondaryContainer` background.
 3. **Body** — `medicationsListProvider.when(...)`:
    - loading → `CircularProgressIndicator`
    - error → muted centered error text
-   - data with `totalCount == 0` → centered `_EmptyState` (title + body, both `onSurfaceVariant`)
-   - data → `ListView` with two `MedicationSection` children (continuous then course), 88 px bottom padding to clear the FAB.
+   - data with `totalCount == 0` → centered `_EmptyState` card (`medsListEmptyTitle` + `medsListEmptyBody`, both `onSurfaceVariant`). This takes precedence and shows even while a query is active.
+   - data with `totalCount > 0` → `ListView` with two `MedicationSection` children (continuous then course), 88 px bottom padding to clear the FAB. Both sections are always rendered; per-section empty placeholders appear only when `queryActive` is `true`.
 4. **FAB** (`key: ValueKey('medsAddFab')`) — unchanged from before; opens `AddMedicationModal`.
 
 ### Tile anatomy
 
-`MedicationTile` renders one `MedListItem` as a non-interactive `Row` (no `InkWell` — navigation is deferred):
+`MedicationTile` renders one `MedListItem` as a non-interactive `Row` (no `InkWell` — navigation is deferred). Completed-course tiles (`activity == MedicationActivityStatus.completed`) are rendered at **0.65 opacity** via an `Opacity` wrapper that wraps the entire tile:
 
 | Slot | Content |
 |------|---------|
-| Leading | 48×48 rounded-square (radius 12) icon badge: `primaryContainer`/`onPrimaryContainer` for continuous, `tertiaryContainer`/`onTertiaryContainer` for course. Icon from `medicationFormIcon(form)`. |
-| Body | Name (`bodyLarge` weight 400, single line ellipsized). Subtitle (`bodySmall`, `onSurfaceVariant`): `dose · times · stock`, joined with ` · `. Stock segment is always bold (`w600`) and turns `error` color when `remaining ≤ warnAt`. Below: `Wrap` of status chip + type chip. |
+| Leading | 48×48 rounded-square (radius 12) icon badge. For **active** medications: `primaryContainer`/`onPrimaryContainer` (continuous) or `tertiaryContainer`/`onTertiaryContainer` (course). For **completed** medications: neutral `surfaceContainerHighest`/`onSurfaceVariant` regardless of type. Icon from `medicationFormIcon(form)`. |
+| Body | Name (`bodyLarge` weight 400, single line ellipsized). Subtitle (`bodySmall`, `onSurfaceVariant`): `dose · times · stock`, joined with ` · `. Stock segment is always bold (`w600`) and turns `error` color when `remaining ≤ warnAt`. Below: `Wrap` of chips in type-first order for courses (see below). |
 | Trailing | `LucideIcons.chevronRight`, 20 dp, `onSurfaceVariant`. |
+
+**Chip order** depends on medication type:
+- **Course** tiles: type chip first (`Day X/Y` or `Paused`), then status chip.
+- **Continuous** tiles: status chip first, then type chip.
 
 Status chip colors: Active → `primaryContainer`/`onPrimaryContainer`; Completed → `surfaceContainerHighest`/`onSurfaceVariant`. Type chip for courses: active window (`Day X/Y`) → `tertiaryContainer`/`onTertiaryContainer`; paused → `surfaceContainerHigh`/`onSurfaceVariant`. All chips are non-interactive stadium pill shapes (`borderRadius: 100`).
 
@@ -489,6 +511,8 @@ Status chip colors: Active → `primaryContainer`/`onPrimaryContainer`; Complete
 - the `medications` table is currently empty (non-destructive: never overwrites existing data)
 
 Failed inserts are silently discarded so a seeding error never crashes startup. The provider is triggered once in `app_bootstrap.dart` via `ref.read(devSeedProvider.future)`.
+
+**Integration-test override**: the boot harness (`integration_test/support/app_harness.dart`) overrides `devSeedProvider` with a no-op (`devSeedProvider.overrideWith((ref) async {})`). Integration tests run in `kDebugMode` and without this override the seeder would populate the fresh empty database, breaking golden-flow assertions that expect an exact row count after a single UI-driven medication add. The seeder is debug-only scaffolding, not behavior under test, so disabling it does not mask any production wiring bug.
 
 ### Deferred items
 
@@ -507,6 +531,7 @@ The add-medication form is being built iteratively:
 - **Feature 031 (done)** — section dividers and spacing alignment: the modal body is restructured from a single outer `Padding(16)` to an outer un-padded `Column` with per-group horizontal insets, enabling two full-bleed 1px `outlineVariant` dividers between the three form groups. Section-title labels ("Intake time", "Intake type") are muted to `onSurfaceVariant`. Minor spacing corrections: 24px bottom spacer after Save, stock card header→note gap 8px, form-option chip padding 12/10, picker grid-card padding `fromLTRB(12,12,12,14)`. No new l10n keys; no behavior change; Save remains a no-op.
 - **Feature 032 (done)** — real Save behaviour wired. `AddMedicationModal` converted to a `ConsumerStatefulWidget`. Pure-Dart domain layer added (`Medication`, `MedicationForm`, `TimeSlot`, `Schedule`, `MedicationType`, `Dosage`, `PackStock`, value-object IDs). Local drift database created (`Medications` + `TimeSlots` tables, `schemaVersion=1`). `AddMedication` use case validates and delegates. Save invokes the use case, pops on success, shows a localized error SnackBar on failure, disables the button during the in-flight call. See [`medication-persistence.md`](medication-persistence.md).
 - **Feature 034 (done)** — medication list screen. `MedsScreen` upgraded from a `StatelessWidget` placeholder to a `ConsumerStatefulWidget`. Reactive `watchAll` query added to the data source and repository. `medicationsListProvider` stream provider wires the live list to the UI. Pure `buildMedsListView` view-model function. `MedicationTile`, `MedicationSection` widgets. Active/Completed and course cycle-day derivations added to domain. Debug seeder (`devSeedMedications` + `devSeedProvider`). See the [Medication List Screen](#medication-list-screen-feature-034) section above.
+- **Feature 035 (done)** — meds-list search and empty-state fidelity. Animated slide-in search bar replaces the title-swap approach. Fuzzy name matching (`fuzzyNameScore` in `lib/core/utils/fuzzy_name_match.dart`) replaces the plain substring filter — typo-tolerant with score-ranked results within each section while a query is active. Per-section "nothing found" placeholder gated on `queryActive && items.isEmpty`. Completed-course tiles de-emphasised: 0.65 opacity, neutral `surfaceContainerHighest` badge, grey `surfaceContainerHighest` status chip. Course chip order fixed: type chip before status chip. Integration-test harness updated to override `devSeedProvider` with a no-op to protect golden-flow assertions from debug-seeded rows.
 - **Pending** — schedule, reminder, and other form fields as future specs are defined.
 - **Pending** — tile-tap navigation to a medication detail / edit screen.
 - **Pending** — archive state (explicit flag, not derived from course end date).
@@ -525,6 +550,7 @@ No changes to the `AppBar` structure, the `/meds` route path, or the modal-openi
 - [`../../specs/031-add-med-dividers/spec.md`](../../specs/031-add-med-dividers/spec.md) — the spec that added full-bleed section dividers and aligned spacing/styling to the HTML design template (iteration 6)
 - [`../../specs/032-med-persistence/spec.md`](../../specs/032-med-persistence/spec.md) — the spec that wired real Save persistence (iteration 7)
 - [`../../specs/034-meds-list/spec.md`](../../specs/034-meds-list/spec.md) — the spec that built the reactive medication list screen (feature 034)
+- [`../../specs/035-meds-list-search/spec.md`](../../specs/035-meds-list-search/spec.md) — the spec that added fuzzy search, animated search bar, empty-state gating, and completed-tile de-emphasis (feature 035)
 - [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen
 - [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology, routing conventions, the `rootNavigator` context, the local database section, and the reactive read pattern
 - [`i18n.md`](i18n.md) — how ARB keys are added and translated

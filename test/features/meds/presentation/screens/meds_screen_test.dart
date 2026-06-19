@@ -114,7 +114,7 @@ final _lowStock = Medication(
 );
 
 /// A completed (non-cyclic) course medication — "Antibiotics", started 90 days
-/// before _fixedNow (2026-03-17), 7 days, so it finished 2026-03-24.
+/// before _fixedNow (2026-03-17), 7 days, so it finished 2026-03-23.
 final _completedCourse = Medication(
   id: const MedicationId('med-completed-001'),
   name: 'Antibiotics',
@@ -421,7 +421,51 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // AC-14 — error state
+  // AC-13 — error colour
+  // -------------------------------------------------------------------------
+  group('MedsScreen AC-13 error colour', () {
+    testWidgets(
+      'should render error text with colorScheme.error color when provider errors',
+      (tester) async {
+        await tester.pumpWidget(
+          _harness(
+            locale: const Locale('en'),
+            overrides: [
+              medicationRepositoryProvider.overrideWithValue(
+                _ErrorMedicationRepository(),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final ColorScheme cs =
+            Theme.of(tester.element(find.byType(MedsScreen))).colorScheme;
+
+        // The error view renders the error's toString() in a Text whose style
+        // color must equal colorScheme.error — not merely any non-null color.
+        final errorTextFinder = find.byWidgetPredicate(
+          (w) =>
+              w is Text &&
+              w.style?.color == cs.error &&
+              w.data?.isNotEmpty == true,
+        );
+        expect(
+          errorTextFinder,
+          findsOneWidget,
+          reason:
+              'Error state Text must use colorScheme.error color specifically',
+        );
+
+        // Verify no CircularProgressIndicator remains.
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+      },
+    );
+  });
+
+  // -------------------------------------------------------------------------
+  // AC-14 (legacy name) — error state existence (kept for compat, now covered
+  // above with colour; this group retains the loading-state test only)
   // -------------------------------------------------------------------------
   group('MedsScreen AC-14 error state', () {
     testWidgets(
@@ -439,15 +483,18 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // The error view renders the error's toString(); we assert that a
-        // Text widget with color == colorScheme.error is present.
+        final ColorScheme cs =
+            Theme.of(tester.element(find.byType(MedsScreen))).colorScheme;
+
+        // The error view renders the error's toString(); assert Text with
+        // colorScheme.error color is present (strengthened from original).
         final errorTextFinder = find.byWidgetPredicate(
           (w) =>
               w is Text &&
-              w.style?.color != null &&
+              w.style?.color == cs.error &&
               w.data?.isNotEmpty == true,
         );
-        expect(errorTextFinder, findsWidgets);
+        expect(errorTextFinder, findsOneWidget);
 
         // Verify no CircularProgressIndicator remains.
         expect(find.byType(CircularProgressIndicator), findsNothing);
@@ -845,8 +892,13 @@ void main() {
   // AC-11 — search behavior
   // -------------------------------------------------------------------------
   group('MedsScreen AC-11 search', () {
+    // Helper: find the search toggle IconButton unambiguously by its tooltip.
+    // The decorative search icon inside the search bar has no tooltip, so
+    // find.byTooltip is unambiguous even when the bar is in view.
+    Finder searchToggle() => find.byTooltip('Search');
+
     testWidgets(
-      'should open search field when search icon is tapped',
+      'should open search field when search toggle is tapped',
       (tester) async {
         await withClock(_fixedClock, () async {
           await tester.pumpWidget(
@@ -858,10 +910,47 @@ void main() {
           await tester.pumpAndSettle();
         });
 
-        await tester.tap(find.byIcon(LucideIcons.search));
+        // Disambiguate: use the tooltip to target the toggle, not the
+        // decorative icon inside the search bar.
+        await tester.tap(searchToggle());
         await tester.pumpAndSettle();
 
+        // One TextField appears after the animation settles.
         expect(find.byType(TextField), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'should hide the title text while search is open',
+      (tester) async {
+        await withClock(_fixedClock, () async {
+          await tester.pumpWidget(
+            _harness(
+              locale: const Locale('en'),
+              overrides: _repoOverrides([_continuous]),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Title is visible before search opens.
+          expect(find.text('My medications'), findsOneWidget);
+
+          await tester.tap(searchToggle());
+          await tester.pumpAndSettle();
+        });
+
+        // Title widget is wrapped in FadeTransition with opacity driven by
+        // ReverseAnimation(_searchAnim). After pumpAndSettle the animation
+        // has completed (opacity == 0). The Text widget may still exist in
+        // the tree but must not be interactable.
+        final opacities = tester
+            .widgetList<FadeTransition>(find.byType(FadeTransition))
+            .map((w) => w.opacity.value)
+            .toList();
+        // At least one FadeTransition reached 0 opacity (the title one).
+        expect(opacities.any((o) => o == 0.0), isTrue,
+            reason: 'Expected the title FadeTransition to be at 0 opacity '
+                'after search opens');
       },
     );
 
@@ -877,7 +966,7 @@ void main() {
           );
           await tester.pumpAndSettle();
 
-          await tester.tap(find.byIcon(LucideIcons.search));
+          await tester.tap(searchToggle());
           await tester.pumpAndSettle();
 
           // Type "metf" — should match Metformin but not Aspirin.
@@ -897,7 +986,7 @@ void main() {
     );
 
     testWidgets(
-      'should restore all meds after closing search',
+      'should restore all meds and title after closing search via clear button',
       (tester) async {
         await withClock(_fixedClock, () async {
           await tester.pumpWidget(
@@ -908,17 +997,19 @@ void main() {
           );
           await tester.pumpAndSettle();
 
-          await tester.tap(find.byIcon(LucideIcons.search));
+          await tester.tap(searchToggle());
           await tester.pumpAndSettle();
 
           await tester.enterText(find.byType(TextField), 'metf');
           await tester.pumpAndSettle();
 
-          // Close search using the X icon.
+          // Close search using the in-bar X button (exactly one LucideIcons.x).
+          expect(find.byIcon(LucideIcons.x), findsOneWidget);
           await tester.tap(find.byIcon(LucideIcons.x));
           await tester.pumpAndSettle();
         });
 
+        // Both tiles visible again after closing.
         expect(
           find.byKey(const ValueKey('medTile-med-cont-001')),
           findsOneWidget,
@@ -927,18 +1018,25 @@ void main() {
           find.byKey(const ValueKey('medTile-med-lowstock-001')),
           findsOneWidget,
         );
+
+        // Title is back (FadeTransition at opacity 1.0).
+        final opacities = tester
+            .widgetList<FadeTransition>(find.byType(FadeTransition))
+            .map((w) => w.opacity.value)
+            .toList();
+        expect(opacities.any((o) => o == 1.0), isTrue,
+            reason: 'Expected the title FadeTransition to be at 1.0 opacity '
+                'after search closes');
       },
     );
 
     testWidgets(
       'should show section empty placeholder when search empties one section',
       (tester) async {
-        // Only a continuous med — searching for "vitamin" matches nothing
-        // in Continuous but we also need a course med that matches.
         // Use _activeCourse (Vitamin D) and _continuous (Aspirin):
-        // search "vitamin" → Vitamin D stays, Aspirin disappears; the
-        // Continuous section header remains but its items list is empty →
-        // medsListSectionEmpty placeholder "Nothing found" is shown.
+        // search "vitamin" → Vitamin D stays (course section), Aspirin
+        // disappears. With queryActive==true, the empty Continuous section
+        // shows the medsListSectionEmpty placeholder.
         await withClock(_fixedClock, () async {
           await tester.pumpWidget(
             _harness(
@@ -948,41 +1046,81 @@ void main() {
           );
           await tester.pumpAndSettle();
 
-          await tester.tap(find.byIcon(LucideIcons.search));
+          await tester.tap(searchToggle());
           await tester.pumpAndSettle();
 
           await tester.enterText(find.byType(TextField), 'vitamin');
           await tester.pumpAndSettle();
         });
 
-        // Aspirin is gone.
+        // Aspirin tile is gone.
         expect(
           find.byKey(const ValueKey('medTile-med-cont-001')),
           findsNothing,
         );
-        // Vitamin D is present.
+        // Vitamin D tile is present.
         expect(
           find.byKey(const ValueKey('medTile-med-course-001')),
           findsOneWidget,
         );
-        // The Continuous section still shows its header and inline placeholder.
+        // Continuous section header still rendered.
         expect(find.text('Continuous'), findsOneWidget);
+        // Empty-section placeholder appears once (only Continuous is empty).
         expect(find.text('Nothing found'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'should show placeholder in BOTH sections when query matches nothing',
+      (tester) async {
+        // Both _continuous (Aspirin) and _activeCourse (Vitamin D) are present;
+        // a query of "zzz" matches neither.
+        await withClock(_fixedClock, () async {
+          await tester.pumpWidget(
+            _harness(
+              locale: const Locale('en'),
+              overrides: _repoOverrides([_continuous, _activeCourse]),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          await tester.tap(searchToggle());
+          await tester.pumpAndSettle();
+
+          await tester.enterText(find.byType(TextField), 'zzz');
+          await tester.pumpAndSettle();
+        });
+
+        // Both section headers visible.
+        expect(find.text('Continuous'), findsOneWidget);
+        expect(find.text('Courses'), findsOneWidget);
+
+        // Neither tile is visible.
+        expect(
+          find.byKey(const ValueKey('medTile-med-cont-001')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('medTile-med-course-001')),
+          findsNothing,
+        );
+
+        // "Nothing found" appears once per empty section → two occurrences.
+        expect(find.text('Nothing found'), findsNWidgets(2));
       },
     );
   });
 
   // -------------------------------------------------------------------------
-  // AC-12 — section-level empty placeholder
+  // AC-12 — section-level empty placeholder (queryActive gate)
   // -------------------------------------------------------------------------
   group('MedsScreen AC-12 section-level empty placeholder', () {
     testWidgets(
-      'should show medsListSectionEmpty in a section that has no matching items '
-      'while the other section still renders tiles',
+      'should NOT show placeholder when query is blank and a section is empty',
       (tester) async {
-        // With only a continuous med and Active filter:
-        // - Continuous section has the item → renders tile.
-        // - Course section is empty → "Nothing found" placeholder.
+        // With only a continuous med and no search query:
+        // - Continuous section: has the tile.
+        // - Courses section: empty, but queryActive==false → no placeholder.
         await withClock(_fixedClock, () async {
           await tester.pumpWidget(
             _harness(
@@ -993,17 +1131,191 @@ void main() {
           await tester.pumpAndSettle();
         });
 
-        // Both section headers are visible (totalCount > 0 → ListView path).
+        // Both section headers render (totalCount > 0 → ListView path).
         expect(find.text('Continuous'), findsOneWidget);
         expect(find.text('Courses'), findsOneWidget);
 
-        // Courses section is empty → placeholder appears.
+        // With blank query, the empty Courses section shows NO placeholder.
+        expect(find.text('Nothing found'), findsNothing);
+
+        // Continuous tile is present.
+        expect(
+          find.byKey(const ValueKey('medTile-med-cont-001')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'should show placeholder when query is active and a section is empty',
+      (tester) async {
+        // Same data but with an active search that empties the Courses section.
+        await withClock(_fixedClock, () async {
+          await tester.pumpWidget(
+            _harness(
+              locale: const Locale('en'),
+              overrides: _repoOverrides([_continuous, _activeCourse]),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Open search and type a query that only matches the continuous med.
+          await tester.tap(find.byTooltip('Search'));
+          await tester.pumpAndSettle();
+
+          await tester.enterText(find.byType(TextField), 'aspirin');
+          await tester.pumpAndSettle();
+        });
+
+        // Courses section is empty with an active query → placeholder appears.
         expect(find.text('Nothing found'), findsOneWidget);
 
         // Continuous tile is present.
         expect(
           find.byKey(const ValueKey('medTile-med-cont-001')),
           findsOneWidget,
+        );
+      },
+    );
+  });
+
+  // -------------------------------------------------------------------------
+  // AC-3 — focus deferred to post-animation (220 ms controller)
+  // -------------------------------------------------------------------------
+  group('MedsScreen AC-3 search focus deferred', () {
+    Finder searchToggle() => find.byTooltip('Search');
+
+    testWidgets(
+      'should NOT grant focus at mid-animation (+50 ms) but SHOULD after settle',
+      (tester) async {
+        await withClock(_fixedClock, () async {
+          await tester.pumpWidget(
+            _harness(
+              locale: const Locale('en'),
+              overrides: _repoOverrides([_continuous]),
+            ),
+          );
+          await tester.pumpAndSettle();
+        });
+
+        await tester.tap(searchToggle());
+        // Advance one frame so setState(_searchOpen=true) rebuilds and the
+        // TextField is in the tree, but the 220 ms animation has not completed,
+        // so the .then() callback has not fired yet.
+        await tester.pump();
+
+        // At this point the TextField/EditableText exists in the tree but
+        // _searchFocus.requestFocus() has not been called.
+        final editableBeforeSettle =
+            tester.widget<EditableText>(find.byType(EditableText));
+        expect(
+          editableBeforeSettle.focusNode.hasFocus,
+          isFalse,
+          reason:
+              'Focus must NOT be granted mid-animation (after a single zero-duration '
+              'pump, before the 220 ms animation controller completes and .then() fires)',
+        );
+
+        // Let the animation finish — .then() fires and requestFocus() is called.
+        await tester.pumpAndSettle();
+
+        final editableAfterSettle =
+            tester.widget<EditableText>(find.byType(EditableText));
+        expect(
+          editableAfterSettle.focusNode.hasFocus,
+          isTrue,
+          reason:
+              'Focus MUST be granted after the animation settles and .then() fires',
+        );
+      },
+    );
+  });
+
+  // -------------------------------------------------------------------------
+  // AC-2 — search bar surfaceContainer background
+  // -------------------------------------------------------------------------
+  group('MedsScreen AC-2 search bar background', () {
+    Finder searchToggle() => find.byTooltip('Search');
+
+    testWidgets(
+      'should use colorScheme.surfaceContainer as the search bar background',
+      (tester) async {
+        await withClock(_fixedClock, () async {
+          await tester.pumpWidget(
+            _harness(
+              locale: const Locale('en'),
+              overrides: _repoOverrides([_continuous]),
+            ),
+          );
+          await tester.pumpAndSettle();
+        });
+
+        await tester.tap(searchToggle());
+        await tester.pumpAndSettle();
+
+        final ColorScheme cs =
+            Theme.of(tester.element(find.byType(MedsScreen))).colorScheme;
+
+        // The search bar background is a Material whose color is
+        // cs.surfaceContainer. It lives inside the AppBar's flexibleSpace.
+        final searchBarMaterialFinder = find.descendant(
+          of: find.byType(AppBar),
+          matching: find.byWidgetPredicate(
+            (w) => w is Material && w.color == cs.surfaceContainer,
+          ),
+        );
+
+        expect(
+          searchBarMaterialFinder,
+          findsOneWidget,
+          reason:
+              'Search bar background Material inside AppBar must use '
+              'colorScheme.surfaceContainer',
+        );
+      },
+    );
+  });
+
+  // -------------------------------------------------------------------------
+  // AC-4 — clear button minimum 48 dp tap target
+  // -------------------------------------------------------------------------
+  group('MedsScreen AC-4 clear button tap target', () {
+    Finder searchToggle() => find.byTooltip('Search');
+
+    testWidgets(
+      'should have at least 48x48 tap target on the clear (X) IconButton',
+      (tester) async {
+        await withClock(_fixedClock, () async {
+          await tester.pumpWidget(
+            _harness(
+              locale: const Locale('en'),
+              overrides: _repoOverrides([_continuous]),
+            ),
+          );
+          await tester.pumpAndSettle();
+        });
+
+        await tester.tap(searchToggle());
+        await tester.pumpAndSettle();
+
+        // The X icon is inside a single IconButton with BoxConstraints(min 48).
+        final clearButtonFinder = find.ancestor(
+          of: find.byIcon(LucideIcons.x),
+          matching: find.byType(IconButton),
+        );
+
+        expect(clearButtonFinder, findsOneWidget);
+
+        final size = tester.getSize(clearButtonFinder);
+        expect(
+          size.width,
+          greaterThanOrEqualTo(48),
+          reason: 'Clear button width must be at least 48 dp',
+        );
+        expect(
+          size.height,
+          greaterThanOrEqualTo(48),
+          reason: 'Clear button height must be at least 48 dp',
         );
       },
     );

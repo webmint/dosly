@@ -331,6 +331,253 @@ void main() {
         expect(view.continuous.length, 2);
         expect(view.course.length, 1);
       });
+
+      // -----------------------------------------------------------------------
+      // Fuzzy / score-ranking tests (new)
+      // -----------------------------------------------------------------------
+
+      test('should include item with one-char typo in query (fuzzy inclusion)',
+          () {
+        // "omeprzol" is one character away from "Omeprazol" (missing 'a').
+        // levenshtein distance = 1 over maxLength 9 → similarity ≈ 0.889,
+        // clamped to _maxFuzzyScore = 0.85, which is above medsSearchIncludeThreshold 0.6.
+        final List<Medication> meds = <Medication>[
+          _continuous(
+            id: 'c1',
+            name: 'Omeprazol',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+          _continuous(
+            id: 'c2',
+            name: 'Magniy B6',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+        ];
+
+        final MedsListView view = buildMedsListView(
+          meds: meds,
+          now: _now,
+          filter: MedsFilter.all,
+          query: 'omeprzol',
+        );
+
+        final List<String> names =
+            view.continuous.map((MedListItem i) => i.medication.name).toList();
+        expect(names, contains('Omeprazol'));
+      });
+
+      test('should retain item on substring / prefix query (substring guarantee)',
+          () {
+        // "ome" is a prefix of "Omeprazol" → prefix score 0.95, well above threshold.
+        final List<Medication> meds = <Medication>[
+          _continuous(
+            id: 'c1',
+            name: 'Omeprazol',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+          _continuous(
+            id: 'c2',
+            name: 'Aspirin',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+        ];
+
+        final MedsListView view = buildMedsListView(
+          meds: meds,
+          now: _now,
+          filter: MedsFilter.all,
+          query: 'ome',
+        );
+
+        expect(
+          view.continuous.map((MedListItem i) => i.medication.name).toList(),
+          contains('Omeprazol'),
+        );
+      });
+
+      test('should return empty sections when query is completely unrelated',
+          () {
+        // 'xyz' has no substring overlap and a very high edit distance against
+        // any realistic medication name, so all scores fall below 0.6.
+        final List<Medication> meds = <Medication>[
+          _continuous(
+            id: 'c1',
+            name: 'Omeprazol',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+          _course(
+            id: 'k1',
+            name: 'Amoxicillin',
+            startDate: DateTime.utc(2026, 6, 17),
+            durationDays: 7,
+            pauseDays: 0,
+          ),
+        ];
+
+        final MedsListView view = buildMedsListView(
+          meds: meds,
+          now: _now,
+          filter: MedsFilter.all,
+          query: 'xyz',
+        );
+
+        expect(view.continuous, isEmpty);
+        expect(view.course, isEmpty);
+      });
+
+      test(
+          'should order by descending match score under query, not alphabetically',
+          () {
+        // Query: 'vitamin'
+        // "Vitamin D"         → prefix match (starts with 'vitamin') → score 0.95
+        // "Avitamin Complex"  → contains 'vitamin' as non-prefix → score 0.90
+        //
+        // Alphabetical order would put "Avitamin Complex" ('A') FIRST.
+        // Score order puts "Vitamin D" (0.95) FIRST — proves sort is score-driven.
+        final List<Medication> meds = <Medication>[
+          _continuous(
+            id: 'c1',
+            name: 'Vitamin D',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+          _continuous(
+            id: 'c2',
+            name: 'Avitamin Complex',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+        ];
+
+        final MedsListView view = buildMedsListView(
+          meds: meds,
+          now: _now,
+          filter: MedsFilter.all,
+          query: 'vitamin',
+        );
+
+        // Both names must be present.
+        expect(view.continuous.length, 2);
+        // "Vitamin D" (higher score) must appear at index 0 despite sorting
+        // after "Avitamin Complex" alphabetically.
+        expect(view.continuous.first.medication.name, 'Vitamin D');
+        expect(view.continuous.last.medication.name, 'Avitamin Complex');
+      });
+
+      test('should sort by name ascending when query is blank', () {
+        // With no query, each section is sorted case-insensitively ascending.
+        final List<Medication> meds = <Medication>[
+          _continuous(
+            id: 'c1',
+            name: 'Zinc',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+          _continuous(
+            id: 'c2',
+            name: 'Amoxicillin',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+          _continuous(
+            id: 'c3',
+            name: 'magniy b6',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+        ];
+
+        final MedsListView view = buildMedsListView(
+          meds: meds,
+          now: _now,
+          filter: MedsFilter.all,
+          query: '',
+        );
+
+        expect(
+          view.continuous
+              .map((MedListItem i) => i.medication.name)
+              .toList(),
+          <String>['Amoxicillin', 'magniy b6', 'Zinc'],
+        );
+      });
+
+      test('should exclude completed course when active filter is applied after search',
+          () {
+        // A non-cyclic course started 2026-01-01 with durationDays=5 is
+        // completed by 2026-06-18 (our fixed _now). Its name "Omeprazol Course"
+        // matches the query 'omeprazol'. With MedsFilter.active the completed
+        // item must be excluded even though search found it.
+        final List<Medication> meds = <Medication>[
+          _course(
+            id: 'done',
+            name: 'Omeprazol Course',
+            startDate: DateTime.utc(2026, 1, 1),
+            durationDays: 5,
+            pauseDays: 0,
+          ),
+          _continuous(
+            id: 'c1',
+            name: 'Omeprazol',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+        ];
+
+        final MedsListView view = buildMedsListView(
+          meds: meds,
+          now: _now,
+          filter: MedsFilter.active,
+          query: 'omeprazol',
+        );
+
+        // The continuous med passes both search and filter.
+        expect(
+          view.continuous
+              .map((MedListItem i) => i.medication.name)
+              .toList(),
+          contains('Omeprazol'),
+        );
+        // The completed course is excluded by the active filter.
+        expect(
+          view.course
+              .map((MedListItem i) => i.medication.name)
+              .toList(),
+          isNot(contains('Omeprazol Course')),
+        );
+      });
+
+      test('totalCount is unchanged when query narrows results', () {
+        // A narrowing query should not affect totalCount — it always reflects
+        // the full pre-filter/pre-search input length.
+        final List<Medication> meds = <Medication>[
+          _continuous(
+            id: 'c1',
+            name: 'Omeprazol',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+          _continuous(
+            id: 'c2',
+            name: 'Aspirin',
+            startDate: DateTime.utc(2026, 1, 1),
+          ),
+          _course(
+            id: 'k1',
+            name: 'Amoxicillin',
+            startDate: DateTime.utc(2026, 6, 17),
+            durationDays: 7,
+            pauseDays: 0,
+          ),
+        ];
+
+        final MedsListView view = buildMedsListView(
+          meds: meds,
+          now: _now,
+          filter: MedsFilter.all,
+          // Only "Omeprazol" should survive the search.
+          query: 'omeprazol',
+        );
+
+        expect(view.continuous.length, 1);
+        expect(view.course, isEmpty);
+        // totalCount must equal the full input length regardless.
+        expect(view.totalCount, meds.length);
+        expect(view.totalCount, 3);
+      });
     });
 
     // -----------------------------------------------------------------------
