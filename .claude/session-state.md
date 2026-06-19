@@ -2,34 +2,28 @@
 # Session State
 
 ## Current Feature
-034-meds-list — reactive medications list screen (read slice + tiles + sections + filter/search + debug seeder). Branch `spec/034-meds-list`.
+035-meds-list-search — meds-list search rework (animated slide-in bar + typo-tolerant ranked fuzzy + empty-state/completed-tile design fidelity). Branch `spec/035-meds-list-search`.
 
 ## Progress
-ALL 13 tasks COMPLETE. Ready for `/review` → `/verify` → `/summarize` → `/finalize`.
+ALL 7 tasks COMPLETE. Ready for `/review` → `/verify` → `/summarize` → `/finalize`.
 
 | # | Task | Agent | Status |
 |---|------|-------|--------|
-| 001 | Domain derivation (activity + course progress) | architect | Complete |
-| 002 | Derivation tests (caught + fixed DST off-by-one) | qa | Complete |
-| 003 | Reactive read (watched join + repo watchAll) | architect | Complete |
-| 004 | Reactive read data tests | qa | Complete |
-| 005 | medicationsList stream provider | architect | Complete |
-| 006 | l10n keys (en/de/uk) | mobile | Complete |
-| 007 | Shared form-icon map + add-modal refactor | mobile | Complete |
-| 008 | Display formatters | mobile | Complete |
-| 009 | View-model (filter/search/group/derive) | architect | Complete |
-| 010 | Tile + section widgets | mobile | Complete |
-| 011 | Rebuild MedsScreen | mobile | Complete |
-| 012 | Screen widget tests | qa | Complete |
-| 013 | Debug seeder + bootstrap | architect | Complete |
+| 001 | Pure-Dart fuzzy scorer (core/utils) | architect | Complete |
+| 002 | Fuzzy scorer unit tests (38) | qa | Complete |
+| 003 | View-model fuzzy + score ranking | architect | Complete |
+| 004 | View-model fuzzy/ranking tests (19) | qa | Complete |
+| 005 | Completed-tile de-emphasis + chip order | mobile | Complete |
+| 006 | Animated search bar + queryActive gating | mobile | Complete |
+| 007 | Widget tests (search/empty/tiles) + golden | qa | Complete |
 
 ## Recent Decisions
-- Reactive `Stream<Either>` read folded to AsyncValue (mirrors settingsErrors); single watched left-outer join, no rxdart.
-- Active/Completed derived (no schema change); DST-safe day count via `DateTime.utc` anchoring; cyclic-paused vs active math verified.
-- Seeder: kDebugMode + empty-table guarded, insert-only via repo.add, fire-and-forget in app_bootstrap.
+- Fuzzy = pure-Dart Levenshtein (no package); bands exact≥prefix>contains>fuzzy; inclusion `score>=0.6`; score-ranked while query active, alphabetical otherwise; transient `(double,MedListItem)`, no model field.
+- Search bar in `AppBar.flexibleSpace` + `SlideTransition`; animations promoted to State fields; focus deferred post-animation; `IgnorePointer` gating.
+- Completed tile: `Opacity(0.65)` + neutral `surfaceContainerHighest` badge/chip (`surfaceVariant` deprecated). Course chip order = type-then-status.
 
 ## Verification
-Full `flutter test`: **481/481 pass**. `dart analyze`: clean. Code review at checkpoints 010/011/013 (010 + 013 had fixes applied; 011 APPROVE).
+Full `flutter test`: **541/541 pass**. `dart analyze`: clean. Code review at 006 (APPROVE+3 warnings fixed) and 007 (APPROVE, 1 Critical `as` cast fixed + re-verified). Golden integration test headless-skipped (emulator low disk); AC-19 reactive-add proxy passes.
 
 ## Notes
-3 self-repairs during run: DST day-count (002), watchAll test-double + router-test DB-override fallout (007/012), seeder ref.read + B12 paused-date (013). All logged to MEMORY. WIP commits accumulate — squash at /finalize.
+No schema/pubspec/l10n change (existing keys reused). 2 new files: `lib/core/utils/fuzzy_name_match.dart`, + tile/section tests. WIP commits accumulate — squash at /finalize. Lessons logged to MEMORY (surfaceVariant deprecation, find.byIcon ambiguity, emulator low-disk).

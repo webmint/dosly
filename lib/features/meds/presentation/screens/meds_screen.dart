@@ -22,11 +22,11 @@ import '../widgets/medication_section.dart';
 
 /// Medication-list screen shown at the meds route.
 ///
-/// Displays a Material 3 [AppBar] whose leading area toggles between the
-/// localized title ([AppLocalizationsContext.l10n] key `medsListTitle`) and an
-/// inline search [TextField]. Below the app bar a filter-chip row lets the user
-/// switch between [MedsFilter.all] and [MedsFilter.active]. The body renders
-/// the result of [buildMedsListView] applied to the live stream from
+/// Displays a Material 3 [AppBar] with an animated slide-in search bar that
+/// overlays the app-bar region from the trailing edge. The title fades out as
+/// the search bar animates in. Below the app bar a filter-chip row lets the
+/// user switch between [MedsFilter.all] and [MedsFilter.active]. The body
+/// renders the result of [buildMedsListView] applied to the live stream from
 /// [medicationsListProvider]: loading → [CircularProgressIndicator]; error → a
 /// muted error message; data with zero total medications → an empty-state card;
 /// data with medications → two [MedicationSection]s (continuous then course).
@@ -44,8 +44,14 @@ class MedsScreen extends ConsumerStatefulWidget {
   ConsumerState<MedsScreen> createState() => _MedsScreenState();
 }
 
-class _MedsScreenState extends ConsumerState<MedsScreen> {
+class _MedsScreenState extends ConsumerState<MedsScreen>
+    with SingleTickerProviderStateMixin {
   late final TextEditingController _searchController;
+  late final AnimationController _searchAnim;
+  late final CurvedAnimation _searchCurve;
+  late final Animation<Offset> _slideAnim;
+  late final FocusNode _searchFocus;
+
   String _query = '';
   MedsFilter _filter = MedsFilter.all;
   bool _searchOpen = false;
@@ -54,21 +60,40 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    _searchFocus = FocusNode();
+    _searchAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    _searchCurve = CurvedAnimation(parent: _searchAnim, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(1, 0),
+      end: Offset.zero,
+    ).animate(_searchCurve);
   }
 
   @override
   void dispose() {
+    _searchCurve.dispose();
+    _searchAnim.dispose();
+    _searchFocus.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
   void _openSearch() {
+    if (_searchAnim.isAnimating) return;
     setState(() {
       _searchOpen = true;
+    });
+    _searchAnim.forward().then((_) {
+      if (!mounted) return;
+      _searchFocus.requestFocus();
     });
   }
 
   void _closeSearch() {
+    _searchAnim.reverse();
     _searchController.clear();
     setState(() {
       _query = '';
@@ -91,48 +116,76 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final ColorScheme cs = Theme.of(context).colorScheme;
     final AsyncValue<List<Medication>> medicationsAsync =
         ref.watch(medicationsListProvider);
 
+    final bool queryActive = _query.trim().isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
-        title: _searchOpen
-            ? Builder(
-                builder: (BuildContext ctx) {
-                  final ColorScheme cs = Theme.of(ctx).colorScheme;
-                  return TextField(
-                    controller: _searchController,
-                    autofocus: true,
-                    onChanged: _onQueryChanged,
-                    decoration: InputDecoration(
-                      hintText: l10n.medsListSearchHint,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      prefixIcon: Icon(
-                        LucideIcons.search,
-                        size: 18,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  );
-                },
-              )
-            : Text(l10n.medsListTitle),
+        title: FadeTransition(
+          opacity: ReverseAnimation(_searchAnim),
+          child: Text(l10n.medsListTitle),
+        ),
         actions: [
-          if (!_searchOpen)
-            IconButton(
-              icon: const Icon(LucideIcons.search),
-              tooltip: l10n.medsListSearchTooltip,
-              onPressed: _openSearch,
-            )
-          else
-            IconButton(
-              icon: const Icon(LucideIcons.x, size: 20),
-              onPressed: _closeSearch,
+          FadeTransition(
+            opacity: ReverseAnimation(_searchAnim),
+            child: IgnorePointer(
+              ignoring: _searchOpen,
+              child: IconButton(
+                icon: const Icon(LucideIcons.search),
+                tooltip: l10n.medsListSearchTooltip,
+                onPressed: _openSearch,
+              ),
             ),
+          ),
         ],
+        flexibleSpace: SlideTransition(
+          position: _slideAnim,
+          child: IgnorePointer(
+            ignoring: !_searchOpen,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Material(
+                  color: cs.surfaceContainer,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    children: <Widget>[
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Icon(LucideIcons.search, size: 20),
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _searchFocus,
+                          onChanged: _onQueryChanged,
+                          decoration: InputDecoration(
+                            hintText: l10n.medsListSearchHint,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(LucideIcons.x, size: 20),
+                        onPressed: _closeSearch,
+                        constraints: const BoxConstraints(
+                          minWidth: 48,
+                          minHeight: 48,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
           child: Divider(height: 1, thickness: 1),
@@ -183,11 +236,13 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
                     MedicationSection(
                       title: l10n.medsListSectionContinuous,
                       items: view.continuous,
+                      queryActive: queryActive,
                     ),
                     const SizedBox(height: 8),
                     MedicationSection(
                       title: l10n.medsListSectionCourse,
                       items: view.course,
+                      queryActive: queryActive,
                     ),
                   ],
                 );

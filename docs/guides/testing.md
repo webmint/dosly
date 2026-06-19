@@ -64,12 +64,13 @@ await tester.pumpWidget(
 
 ### What they are
 
-Integration tests boot the **real `AppBootstrap` widget tree** on a connected device or emulator via the `integration_test` package. Unlike widget tests, no provider graph is replaced with fakes — the full production wiring (router, settings chain, drift database) is exercised. Only two leaf seams are overridden to make tests hermetic:
+Integration tests boot the **real `AppBootstrap` widget tree** on a connected device or emulator via the `integration_test` package. Unlike widget tests, no provider graph is replaced with fakes — the full production wiring (router, settings chain, drift database) is exercised. Only three leaf seams are overridden to make tests hermetic:
 
-| Seam overridden | Test value |
-|---|---|
-| `appDatabaseProvider` | Caller-supplied `AppDatabase` (temp file or real file) |
-| `sharedPreferencesInitProvider` | `InMemorySharedPreferencesAsync.empty()` |
+| Seam overridden | Test value | Why |
+|---|---|---|
+| `appDatabaseProvider` | Caller-supplied `AppDatabase` (temp file or real file) | Isolate test data |
+| `sharedPreferencesInitProvider` | `InMemorySharedPreferencesAsync.empty()` | Deterministic, never persists across runs |
+| `devSeedProvider` | No-op (`async {}`) | Integration tests run in `kDebugMode`; without this the debug seeder would pre-populate the fresh DB with 12 demo medications, breaking golden-flow assertions that expect an exact row count after a single UI-driven add |
 
 Everything else — `settingsRepositoryProvider`, `settingsNotifierProvider`, the entire GoRouter chain — runs as production code.
 
@@ -106,6 +107,8 @@ final db = await bootAppWithTempDb(tester);
 ```dart
 await bootAppWithDb(tester, db);
 ```
+
+Both entry-points override `devSeedProvider` with a no-op in addition to the DB and preferences seams. See the seam table above for why this is necessary.
 
 ---
 
