@@ -22,6 +22,12 @@ abstract interface class MedicationRepository {
   /// [Failure] describing why the operation could not be completed.
   Future<Either<Failure, Medication>> add(Medication medication);
 
+  /// Persists an UPDATE of an already-stored [medication] (its `id` must already
+  /// exist), returning the stored aggregate on success or a [Failure] on error.
+  /// The medication row is updated in place and its time slots are reconciled;
+  /// callers (the EditMedication use case) decide which TimeSlotIds survive.
+  Future<Either<Failure, Medication>> update(Medication medication);
+
   /// Reactively emits all persisted medications, re-emitting on any change.
   ///
   /// The stream yields a fresh list every time the underlying store changes, so

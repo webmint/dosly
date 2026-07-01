@@ -196,6 +196,166 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // update
+  // ---------------------------------------------------------------------------
+  group('MedicationRepositoryImpl.update()', () {
+    // -------------------------------------------------------------------------
+    // In-place update — no duplicate row
+    // -------------------------------------------------------------------------
+    test(
+      'should return Right and update the row in place without duplicating it',
+      () async {
+        await repository.add(_medication);
+
+        final updated = _medication.copyWith(name: 'Naproxen');
+        final result = await repository.update(updated);
+
+        expect(result.isRight(), isTrue);
+
+        final rows = await db.select(db.medications).get();
+        expect(rows.length, 1);
+        expect(rows.single.id, 'repo-med-001');
+        expect(rows.single.name, 'Naproxen');
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // Slot reconciliation — kept slot id preserved
+    // -------------------------------------------------------------------------
+    // TODO(036-meds-edit): once an Intakes table referencing slotId exists,
+    // add a test that inserts an intake on a kept slot and asserts it survives
+    // the update — that is the airtight proof the parent row was UPDATEd (no
+    // insertOrReplace cascade), since slot-id preservation alone cannot
+    // distinguish "no cascade" from "cascade + payload reinsert".
+    test(
+      'should preserve the TimeSlotId of a kept slot and delete the removed slot',
+      () async {
+        await repository.add(_medication);
+
+        // Keep minute 480 with its original id; drop minute 1200; add minute 600
+        // with a new id.
+        final updated = _medication.copyWith(
+          schedule: const Schedule(
+            frequency: ScheduleFrequency.daily,
+            slots: [
+              TimeSlot(id: TimeSlotId('repo-slot-001'), minuteOfDay: 480),
+              TimeSlot(id: TimeSlotId('repo-slot-NEW'), minuteOfDay: 600),
+            ],
+          ),
+        );
+        await repository.update(updated);
+
+        final slotRows = await db.select(db.timeSlots).get();
+
+        // Exactly 2 slot rows survive for this medication.
+        expect(slotRows.length, 2);
+
+        // The kept slot id must be preserved.
+        final ids = slotRows.map((s) => s.id).toSet();
+        expect(ids, {'repo-slot-001', 'repo-slot-NEW'});
+
+        // The old slot id must be gone.
+        expect(ids.contains('repo-slot-002'), isFalse);
+
+        // Minutes are correct.
+        final minutes = slotRows.map((s) => s.minuteOfDay).toSet();
+        expect(minutes, {480, 600});
+
+        // The old minute must be gone.
+        expect(minutes.contains(1200), isFalse);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // Slot reconciliation — full replacement (all original slots removed)
+    // -------------------------------------------------------------------------
+    test(
+      'should remove all original slots and insert all new ones on full slot replacement',
+      () async {
+        await repository.add(_medication);
+
+        // Replace both original slots (480/repo-slot-001, 1200/repo-slot-002)
+        // with entirely new minutes and ids that share no overlap with the
+        // originals — proving the reconciliation path deletes every old row.
+        final updated = _medication.copyWith(
+          schedule: const Schedule(
+            frequency: ScheduleFrequency.daily,
+            slots: [
+              TimeSlot(id: TimeSlotId('repo-slot-X'), minuteOfDay: 900),
+              TimeSlot(id: TimeSlotId('repo-slot-Y'), minuteOfDay: 1380),
+            ],
+          ),
+        );
+        await repository.update(updated);
+
+        final slotRows = await db.select(db.timeSlots).get();
+
+        // Exactly 2 slot rows survive — same count, entirely replaced content.
+        expect(slotRows.length, 2);
+
+        final ids = slotRows.map((s) => s.id).toSet();
+        expect(ids, {'repo-slot-X', 'repo-slot-Y'});
+
+        final minutes = slotRows.map((s) => s.minuteOfDay).toSet();
+        expect(minutes, {900, 1380});
+
+        // Both original ids must be absent.
+        expect(ids.contains('repo-slot-001'), isFalse);
+        expect(ids.contains('repo-slot-002'), isFalse);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // Sibling isolation
+    // -------------------------------------------------------------------------
+    test(
+      'should not touch a sibling medication or its slots',
+      () async {
+        await repository.add(_medication);
+        await repository.add(_medicationTwo);
+
+        final updatedFirst = _medication.copyWith(name: 'Naproxen');
+        await repository.update(updatedFirst);
+
+        // Both medication rows still exist.
+        final medRows = await db.select(db.medications).get();
+        expect(medRows.length, 2);
+
+        // Sibling row is untouched.
+        final sibling = medRows.firstWhere((r) => r.id == 'repo-med-002');
+        expect(sibling.name, 'Paracetamol');
+
+        // Sibling slot is untouched.
+        final slotRows = await db.select(db.timeSlots).get();
+        final siblingSlots =
+            slotRows.where((s) => s.medicationId == 'repo-med-002').toList();
+        expect(siblingSlots.length, 1);
+        expect(siblingSlots.single.id, 'repo-slot-003');
+        expect(siblingSlots.single.minuteOfDay, 720);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // Failure path — data source throws → Left(UnknownFailure)
+    // -------------------------------------------------------------------------
+    test(
+      'should return Left(UnknownFailure) — not throw — when upsertMedication throws',
+      () async {
+        final errorSource = _UpsertErroringDataSource();
+        final errorRepo = MedicationRepositoryImpl(errorSource);
+
+        final Either<Failure, Medication> result =
+            await errorRepo.update(_medication);
+
+        result.fold(
+          (failure) => expect(failure, isA<UnknownFailure>()),
+          (_) => fail('expected Left, got Right'),
+        );
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------------
   // watchAll
   // ---------------------------------------------------------------------------
   group('MedicationRepositoryImpl.watchAll()', () {
@@ -329,4 +489,24 @@ class _ErroringDataSource extends MedicationLocalDataSource {
   @override
   Stream<List<(MedicationRow, List<TimeSlotRow>)>> watchAllMedications() =>
       Stream.error(StateError('simulated data-source failure'));
+}
+
+/// A [MedicationLocalDataSource] subclass whose [upsertMedication] always
+/// throws. Used to verify [MedicationRepositoryImpl.update()] maps data-source
+/// exceptions to [Left(UnknownFailure)] without rethrowing.
+///
+/// Mirrors [_ErroringDataSource]'s pattern: the injected DB is never opened
+/// because only the overridden method is exercised.
+class _UpsertErroringDataSource extends MedicationLocalDataSource {
+  _UpsertErroringDataSource() : super(_unreachableDb());
+
+  static AppDatabase _unreachableDb() =>
+      AppDatabase(NativeDatabase.memory());
+
+  @override
+  Future<void> upsertMedication(
+    MedicationsCompanion medication,
+    List<TimeSlotsCompanion> slots,
+  ) =>
+      throw StateError('simulated upsert failure');
 }

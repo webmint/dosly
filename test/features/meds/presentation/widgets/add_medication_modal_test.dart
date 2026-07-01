@@ -18,10 +18,14 @@ import 'package:dosly/features/meds/domain/entities/dose_unit.dart';
 import 'package:dosly/features/meds/domain/entities/medication.dart';
 import 'package:dosly/features/meds/domain/entities/medication_form.dart';
 import 'package:dosly/features/meds/domain/entities/medication_type.dart';
+import 'package:dosly/features/meds/domain/entities/pack_stock.dart';
 import 'package:dosly/features/meds/domain/entities/schedule.dart';
+import 'package:dosly/features/meds/domain/entities/time_slot.dart';
 import 'package:dosly/features/meds/domain/repositories/medication_repository.dart';
 import 'package:dosly/features/meds/domain/usecases/add_medication.dart';
+import 'package:dosly/features/meds/domain/usecases/edit_medication.dart';
 import 'package:dosly/features/meds/domain/value_objects/medication_id.dart';
+import 'package:dosly/features/meds/domain/value_objects/time_slot_id.dart';
 import 'package:dosly/features/meds/presentation/providers/medication_providers.dart';
 import 'package:dosly/features/meds/presentation/widgets/add_medication_modal.dart';
 import 'package:dosly/l10n/app_localizations.dart';
@@ -54,12 +58,20 @@ class _FakeMedicationRepository implements MedicationRepository {
   }
 
   @override
+  Future<Either<Failure, Medication>> update(Medication medication) {
+    if (completer != null) {
+      return completer!.future;
+    }
+    return Future.value(Right(medication));
+  }
+
+  @override
   Stream<Either<Failure, List<Medication>>> watchAll() =>
       const Stream<Either<Failure, List<Medication>>>.empty();
 }
 
 /// A recording [MedicationRepository] that captures the last [Medication]
-/// passed to [add] and always returns [Right].
+/// passed to [add] (and, separately, to [update]) and always returns [Right].
 ///
 /// Used by the Gap-1 and Gap-2 widget tests so assertions can inspect the
 /// exact [Medication] the modal built — proving correct field mapping without
@@ -69,9 +81,19 @@ class _RecordingMedicationRepository implements MedicationRepository {
   /// not been called yet.
   Medication? captured;
 
+  /// The [Medication] from the most recent [update] call, or `null` if [update]
+  /// has not been called yet.
+  Medication? capturedUpdate;
+
   @override
   Future<Either<Failure, Medication>> add(Medication medication) async {
     captured = medication;
+    return Right(medication);
+  }
+
+  @override
+  Future<Either<Failure, Medication>> update(Medication medication) async {
+    capturedUpdate = medication;
     return Right(medication);
   }
 
@@ -1950,6 +1972,505 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(infoChipText().data, contains('днів'));
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Edit mode (spec 036)
+  // ---------------------------------------------------------------------------
+
+  /// A tablet+continuous fixture WITH notes and a stable startDate.
+  ///
+  /// Used by the Gap-6/7 test to verify that Save does NOT wipe notes or
+  /// reset a Continuous startDate to today.
+  Medication continuousEditFixture() => Medication(
+    id: const MedicationId('edit-cont-001'),
+    name: 'Vitamin D',
+    form: MedicationForm.tablet,
+    type: MedicationType.continuous(startDate: DateTime.utc(2025, 1, 15)),
+    schedule: const Schedule(
+      slots: [
+        TimeSlot(
+          id: TimeSlotId('slot-cont-001'),
+          minuteOfDay: 540, // 09:00
+        ),
+      ],
+    ),
+    dosePerIntake: const Dosage(amount: 1, unit: DoseUnit.tablet),
+    notes: 'Take with food',
+    createdAt: DateTime.utc(2025, 1, 15),
+  );
+
+  /// A tablet+course fixture that exercises all pre-fill paths:
+  /// hasQuantity + hasStock form, two TimeSlots, CourseType (so the CourseCard
+  /// is rendered), non-null Dosage, non-null PackStock.
+  Medication editFixture() => Medication(
+    id: const MedicationId('edit-test-001'),
+    name: 'Ibuprofen',
+    form: MedicationForm.tablet,
+    type: MedicationType.course(
+      startDate: DateTime.utc(2026, 4, 1),
+      durationDays: 14,
+      pauseDays: 7,
+    ),
+    schedule: const Schedule(
+      slots: [
+        TimeSlot(
+          id: TimeSlotId('slot-edit-001'),
+          minuteOfDay: 480, // 08:00
+        ),
+        TimeSlot(
+          id: TimeSlotId('slot-edit-002'),
+          minuteOfDay: 1200, // 20:00
+        ),
+      ],
+    ),
+    dosePerIntake: const Dosage(amount: 2.0, unit: DoseUnit.tablet),
+    stock: const PackStock(remaining: 20, total: 28, warnAt: 5),
+    createdAt: DateTime.utc(2026, 4, 1),
+  );
+
+  /// Builds a ProviderScope + MaterialApp where [AddMedicationModal(initial:)]
+  /// is pushed on top of a base route — mirrors [_persistenceHarness] but for
+  /// edit mode.
+  Widget editPersistenceHarness({
+    required Locale locale,
+    required List<Override> overrides,
+    required Medication initial,
+  }) {
+    return ProviderScope(
+      overrides: overrides,
+      child: MaterialApp(
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localeResolutionCallback: resolveAppLocale,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              key: const ValueKey('openEditModal'),
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  fullscreenDialog: true,
+                  builder: (_) => AddMedicationModal(initial: initial),
+                ),
+              ),
+              child: const Text('Open Edit'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  group('AddMedicationModal edit mode (spec 036)', () {
+    // Fixed clock for deterministic start-date rendering in the CourseCard.
+    final editClock = Clock.fixed(DateTime(2026, 4, 1));
+
+    // -------------------------------------------------------------------------
+    // (1) Pre-fill — name field and AppBar title.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'edit mode: name field pre-filled and AppBar shows medsEditTitle (spec 036)',
+      (tester) async {
+        final fixture = editFixture();
+        await withClock(editClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: [
+                editMedicationProvider.overrideWith(
+                  (_) => EditMedication(
+                    _RecordingMedicationRepository(),
+                    _FakeIdGenerator(),
+                  ),
+                ),
+              ],
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+        });
+
+        // AppBar title is the edit title, not the add title.
+        expect(
+          find.descendant(
+            of: find.byType(AppBar),
+            matching: find.text('Edit medication'),
+          ),
+          findsOneWidget,
+        );
+
+        // Name TextField contains the fixture's name.
+        final nameField = tester.widget<TextField>(
+          find.byType(TextField).first,
+        );
+        expect(nameField.controller?.text, 'Ibuprofen');
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (2) Pre-fill — form picker collapsed display shows the tablet form name.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'edit mode: form picker collapsed display shows Tablet, not placeholder (spec 036)',
+      (tester) async {
+        final fixture = editFixture();
+        await withClock(editClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: [
+                editMedicationProvider.overrideWith(
+                  (_) => EditMedication(
+                    _RecordingMedicationRepository(),
+                    _FakeIdGenerator(),
+                  ),
+                ),
+              ],
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+        });
+
+        // "Tablet" should be visible in the collapsed display row.
+        expect(find.text('Tablet'), findsOneWidget);
+
+        // The placeholder must NOT appear — a form is already selected.
+        expect(find.text('Choose a form'), findsNothing);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (3) Pre-fill — intake chips show the fixture's two time slots.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'edit mode: two InputChips pre-filled with 08:00 and 20:00 (spec 036)',
+      (tester) async {
+        final fixture = editFixture();
+        await withClock(editClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: [
+                editMedicationProvider.overrideWith(
+                  (_) => EditMedication(
+                    _RecordingMedicationRepository(),
+                    _FakeIdGenerator(),
+                  ),
+                ),
+              ],
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+        });
+
+        // Two chips — one per slot.
+        expect(find.byType(InputChip), findsNWidgets(2));
+        expect(find.text('08:00'), findsOneWidget);
+        expect(find.text('20:00'), findsOneWidget);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (4) Pre-fill — Course segment selected; CourseCard visible with values.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'edit mode: Course segment selected; CourseCard shows duration 14 and pause 7 (spec 036)',
+      (tester) async {
+        final fixture = editFixture();
+        await withClock(editClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: [
+                editMedicationProvider.overrideWith(
+                  (_) => EditMedication(
+                    _RecordingMedicationRepository(),
+                    _FakeIdGenerator(),
+                  ),
+                ),
+              ],
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+        });
+
+        // CourseCard is visible — the segmented button pre-selected Course.
+        expect(
+          find.byKey(const ValueKey('medsAddCourseDuration')),
+          findsOneWidget,
+        );
+
+        // Duration field shows the fixture's 14 days.
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddCourseDuration')),
+            matching: find.text('14'),
+          ),
+          findsOneWidget,
+        );
+
+        // Pause field shows the fixture's 7 days.
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('medsAddCoursePause')),
+            matching: find.text('7'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (5) Save routes to editMedicationProvider; add path NOT taken.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'edit mode: Save calls update (capturedUpdate set) and NOT add (captured null); '
+      'shows medsEditSaveSuccess SnackBar and pops modal (spec 036)',
+      (tester) async {
+        final recordingRepo = _RecordingMedicationRepository();
+        final fixture = editFixture();
+
+        await withClock(editClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: [
+                editMedicationProvider.overrideWith(
+                  (_) => EditMedication(recordingRepo, _FakeIdGenerator()),
+                ),
+                // Override addMedicationProvider with the same recording repo
+                // so that if the add path were accidentally taken, `captured`
+                // would be set (the assertion below would then catch it).
+                addMedicationProvider.overrideWith(
+                  (_) => AddMedication(recordingRepo, _FakeIdGenerator()),
+                ),
+              ],
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+
+          // Confirm the modal is open.
+          expect(find.byType(AddMedicationModal), findsOneWidget);
+
+          // Change the name so we can verify the updated value is forwarded.
+          await tester.enterText(
+            find.byType(TextField).first,
+            'Ibuprofen 400mg',
+          );
+          await tester.pumpAndSettle();
+
+          // Tap Save — scroll into view since CourseCard pushes it below viewport.
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('medsAddSaveButton')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('medsAddSaveButton')));
+          await tester.pumpAndSettle();
+
+          // update was called; add was NOT called.
+          expect(
+            recordingRepo.capturedUpdate,
+            isNotNull,
+            reason: 'editMedicationProvider.update must have been called',
+          );
+          expect(
+            recordingRepo.captured,
+            isNull,
+            reason:
+                'addMedicationProvider.add must NOT have been called in edit mode',
+          );
+
+          // W3: the modal forwarded the EDITED name to editMedicationProvider.
+          expect(
+            recordingRepo.capturedUpdate?.name,
+            'Ibuprofen 400mg',
+            reason:
+                'editMedicationProvider must receive the edited name, not the original',
+          );
+
+          // medsEditSaveSuccess SnackBar appears.
+          expect(find.text('Medication updated'), findsOneWidget);
+
+          // Modal is popped — the launcher button is visible again.
+          expect(find.byType(AddMedicationModal), findsNothing);
+          expect(find.byKey(const ValueKey('openEditModal')), findsOneWidget);
+        });
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (Gap 2) Validation failure in edit mode — does NOT pop, shows error.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'edit mode: clearing the name → Save shows error SnackBar and does NOT pop (spec 036)',
+      (tester) async {
+        final recordingRepo = _RecordingMedicationRepository();
+        final fixture = editFixture();
+
+        await withClock(editClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: [
+                editMedicationProvider.overrideWith(
+                  (_) => EditMedication(recordingRepo, _FakeIdGenerator()),
+                ),
+                addMedicationProvider.overrideWith(
+                  (_) => AddMedication(recordingRepo, _FakeIdGenerator()),
+                ),
+              ],
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+
+          // Confirm the modal is open.
+          expect(find.byType(AddMedicationModal), findsOneWidget);
+
+          // Clear the name field to trigger a ValidationFailure(field:'name').
+          await tester.enterText(find.byType(TextField).first, '');
+          await tester.pumpAndSettle();
+
+          // Tap Save — scroll into view as the layout may push it off-screen.
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('medsAddSaveButton')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('medsAddSaveButton')));
+          await tester.pumpAndSettle();
+
+          // Error SnackBar must be shown.
+          expect(
+            find.text('Enter a medication name'),
+            findsOneWidget,
+            reason: 'medsAddSaveErrorName SnackBar must appear on name validation failure',
+          );
+
+          // Modal must NOT have popped — it is still visible.
+          expect(
+            find.byType(AddMedicationModal),
+            findsOneWidget,
+            reason: 'Modal must stay open when validation fails',
+          );
+
+          // The launcher button on the base route must NOT be visible — the
+          // modal is still on top.
+          expect(
+            find.text('Open Edit'),
+            findsNothing,
+            reason: 'Base route must still be hidden behind the modal',
+          );
+
+          // Validation short-circuits before hitting the repository.
+          expect(
+            recordingRepo.capturedUpdate,
+            isNull,
+            reason: 'repository.update must NOT be called when validation fails',
+          );
+          expect(
+            recordingRepo.captured,
+            isNull,
+            reason: 'repository.add must NOT be called when validation fails',
+          );
+        });
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (Gaps 6 + 7) Save preserves notes and Continuous startDate.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'edit mode: Save preserves notes and an already-Continuous startDate (spec 036)',
+      (tester) async {
+        final recordingRepo = _RecordingMedicationRepository();
+        final fixture = continuousEditFixture();
+
+        await withClock(editClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: [
+                editMedicationProvider.overrideWith(
+                  (_) => EditMedication(recordingRepo, _FakeIdGenerator()),
+                ),
+                addMedicationProvider.overrideWith(
+                  (_) => AddMedication(recordingRepo, _FakeIdGenerator()),
+                ),
+              ],
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+
+          // Confirm the modal is open.
+          expect(find.byType(AddMedicationModal), findsOneWidget);
+
+          // Change the name so there is a genuine edit to submit.
+          await tester.enterText(find.byType(TextField).first, 'Vitamin D3');
+          await tester.pumpAndSettle();
+
+          // Tap Save.
+          await tester.ensureVisible(
+            find.byKey(const ValueKey('medsAddSaveButton')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('medsAddSaveButton')));
+          await tester.pumpAndSettle();
+
+          // The update path must have been taken.
+          expect(
+            recordingRepo.capturedUpdate,
+            isNotNull,
+            reason: 'editMedicationProvider.update must have been called',
+          );
+
+          // Edited name forwarded correctly.
+          expect(
+            recordingRepo.capturedUpdate?.name,
+            'Vitamin D3',
+            reason: 'Edited name must be forwarded to the repository',
+          );
+
+          // Notes must be preserved — not wiped to null.
+          expect(
+            recordingRepo.capturedUpdate?.notes,
+            'Take with food',
+            reason: 'notes must be preserved through the edit/update path',
+          );
+
+          // Continuous startDate must be preserved — NOT restamped to today.
+          expect(
+            recordingRepo.capturedUpdate?.type,
+            isA<ContinuousType>().having(
+              (c) => c.startDate,
+              'startDate',
+              DateTime.utc(2025, 1, 15),
+            ),
+            reason:
+                'type must remain ContinuousType and startDate must not be reset to clock.now()',
+          );
+        });
       },
     );
   });

@@ -65,6 +65,8 @@
   "medsAddCourseRangeLabel": "Курс: {range} ({count, plural, one{{count} день} few{{count} дні} many{{count} днів} other{{count} дня}})",
   "medsAddCourseStartOnly": "Курс починається {date}",
   "medsAddSaveSuccess": "Ліки збережено",
+  "medsEditTitle": "Редагувати ліки",
+  "medsEditSaveSuccess": "Ліки оновлено",
   "medsAddSaveErrorName": "Введіть назву ліків",
   "medsAddSaveErrorTimes": "Додайте принаймні один час прийому",
   "medsAddSaveErrorDuration": "Тривалість курсу має бути не менше 1 дня",

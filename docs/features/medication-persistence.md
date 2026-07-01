@@ -6,7 +6,7 @@ Feature `032-med-persistence` gives the `meds` module its first `domain/` and `d
 
 This is the first full Clean-Architecture vertical slice for medication data: pure-Dart domain, drift-backed data layer, and `@riverpod`-wired composition seam. It mirrors the existing `settings` slice.
 
-## Save Flow (end to end)
+## Save Flow (Add — end to end)
 
 ```
 AddMedicationModal (ConsumerStatefulWidget)
@@ -47,6 +47,56 @@ Future<void> _save() async {
   );
 }
 ```
+
+## Update / Edit Flow (end to end)
+
+Added in feature `036-meds-edit`. Tapping a medication tile pre-fills the same modal in edit mode; saving runs the update path through all three layers.
+
+```
+AddMedicationModal(initial: medication)
+  └─ ref.read(editMedicationProvider)   ← composition seam
+        └─ EditMedication (use case)
+              ├─ validate              → Left(ValidationFailure)  on error
+              │   (same 4 rules as AddMedication)
+              ├─ reconcile slot IDs    → reuse original TimeSlotId where
+              │   minuteOfDay matches; mint new TimeSlotId otherwise
+              ├─ original.copyWith(...)  preserving id + createdAt
+              └─ MedicationRepository.update(updated)
+                    └─ MedicationRepositoryImpl
+                          └─ MedicationLocalDataSource.upsertMedication(...)
+                                └─ AppDatabase.transaction()
+                                      ├─ medications.insertOnConflictUpdate(row)
+                                      ├─ delete timeSlots where medicationId == id
+                                      │     AND id NOT IN incomingSlotIds
+                                      └─ timeSlots.insertOnConflictUpdate(slot)
+                                            (for each incoming slot)
+```
+
+On `Right(medication)` the modal pops and shows `medsEditSaveSuccess` ("Medication updated"). On `Left(failure)` the modal applies the same field-mapped error logic as add mode. The Save button is disabled while the update is in flight.
+
+### Load-bearing decisions
+
+**`insertOnConflictUpdate` not `insertOrReplace`**
+
+The `TimeSlots` table has an `onDelete: cascade` foreign key to `Medications`. A plain `insertOrReplace` (or `InsertMode.insertOrReplace`) works by deleting the conflicting row and inserting a new one. That delete fires the cascade, which **wipes all time-slot rows** for the medication before the new slot rows are written. Using `insertOnConflictUpdate` instead performs an SQL `UPDATE` on the existing row, which does not trigger the cascade. This is the sole reason `upsertMedication` must not use `insertOrReplace`.
+
+**Slot-ID preservation**
+
+The `EditMedication` use case decides which `TimeSlotId`s survive. Before calling the repository it builds a lookup map from the original aggregate's slots (`minuteOfDay → TimeSlot`). For each minute in the edited set:
+
+- If the minute existed in the original, the **entire original `TimeSlot` is reused verbatim** — its `TimeSlotId` and any `doseOverride` are preserved unchanged.
+- If the minute is new, a fresh `TimeSlotId` is minted via the injected `IdGenerator`.
+- Minutes absent from the edited set are deleted by the data source (`id NOT IN incomingSlotIds`).
+
+The data source receives a fully-assembled companion list and simply persists it; slot-ID decisions never leak into the data layer.
+
+**Empty-slots guard**
+
+`upsertMedication` throws an `ArgumentError` if `slots` is empty, before the transaction opens. This guards against a SQLite footgun: the delete step filters with `id NOT IN (...)`, and an empty id list would compile to `NOT IN ()`, which SQLite treats as matching every row — silently deleting every time slot for the medication. `EditMedication` already rejects an empty `intakeMinutes` list during validation (`field: 'times'`), so in practice the data source never receives an empty list from the app; the guard exists as a defensive boundary check rather than a reachable runtime path.
+
+**Fields that round-trip unchanged**
+
+The edit form does not collect `notes` or a continuous `startDate`; these are forwarded from `original` via `copyWith` and are not altered. A continuous medication's `startDate` round-trips byte-for-byte. The `original.id` and `original.createdAt` are never regenerated — they survive every edit.
 
 ## Domain Model
 
@@ -146,7 +196,7 @@ abstract class PackStock with _$PackStock {
 
 ## Validation
 
-Validation lives exclusively in `AddMedication` (the use case). The repository is never called on invalid input.
+Validation lives in the use cases — `AddMedication` for the add path and `EditMedication` for the edit path. The repository is never called on invalid input. Both use cases enforce identical rules:
 
 | Rule | Returns |
 |------|---------|
@@ -242,9 +292,15 @@ AddMedication addMedication(Ref ref) => AddMedication(
   ref.watch(medicationRepositoryProvider),
   ref.watch(idGeneratorProvider),
 );
+
+@riverpod
+EditMedication editMedication(Ref ref) => EditMedication(
+  ref.watch(medicationRepositoryProvider),
+  ref.watch(idGeneratorProvider),
+);
 ```
 
-All three providers are plain `@riverpod` (autoDispose) function providers. Save is a one-shot imperative call from the modal (`ref.read(addMedicationProvider)`), not a notifier — there is no shared observed state to hold between calls.
+All four providers are plain `@riverpod` (autoDispose) function providers. Save is a one-shot imperative call from the modal (`ref.read(addMedicationProvider)` or `ref.read(editMedicationProvider)`), not a notifier — there is no shared observed state to hold between calls.
 
 The `appDatabaseProvider` and `idGeneratorProvider` are `@Riverpod(keepAlive: true)` singletons defined in `lib/core/`.
 
@@ -290,17 +346,31 @@ Five new keys added to `app_en.arb`, `app_de.arb`, and `app_uk.arb`:
 | `medsAddErrorTimes` | Please add at least one intake time. |
 | `medsAddErrorDuration` | Course duration must be at least 1 day. |
 
+## Localization Keys (feature 036)
+
+Two new keys added to `app_en.arb`, `app_de.arb`, and `app_uk.arb` for the edit flow:
+
+| Key | English |
+|-----|---------|
+| `medsEditTitle` | Edit medication |
+| `medsEditSaveSuccess` | Medication updated |
+
+Both keys have `@`-description metadata in `app_en.arb`.
+
 ## Tests
 
 - `test/features/meds/domain/usecases/add_medication_test.dart` — 5 unit tests: happy path, name-empty, no-times, course-duration-zero, repository-failure passthrough. Uses a `mocktail` mock for `MedicationRepository` and a fixed `Clock`.
-- `test/features/meds/data/repositories/medication_repository_impl_test.dart` — in-memory drift round-trip and failure path.
+- `test/features/meds/domain/usecases/edit_medication_test.dart` — (feature 036) id/createdAt preservation on update, slot-ID reconciliation (unchanged minutes keep their id, new minutes mint one), each of the 4 validation branches, and repository-failure passthrough.
+- `test/features/meds/data/repositories/medication_repository_impl_test.dart` — in-memory drift round-trip and failure path for `add()` and `watchAll()`; a `MedicationRepositoryImpl.update()` group (feature 036) covers in-place row update, preserved/added/removed slot IDs, and the failure path.
 - `test/features/meds/data/mappers/medication_mapper_test.dart` — 45 tests covering every nullable field combination and the full domain→companion→row→domain round-trip.
-- `test/features/meds/presentation/widgets/add_medication_modal_test.dart` — rewritten: valid input invokes the use case and pops; invalid input shows the error SnackBar and does not pop. The earlier "Save is a no-op" assertions are removed.
+- `test/features/meds/presentation/widgets/add_medication_modal_test.dart` — rewritten: valid input invokes the use case and pops; invalid input shows the error SnackBar and does not pop. The earlier "Save is a no-op" assertions are removed. An `AddMedicationModal edit mode (spec 036)` group covers pre-fill and update-routing.
+- `test/features/meds/presentation/widgets/medication_tile_test.dart` — a `MedicationTile onTap (spec 036)` group covers tap-triggers-callback and the unchanged non-interactive default when `onTap` is `null`.
 
 ## What This Feature Does NOT Include
 
 - Reading / listing saved medications (`getAll` / `watch`) — body of `MedsScreen` remains `SizedBox.shrink()`. A future "meds list" spec adds the reactive query, empty state, and the FK index on `TimeSlots.medicationId`.
-- Editing, deleting, or querying a medication beyond `add`.
+- Editing a medication beyond `add` — see [feature 036](#update--edit-flow-end-to-end) which added the full edit path.
+- Deleting a medication. The cascade FK (`onDelete: cascade` on `TimeSlots.medicationId`) already supports it structurally; a dedicated `DeleteMedication` use case and `MedicationRepository.delete` method are deferred to a future spec.
 - Notifications or reminder scheduling.
 - `Intakes` records, intake state machine, or adherence calculation.
 - Schedule frequencies other than `daily`.
@@ -320,10 +390,14 @@ Five new keys added to `app_en.arb`, `app_de.arb`, and `app_uk.arb`:
 3. Reconstruct the `Medication` aggregate from the row + its `TimeSlotRow`s using the existing mapper.
 4. Consider adding a database index on `TimeSlots.medicationId` for performance once the list query is introduced.
 
+**Adding an update path (already implemented — see feature 036)**
+
+The update path now exists as `MedicationRepository.update`, `EditMedication`, `editMedicationProvider`, and `MedicationLocalDataSource.upsertMedication`. See the [Update / Edit Flow](#update--edit-flow-end-to-end) section above for the full walkthrough.
+
 **Adding a new use case (e.g. `DeleteMedication`)**
 
 1. Add `Future<Either<Failure, Unit>> delete(MedicationId id)` to `MedicationRepository`.
-2. Implement in `MedicationRepositoryImpl` — the cascade FK means deleting the medication row automatically removes its time slots.
+2. Implement in `MedicationRepositoryImpl` — the `onDelete: cascade` FK means deleting the medication row automatically removes its time slots.
 3. Add the use case class under `domain/usecases/`.
 4. Wire a new provider in `medication_providers.dart`.
 
@@ -333,8 +407,9 @@ Always bump `AppDatabase.schemaVersion` and add a migration to `MigrationStrateg
 
 ## Related
 
-- [`meds.md`](meds.md) — the add-medication modal's visual history (features 026–031), screen structure, and localization keys
+- [`meds.md`](meds.md) — the add/edit modal's visual history (features 026–031, 036), screen structure, tile tap wiring, and localization keys
 - [`../architecture.md`](../architecture.md) — Clean Architecture layering, Riverpod patterns, `Either<Failure,T>`, and the new database section
-- [`../../specs/032-med-persistence/spec.md`](../../specs/032-med-persistence/spec.md) — the full spec with all acceptance criteria
+- [`../../specs/032-med-persistence/spec.md`](../../specs/032-med-persistence/spec.md) — the full add spec with all acceptance criteria
 - [`../../specs/032-med-persistence/data-model.md`](../../specs/032-med-persistence/data-model.md) — entity/table reference
+- [`../../specs/036-meds-edit/spec.md`](../../specs/036-meds-edit/spec.md) — the edit spec: tap-to-edit, slot reconciliation, upsert constraints
 - [`../../constitution.md`](../../constitution.md) — §2.1 (domain purity), §4.2.1 (drift as system of record)

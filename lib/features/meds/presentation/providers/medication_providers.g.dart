@@ -202,6 +202,70 @@ final class AddMedicationProvider
 
 String _$addMedicationHash() => r'abcc2f0b1bc60481670ee87f7601c940bc8fec74';
 
+/// Provides the [EditMedication] use case wired to the medication repository and
+/// the application-wide [IdGenerator].
+///
+/// This is the domain operation the edit-medication modal consumes to validate
+/// input, reconcile time-slot identifiers, and persist an update while
+/// preserving the medication's original id and creation time; it depends only
+/// on domain abstractions.
+
+@ProviderFor(editMedication)
+final editMedicationProvider = EditMedicationProvider._();
+
+/// Provides the [EditMedication] use case wired to the medication repository and
+/// the application-wide [IdGenerator].
+///
+/// This is the domain operation the edit-medication modal consumes to validate
+/// input, reconcile time-slot identifiers, and persist an update while
+/// preserving the medication's original id and creation time; it depends only
+/// on domain abstractions.
+
+final class EditMedicationProvider
+    extends $FunctionalProvider<EditMedication, EditMedication, EditMedication>
+    with $Provider<EditMedication> {
+  /// Provides the [EditMedication] use case wired to the medication repository and
+  /// the application-wide [IdGenerator].
+  ///
+  /// This is the domain operation the edit-medication modal consumes to validate
+  /// input, reconcile time-slot identifiers, and persist an update while
+  /// preserving the medication's original id and creation time; it depends only
+  /// on domain abstractions.
+  EditMedicationProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'editMedicationProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$editMedicationHash();
+
+  @$internal
+  @override
+  $ProviderElement<EditMedication> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  EditMedication create(Ref ref) {
+    return editMedication(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(EditMedication value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<EditMedication>(value),
+    );
+  }
+}
+
+String _$editMedicationHash() => r'ef0f50268b82578e65ff242c9bfd7341ef57eb8b';
+
 /// Reactively exposes all persisted medications as `AsyncValue<List<Medication>>`.
 ///
 /// Watches the repository's [MedicationRepository.watchAll] stream and folds each

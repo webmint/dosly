@@ -220,6 +220,12 @@ class AppLocalizationsUk extends AppLocalizations {
   String get medsAddSaveSuccess => 'Ліки збережено';
 
   @override
+  String get medsEditTitle => 'Редагувати ліки';
+
+  @override
+  String get medsEditSaveSuccess => 'Ліки оновлено';
+
+  @override
   String get medsAddSaveErrorName => 'Введіть назву ліків';
 
   @override

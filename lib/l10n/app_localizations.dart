@@ -490,6 +490,18 @@ abstract class AppLocalizations {
   /// **'Medication saved'**
   String get medsAddSaveSuccess;
 
+  /// App-bar title shown when editing an existing medication.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit medication'**
+  String get medsEditTitle;
+
+  /// SnackBar message shown after an existing medication is successfully updated.
+  ///
+  /// In en, this message translates to:
+  /// **'Medication updated'**
+  String get medsEditSaveSuccess;
+
   /// Validation error shown when the user attempts to save without entering a medication name.
   ///
   /// In en, this message translates to:

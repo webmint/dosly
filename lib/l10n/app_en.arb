@@ -262,6 +262,14 @@
   "@medsAddSaveSuccess": {
     "description": "SnackBar message shown when a medication is successfully saved from the Add-medication modal."
   },
+  "medsEditTitle": "Edit medication",
+  "@medsEditTitle": {
+    "description": "App-bar title shown when editing an existing medication."
+  },
+  "medsEditSaveSuccess": "Medication updated",
+  "@medsEditSaveSuccess": {
+    "description": "SnackBar message shown after an existing medication is successfully updated."
+  },
   "medsAddSaveErrorName": "Enter a medication name",
   "@medsAddSaveErrorName": {
     "description": "Validation error shown when the user attempts to save without entering a medication name."

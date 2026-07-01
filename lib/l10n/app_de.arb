@@ -65,6 +65,8 @@
   "medsAddCourseRangeLabel": "Kur: {range} ({count, plural, =1{1 Tag} other{{count} Tage}})",
   "medsAddCourseStartOnly": "Kur beginnt {date}",
   "medsAddSaveSuccess": "Medikament gespeichert",
+  "medsEditTitle": "Medikament bearbeiten",
+  "medsEditSaveSuccess": "Medikament aktualisiert",
   "medsAddSaveErrorName": "Bitte Medikamentennamen eingeben",
   "medsAddSaveErrorTimes": "Mindestens eine Einnahmezeit hinzufügen",
   "medsAddSaveErrorDuration": "Die Kurdauer muss mindestens 1 Tag betragen",
