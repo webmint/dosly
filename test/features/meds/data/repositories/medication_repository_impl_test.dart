@@ -8,6 +8,9 @@
 ///     it as an [UnknownFailure].
 ///   - watchAll happy path: emits [Right] with fully-mapped [Medication]s.
 ///   - watchAll failure path: emits [Left(Failure)] on error — never throws.
+///   - delete happy path: [delete] returns [Right(null)] and removes the row.
+///   - delete failure path: a thrown data-source exception maps to
+///     [Left(UnknownFailure)] — never throws.
 library;
 
 import 'package:dosly/core/database/database.dart';
@@ -464,6 +467,64 @@ void main() {
       );
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // delete
+  // ---------------------------------------------------------------------------
+  group('MedicationRepositoryImpl.delete()', () {
+    group('happy path', () {
+      test(
+        'should return Right(null) when the medication is successfully removed',
+        () async {
+          await repository.add(_medication);
+
+          final Either<Failure, void> result =
+              await repository.delete(_medication.id);
+
+          expect(result.isRight(), isTrue);
+          expect(result, isA<Right<Failure, void>>());
+        },
+      );
+
+      test('should remove the medication row from the database', () async {
+        await repository.add(_medication);
+
+        await repository.delete(_medication.id);
+
+        final rows = await db.select(db.medications).get();
+        expect(rows, isEmpty);
+      });
+
+      test(
+        'should return Right(null) — a no-op — when deleting an id that does not exist',
+        () async {
+          final result = await repository.delete(
+            const MedicationId('does-not-exist'),
+          );
+
+          expect(result.isRight(), isTrue);
+        },
+      );
+    });
+
+    group('failure path', () {
+      test(
+        'should return Left(UnknownFailure) — not throw — when deleteMedication throws',
+        () async {
+          final errorSource = _DeleteErroringDataSource();
+          final errorRepo = MedicationRepositoryImpl(errorSource);
+
+          final Either<Failure, void> result =
+              await errorRepo.delete(_medication.id);
+
+          result.fold(
+            (failure) => expect(failure, isA<UnknownFailure>()),
+            (_) => fail('expected Left, got Right'),
+          );
+        },
+      );
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -509,4 +570,21 @@ class _UpsertErroringDataSource extends MedicationLocalDataSource {
     List<TimeSlotsCompanion> slots,
   ) =>
       throw StateError('simulated upsert failure');
+}
+
+/// A [MedicationLocalDataSource] subclass whose [deleteMedication] always
+/// throws. Used to verify [MedicationRepositoryImpl.delete()] maps data-source
+/// exceptions to [Left(UnknownFailure)] without rethrowing.
+///
+/// Mirrors [_UpsertErroringDataSource]'s pattern: the injected DB is never
+/// opened because only the overridden method is exercised.
+class _DeleteErroringDataSource extends MedicationLocalDataSource {
+  _DeleteErroringDataSource() : super(_unreachableDb());
+
+  static AppDatabase _unreachableDb() =>
+      AppDatabase(NativeDatabase.memory());
+
+  @override
+  Future<void> deleteMedication(String id) =>
+      throw StateError('simulated delete failure');
 }

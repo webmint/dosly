@@ -11,6 +11,7 @@ import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failures.dart';
 import '../entities/medication.dart';
+import '../value_objects/medication_id.dart';
 
 /// Persistence contract for [Medication] aggregates.
 ///
@@ -34,4 +35,13 @@ abstract interface class MedicationRepository {
   /// callers can drive a live-updating UI. Errors are surfaced as
   /// `Left(Failure)`, never thrown.
   Stream<Either<Failure, List<Medication>>> watchAll();
+
+  /// Removes the medication identified by [id] and — via the database's
+  /// `onDelete: cascade` foreign key — all of its time slots.
+  ///
+  /// Deleting an [id] that does not exist is a successful no-op (idempotent),
+  /// returning `Right`; only a storage error surfaces as `Left(Failure)`.
+  /// Everything returns `Either<Failure, T>` so callers handle both paths
+  /// (constitution §3.2).
+  Future<Either<Failure, void>> delete(MedicationId id);
 }

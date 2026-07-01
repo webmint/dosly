@@ -23,6 +23,7 @@ import 'package:dosly/features/meds/domain/entities/schedule.dart';
 import 'package:dosly/features/meds/domain/entities/time_slot.dart';
 import 'package:dosly/features/meds/domain/repositories/medication_repository.dart';
 import 'package:dosly/features/meds/domain/usecases/add_medication.dart';
+import 'package:dosly/features/meds/domain/usecases/delete_medication.dart';
 import 'package:dosly/features/meds/domain/usecases/edit_medication.dart';
 import 'package:dosly/features/meds/domain/value_objects/medication_id.dart';
 import 'package:dosly/features/meds/domain/value_objects/time_slot_id.dart';
@@ -68,6 +69,10 @@ class _FakeMedicationRepository implements MedicationRepository {
   @override
   Stream<Either<Failure, List<Medication>>> watchAll() =>
       const Stream<Either<Failure, List<Medication>>>.empty();
+
+  @override
+  Future<Either<Failure, void>> delete(MedicationId id) async =>
+      const Right(null);
 }
 
 /// A recording [MedicationRepository] that captures the last [Medication]
@@ -85,6 +90,28 @@ class _RecordingMedicationRepository implements MedicationRepository {
   /// has not been called yet.
   Medication? capturedUpdate;
 
+  /// The [MedicationId] from the most recent [delete] call, or `null` if
+  /// [delete] has not been called yet.
+  ///
+  /// Used by the delete widget tests (spec 037) to assert the trash action
+  /// forwards the *original* medication's id, not a stale/edited one.
+  MedicationId? capturedDeleteId;
+
+  /// Number of times [delete] has been invoked — used to assert "called
+  /// exactly once" and "never called" (Cancel no-op) expectations.
+  int deleteCallCount = 0;
+
+  /// The value [delete] resolves to. Defaults to a successful no-op; tests
+  /// override this to `Left(...)` to exercise the failure SnackBar path.
+  Either<Failure, void> deleteResult = const Right(null);
+
+  /// If non-null, the next [delete] call returns this completer's future
+  /// instead of resolving immediately. Used by the in-flight guard test
+  /// (spec 037 AC-12) to keep a delete pending so the trash button's
+  /// disabled state can be asserted mid-flight — mirrors
+  /// [_FakeMedicationRepository.completer]'s technique for save.
+  Completer<Either<Failure, void>>? deleteCompleter;
+
   @override
   Future<Either<Failure, Medication>> add(Medication medication) async {
     captured = medication;
@@ -100,6 +127,16 @@ class _RecordingMedicationRepository implements MedicationRepository {
   @override
   Stream<Either<Failure, List<Medication>>> watchAll() =>
       const Stream<Either<Failure, List<Medication>>>.empty();
+
+  @override
+  Future<Either<Failure, void>> delete(MedicationId id) async {
+    capturedDeleteId = id;
+    deleteCallCount++;
+    if (deleteCompleter != null) {
+      return deleteCompleter!.future;
+    }
+    return deleteResult;
+  }
 }
 
 /// A fake [IdGenerator] that returns deterministic sequential IDs.
@@ -2470,6 +2507,395 @@ void main() {
             reason:
                 'type must remain ContinuousType and startDate must not be reset to clock.now()',
           );
+        });
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Delete affordance and flow (spec 037-meds-delete)
+  //
+  // Reuses editPersistenceHarness/editFixture from the spec-036 edit-mode
+  // group above so the modal is pushed on top of a base route and
+  // Navigator.pop is observable — the same setup the edit-mode Save-success
+  // test (AC-10/AC-11 assertions below) relies on. Only deleteMedicationProvider
+  // is overridden: _onDelete never reads addMedicationProvider/
+  // editMedicationProvider, so those are left at their defaults (unused,
+  // never constructed, since Riverpod providers are lazy).
+  // ---------------------------------------------------------------------------
+  group('AddMedicationModal delete (spec 037)', () {
+    // Fixed clock — mirrors the spec-036 edit-mode group so CourseCard
+    // rendering (driven by editFixture()'s Course type) is deterministic.
+    final deleteClock = Clock.fixed(DateTime(2026, 4, 1));
+
+    const deleteTooltip = 'Delete medication';
+
+    List<Override> buildDeleteOverrides(_RecordingMedicationRepository repo) => [
+      deleteMedicationProvider.overrideWith((_) => DeleteMedication(repo)),
+    ];
+
+    // -------------------------------------------------------------------------
+    // (1) AC-7 — trash action is present in edit mode, found via its tooltip
+    // (not find.byIcon — MEMORY F035: an unscoped byIcon lookup is ambiguous
+    // once a glyph appears more than once on screen; the tooltip is unique).
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'edit mode: trash action is present, found via its tooltip (spec 037)',
+      (tester) async {
+        final repo = _RecordingMedicationRepository();
+        final fixture = editFixture();
+
+        await withClock(deleteClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: buildDeleteOverrides(repo),
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+        });
+
+        expect(find.byTooltip(deleteTooltip), findsOneWidget);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (2) AC-7 — trash action is absent in add mode (initial: null).
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'add mode: trash action is absent (spec 037)',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        expect(find.byTooltip(deleteTooltip), findsNothing);
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (3) AC-8 — tapping the trash action shows an AlertDialog naming the
+    // fixture medication.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'tapping trash opens an AlertDialog whose body names the medication (spec 037)',
+      (tester) async {
+        final repo = _RecordingMedicationRepository();
+        final fixture = editFixture();
+
+        await withClock(deleteClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: buildDeleteOverrides(repo),
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.byTooltip(deleteTooltip));
+          await tester.pumpAndSettle();
+
+          expect(find.byType(AlertDialog), findsOneWidget);
+          expect(
+            find.descendant(
+              of: find.byType(AlertDialog),
+              matching: find.textContaining(fixture.name),
+            ),
+            findsOneWidget,
+          );
+        });
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (4) AC-9 — Cancel dismisses the dialog, the modal remains, and the
+    // delete use case is never invoked.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'tapping Cancel dismisses the dialog without invoking delete (spec 037)',
+      (tester) async {
+        final repo = _RecordingMedicationRepository();
+        final fixture = editFixture();
+
+        await withClock(deleteClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: buildDeleteOverrides(repo),
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.byTooltip(deleteTooltip));
+          await tester.pumpAndSettle();
+
+          await tester.tap(
+            find.descendant(
+              of: find.byType(AlertDialog),
+              matching: find.text('Cancel'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Dialog is gone.
+          expect(find.byType(AlertDialog), findsNothing);
+
+          // Modal remains — the edit-mode AppBar title is still visible.
+          expect(
+            find.descendant(
+              of: find.byType(AppBar),
+              matching: find.text('Edit medication'),
+            ),
+            findsOneWidget,
+          );
+
+          // Delete use case was never invoked.
+          expect(repo.deleteCallCount, 0);
+          expect(repo.capturedDeleteId, isNull);
+        });
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (5) AC-10 — confirming delete (Right branch) invokes the use case
+    // exactly once with the original id, pops the modal, and shows the
+    // localized success SnackBar. Asserted the same way the spec-036
+    // Save-success test asserts pop + SnackBar.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'confirming delete calls the use case once, pops the modal, and shows medsDeleteSuccess (spec 037)',
+      (tester) async {
+        final repo = _RecordingMedicationRepository();
+        final fixture = editFixture();
+
+        await withClock(deleteClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: buildDeleteOverrides(repo),
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+
+          // Confirm the modal is open before acting.
+          expect(find.byType(AddMedicationModal), findsOneWidget);
+
+          await tester.tap(find.byTooltip(deleteTooltip));
+          await tester.pumpAndSettle();
+
+          await tester.tap(
+            find.descendant(
+              of: find.byType(AlertDialog),
+              matching: find.text('Delete'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Use case invoked exactly once with the original medication's id.
+          expect(repo.deleteCallCount, 1);
+          expect(repo.capturedDeleteId, fixture.id);
+
+          // Success SnackBar (medsDeleteSuccess).
+          expect(find.text('Medication deleted'), findsOneWidget);
+
+          // Modal is popped — base route (launcher button) is visible again,
+          // exactly like the spec-036 Save-success assertion.
+          expect(find.byType(AddMedicationModal), findsNothing);
+          expect(find.byKey(const ValueKey('openEditModal')), findsOneWidget);
+        });
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (6) AC-11 — confirming delete when the repository returns Left shows
+    // the localized error SnackBar and the modal stays open.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'confirming delete on a Left failure shows medsDeleteError and modal stays open (spec 037)',
+      (tester) async {
+        final repo = _RecordingMedicationRepository()
+          ..deleteResult = const Left(Failure.cache('disk write failed'));
+        final fixture = editFixture();
+
+        await withClock(deleteClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: buildDeleteOverrides(repo),
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.byTooltip(deleteTooltip));
+          await tester.pumpAndSettle();
+
+          await tester.tap(
+            find.descendant(
+              of: find.byType(AlertDialog),
+              matching: find.text('Delete'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Use case was still invoked exactly once.
+          expect(repo.deleteCallCount, 1);
+
+          // Error SnackBar (medsDeleteError).
+          expect(
+            find.text("Couldn't delete medication. Please try again."),
+            findsOneWidget,
+          );
+
+          // Dialog is gone but the modal itself stays open.
+          expect(find.byType(AlertDialog), findsNothing);
+          expect(find.byType(AddMedicationModal), findsOneWidget);
+          expect(
+            find.descendant(
+              of: find.byType(AppBar),
+              matching: find.text('Edit medication'),
+            ),
+            findsOneWidget,
+          );
+        });
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (7) AC-12 — the trash IconButton is disabled while a delete is in
+    // flight. Mirrors the spec-032 "FilledButton.onPressed is null while save
+    // is in flight" test's Completer technique, but drives the trash action
+    // instead of Save.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      'trash IconButton.onPressed is null while delete is in flight (spec 037)',
+      (tester) async {
+        final completer = Completer<Either<Failure, void>>();
+        final repo = _RecordingMedicationRepository()
+          ..deleteCompleter = completer;
+        final fixture = editFixture();
+
+        await withClock(deleteClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('en'),
+              overrides: buildDeleteOverrides(repo),
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.byTooltip(deleteTooltip));
+          await tester.pumpAndSettle();
+
+          // Confirm the dialog — the completer never resolves, so the
+          // delete call stays in flight after the dialog dismisses.
+          await tester.tap(
+            find.descendant(
+              of: find.byType(AlertDialog),
+              matching: find.text('Delete'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // The trash button must be disabled while the delete is pending.
+          // find.byTooltip locates the Tooltip wrapping the IconButton's
+          // child, so the IconButton itself is an ancestor of that match.
+          final button = tester.widget<IconButton>(
+            find.ancestor(
+              of: find.byTooltip(deleteTooltip),
+              matching: find.byType(IconButton),
+            ),
+          );
+          expect(button.onPressed, isNull);
+
+          // Resolve the completer to clean up pending timers so the test
+          // runner doesn't report outstanding async work.
+          completer.complete(const Right(null));
+          await tester.pumpAndSettle();
+        });
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (8) AC-13 — DE locale: tooltip and dialog title render the German ARB
+    // strings, not the English fallback.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      "DE locale: trash tooltip and dialog title render 'Medikament löschen' / 'Medikament löschen?' (spec 037)",
+      (tester) async {
+        final repo = _RecordingMedicationRepository();
+        final fixture = editFixture();
+
+        await withClock(deleteClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('de'),
+              overrides: buildDeleteOverrides(repo),
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+
+          // Translated tooltip is present.
+          expect(find.byTooltip('Medikament löschen'), findsOneWidget);
+
+          await tester.tap(find.byTooltip('Medikament löschen'));
+          await tester.pumpAndSettle();
+
+          // Translated dialog title is present.
+          expect(find.text('Medikament löschen?'), findsOneWidget);
+        });
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // (9) AC-13 — UK locale: tooltip and dialog title render the Ukrainian
+    // ARB strings, not the English fallback.
+    // -------------------------------------------------------------------------
+    testWidgets(
+      "UK locale: trash tooltip and dialog title render 'Видалити ліки' / 'Видалити ліки?' (spec 037)",
+      (tester) async {
+        final repo = _RecordingMedicationRepository();
+        final fixture = editFixture();
+
+        await withClock(deleteClock, () async {
+          await tester.pumpWidget(
+            editPersistenceHarness(
+              locale: const Locale('uk'),
+              overrides: buildDeleteOverrides(repo),
+              initial: fixture,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('openEditModal')));
+          await tester.pumpAndSettle();
+
+          // Translated tooltip is present.
+          expect(find.byTooltip('Видалити ліки'), findsOneWidget);
+
+          await tester.tap(find.byTooltip('Видалити ліки'));
+          await tester.pumpAndSettle();
+
+          // Translated dialog title is present.
+          expect(find.text('Видалити ліки?'), findsOneWidget);
         });
       },
     );

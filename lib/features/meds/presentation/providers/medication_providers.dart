@@ -22,6 +22,7 @@ import '../../data/repositories/medication_repository_impl.dart';
 import '../../domain/entities/medication.dart';
 import '../../domain/repositories/medication_repository.dart';
 import '../../domain/usecases/add_medication.dart';
+import '../../domain/usecases/delete_medication.dart';
 import '../../domain/usecases/edit_medication.dart';
 
 part 'medication_providers.g.dart';
@@ -69,6 +70,14 @@ EditMedication editMedication(Ref ref) => EditMedication(
   ref.watch(medicationRepositoryProvider),
   ref.watch(idGeneratorProvider),
 );
+
+/// Provides the [DeleteMedication] use case wired to the medication repository.
+///
+/// The domain operation the edit-medication modal consumes to delete a
+/// medication; it depends only on domain abstractions.
+@riverpod
+DeleteMedication deleteMedication(Ref ref) =>
+    DeleteMedication(ref.watch(medicationRepositoryProvider));
 
 /// Reactively exposes all persisted medications as `AsyncValue<List<Medication>>`.
 ///

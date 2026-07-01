@@ -502,6 +502,48 @@ abstract class AppLocalizations {
   /// **'Medication updated'**
   String get medsEditSaveSuccess;
 
+  /// Tooltip for the AppBar trash-icon button that deletes the current medication.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete medication'**
+  String get medsDeleteButtonTooltip;
+
+  /// Title of the confirmation dialog shown before deleting a medication.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete medication?'**
+  String get medsDeleteDialogTitle;
+
+  /// Body text of the delete-confirmation dialog, naming the medication to be deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? This can\'t be undone.'**
+  String medsDeleteDialogBody(String name);
+
+  /// Label for the destructive confirm button in the delete-medication dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get medsDeleteDialogConfirm;
+
+  /// Label for the cancel button in the delete-medication dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get medsDeleteDialogCancel;
+
+  /// SnackBar message shown after a medication is successfully deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Medication deleted'**
+  String get medsDeleteSuccess;
+
+  /// SnackBar message shown when deleting a medication fails for an unexpected reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete medication. Please try again.'**
+  String get medsDeleteError;
+
   /// Validation error shown when the user attempts to save without entering a medication name.
   ///
   /// In en, this message translates to:

@@ -222,6 +222,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medsEditSaveSuccess => 'Medication updated';
 
   @override
+  String get medsDeleteButtonTooltip => 'Delete medication';
+
+  @override
+  String get medsDeleteDialogTitle => 'Delete medication?';
+
+  @override
+  String medsDeleteDialogBody(String name) {
+    return 'Delete \"$name\"? This can\'t be undone.';
+  }
+
+  @override
+  String get medsDeleteDialogConfirm => 'Delete';
+
+  @override
+  String get medsDeleteDialogCancel => 'Cancel';
+
+  @override
+  String get medsDeleteSuccess => 'Medication deleted';
+
+  @override
+  String get medsDeleteError =>
+      'Couldn\'t delete medication. Please try again.';
+
+  @override
   String get medsAddSaveErrorName => 'Enter a medication name';
 
   @override

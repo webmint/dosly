@@ -2,24 +2,19 @@
 # Session State
 
 ## Current Feature
-036-meds-edit — tap a medication tile to edit it in the existing add-medication modal (first medication UPDATE path through all 3 layers). Branch `spec/036-meds-edit`.
+037-meds-delete — Delete a medication (finish CRUD) — VERIFIED, gaps closed
 
 ## Progress
-ALL 10 tasks COMPLETE + `/review` done + `/fix` closed review gaps 2/6/7. Ready for `/verify` → `/summarize` → `/finalize`.
+All 8 tasks Complete. /review + /verify done → APPROVED. All 3 test gaps closed (587 tests).
+Next: /summarize → /finalize.
 
-| Phase | Status |
-|-------|--------|
-| Tasks 001–010 | Complete |
-| /review (security/perf/test) | Done → `specs/036-meds-edit/review.md` |
-| /fix gaps 2,6,7 (test-only) | Complete |
+## Recent Task Completions
+- /verify: 14/14 ACs PASS; APPROVED
+- Test-hardening: +4 tests (AC-12 in-flight guard, AC-13 DE/UK render, AC-10 delete re-emit) — 587 green
 
 ## Recent Decisions
-- /review verdict: Security PASS (1 Medium = preserve generic-error mapping), Perf clean, Tests GAPS FOUND.
-- /fix closed the high-value gaps: edit-mode validation-failure widget test (Gap 2) + notes & Continuous-startDate preservation assertions (Gaps 6/7). Skipped Low gaps 1/3/4/5/8/9 (parked in review.md; /audit watches them).
-- /fix ran mid-feature → kept its commits as `[WIP]` (not standalone-squashed) so `/finalize` folds them into the one feature commit.
+- All coverage gaps closed; test assessment now ADEQUATE (14/14).
 
-## Verification
-Full `flutter test`: **568/568 pass** (561 baseline + edit tests + 2 gap tests). `dart analyze`: clean. Code review on every task + the fix; all checkpoints APPROVE-with-warnings, all warnings fixed.
-
-## Notes
-2 new source files (`edit_medication.dart`, regen `.g.dart`), 2 l10n keys ×3 locales, no schema change. WIP commits accumulate — squash at /finalize. Lessons in MEMORY (uncollected-fields-wiped-on-edit; edit preserves id/createdAt + cascade-safe upsert; `git rm` the wip.md; /fix-mid-feature squash).
+## Recently Modified Files
+- test/features/meds/presentation/widgets/add_medication_modal_test.dart
+- test/features/meds/data/datasources/medication_local_data_source_delete_test.dart

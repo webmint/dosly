@@ -6,6 +6,8 @@ The **meds feature** owns the Meds tab — destination index 1 in `AppBottomNav`
 
 The feature now spans all three Clean-Architecture layers under `lib/features/meds/`: `presentation/` (screens, widgets, providers), `domain/` (entities, value objects, repository contract, use case), and `data/` (mapper, local data source, repository implementation). See [`medication-persistence.md`](medication-persistence.md) for the full persistence walkthrough.
 
+As of feature 037, medication CRUD is complete: Create (`AddMedication`), Read (`watchAll`), Update (`EditMedication`), and Delete (`DeleteMedication`).
+
 ## MedsScreen
 
 `MedsScreen` (in `lib/features/meds/presentation/screens/meds_screen.dart`) is a `ConsumerStatefulWidget` (upgraded from a placeholder `StatelessWidget` in feature 034) that renders a `Scaffold` with:
@@ -59,6 +61,22 @@ Two `_sectionDivider(ColorScheme)` widgets separate the three groups. Each rende
 ### Section-title labels
 
 The "Intake time" and "Intake type" labels use `colorScheme.onSurfaceVariant` (muted) with ~4px space above and 12px space below. `_StockCard` and `_CourseCard` headers intentionally remain at full-emphasis `colorScheme.onSurface` — they are card headers, not section titles.
+
+### Delete (feature 037)
+
+Completes medication CRUD (Create/Read/Update/**Delete**). In **edit mode only** (`widget.initial != null`), the AppBar renders a trailing error-tinted trash `IconButton` (`LucideIcons.trash2`, tooltip `medsDeleteButtonTooltip`); no delete action exists in add mode.
+
+Tapping it opens a Material `AlertDialog` (`_confirmDelete`, via `showDialog<bool>`):
+- Title `medsDeleteDialogTitle` ("Delete medication?"), body `medsDeleteDialogBody` naming the medication (e.g. `Delete "Aspirin"? This can't be undone.`).
+- **Cancel** (`medsDeleteDialogCancel`) pops the dialog with `false`; **Delete** (`medsDeleteDialogConfirm`, error-colored label) pops with `true`. Dismissing the dialog (barrier tap / back) also resolves to `false`.
+- Only a `true` result proceeds — Cancel/dismiss is a no-op with no state mutation.
+
+On confirm, `_onDelete` invokes `DeleteMedication` via `ref.read(deleteMedicationProvider).call(original.id)`, mirroring `_onSave`'s capture-before-`await` idiom (`ScaffoldMessenger` / `Navigator` / l10n captured before the dialog's `await`) plus a `_isDeleting` in-flight guard that disables the trash button during the call:
+
+- **`Right`** — success SnackBar `medsDeleteSuccess` ("Medication deleted"), then the modal pops. The reactive medications list has already dropped the row.
+- **`Left`** — error SnackBar `medsDeleteError` ("Couldn't delete medication. Please try again."), the modal stays open so the user can retry.
+
+See [`medication-persistence.md`](medication-persistence.md#delete-flow-end-to-end) for the full use-case → repository → data-source path and the cascade-delete details.
 
 ## Medication-Form Picker (iteration 2 — visual only)
 
@@ -553,7 +571,6 @@ Failed inserts are silently discarded so a seeding error never crashes startup. 
 
 - **Tile-tap navigation** — tapping a `MedicationTile` now opens the edit modal (feature 036). A read-only detail screen is still deferred.
 - **Archive state** — medications cannot yet be archived; the Completed status is derived from a non-cyclic course's end date, not from an explicit archive flag.
-- **Delete** — no delete affordance or `DeleteMedication` use case yet; deferred to a future spec.
 
 ## Evolution
 
@@ -569,8 +586,8 @@ The add-medication form is being built iteratively:
 - **Feature 034 (done)** — medication list screen. `MedsScreen` upgraded from a `StatelessWidget` placeholder to a `ConsumerStatefulWidget`. Reactive `watchAll` query added to the data source and repository. `medicationsListProvider` stream provider wires the live list to the UI. Pure `buildMedsListView` view-model function. `MedicationTile`, `MedicationSection` widgets. Active/Completed and course cycle-day derivations added to domain. Debug seeder (`devSeedMedications` + `devSeedProvider`). See the [Medication List Screen](#medication-list-screen-feature-034) section above.
 - **Feature 035 (done)** — meds-list search and empty-state fidelity. Animated slide-in search bar replaces the title-swap approach. Fuzzy name matching (`fuzzyNameScore` in `lib/core/utils/fuzzy_name_match.dart`) replaces the plain substring filter — typo-tolerant with score-ranked results within each section while a query is active. Per-section "nothing found" placeholder gated on `queryActive && items.isEmpty`. Completed-course tiles de-emphasised: 0.65 opacity, neutral `surfaceContainerHighest` badge, grey `surfaceContainerHighest` status chip. Course chip order fixed: type chip before status chip. Integration-test harness updated to override `devSeedProvider` with a no-op to protect golden-flow assertions from debug-seeded rows.
 - **Feature 036 (done)** — tap-to-edit. `AddMedicationModal` gained a `Medication? initial` parameter enabling add/edit dual mode. `_MedicationFormPicker` gained `initialFormKey` to pre-select the form in edit mode. `MedicationTile` wrapped in `InkWell(onTap:)`; `MedicationSection` threads `onTapItem`; `MedsScreen` supplies `_openEditMedicationModal`. Domain: new `EditMedication` use case (slot-ID reconciliation, same 4 validation rules). Data: `MedicationRepository.update` + `MedicationLocalDataSource.upsertMedication` (`insertOnConflictUpdate` to avoid cascade-delete of time slots). Provider: `editMedicationProvider`. New l10n keys: `medsEditTitle`, `medsEditSaveSuccess`. See [`medication-persistence.md`](medication-persistence.md) and [`../../specs/036-meds-edit/spec.md`](../../specs/036-meds-edit/spec.md).
+- **Feature 037 (done)** — delete medication, completing CRUD. Edit-mode-only error-tinted trash `IconButton` in the AppBar opens a Material `AlertDialog` confirmation (`showDialog<bool>`). Domain: new `DeleteMedication` use case (pure pass-through, no validation needed). Data: `MedicationRepository.delete` + `MedicationLocalDataSource.deleteMedication` (single drift `DELETE`; time slots removed by the existing `onDelete: cascade` FK). Provider: `deleteMedicationProvider`. Deleting an absent id is an idempotent success. New l10n keys: `medsDeleteButtonTooltip`, `medsDeleteDialogTitle`, `medsDeleteDialogBody`, `medsDeleteDialogConfirm`, `medsDeleteDialogCancel`, `medsDeleteSuccess`, `medsDeleteError`. See [`medication-persistence.md`](medication-persistence.md#delete-flow-end-to-end) and [`../../specs/037-meds-delete/spec.md`](../../specs/037-meds-delete/spec.md).
 - **Pending** — schedule, reminder, and other form fields as future specs are defined.
-- **Pending** — delete a medication (cascade FK already supports it structurally; needs `DeleteMedication` use case and UI affordance).
 - **Pending** — archive state (explicit flag, not derived from course end date).
 
 No changes to the `AppBar` structure, the `/meds` route path, or the modal-opening pattern are expected.
@@ -589,6 +606,7 @@ No changes to the `AppBar` structure, the `/meds` route path, or the modal-openi
 - [`../../specs/034-meds-list/spec.md`](../../specs/034-meds-list/spec.md) — the spec that built the reactive medication list screen (feature 034)
 - [`../../specs/035-meds-list-search/spec.md`](../../specs/035-meds-list-search/spec.md) — the spec that added fuzzy search, animated search bar, empty-state gating, and completed-tile de-emphasis (feature 035)
 - [`../../specs/036-meds-edit/spec.md`](../../specs/036-meds-edit/spec.md) — the spec that added tap-to-edit, the modal dual mode, slot reconciliation, and the update persistence path (feature 036)
+- [`../../specs/037-meds-delete/spec.md`](../../specs/037-meds-delete/spec.md) — the spec that added the delete flow, completing medication CRUD (feature 037)
 - [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen
 - [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology, routing conventions, the `rootNavigator` context, the local database section, and the reactive read pattern
 - [`i18n.md`](i18n.md) — how ARB keys are added and translated
