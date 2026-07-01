@@ -399,4 +399,98 @@ void main() {
       },
     );
   });
+
+  // -------------------------------------------------------------------------
+  // onTap wiring (spec 036)
+  // -------------------------------------------------------------------------
+  group('MedicationTile onTap (spec 036)', () {
+    testWidgets(
+      'should invoke onTap callback when tile is tapped',
+      (tester) async {
+        var tapped = false;
+
+        await withClock(_fixedClock, () async {
+          await tester.pumpWidget(
+            ProviderScope(
+              child: MaterialApp(
+                locale: const Locale('en'),
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                localeResolutionCallback: resolveAppLocale,
+                home: Scaffold(
+                  body: MedicationTile(
+                    item: _continuousItem(),
+                    onTap: () => tapped = true,
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+        });
+
+        await tester.tap(find.byType(MedicationTile));
+        await tester.pump();
+
+        expect(tapped, isTrue,
+            reason: 'onTap callback must be invoked when the tile is tapped');
+      },
+    );
+
+    testWidgets(
+      'should contain an InkWell when onTap is supplied',
+      (tester) async {
+        await withClock(_fixedClock, () async {
+          await tester.pumpWidget(
+            ProviderScope(
+              child: MaterialApp(
+                locale: const Locale('en'),
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                localeResolutionCallback: resolveAppLocale,
+                home: Scaffold(
+                  body: MedicationTile(
+                    item: _continuousItem(),
+                    onTap: () {},
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+        });
+
+        expect(
+          find.descendant(
+            of: find.byType(MedicationTile),
+            matching: find.byType(InkWell),
+          ),
+          findsOneWidget,
+          reason: 'MedicationTile must include an InkWell when onTap is supplied',
+        );
+      },
+    );
+
+    testWidgets(
+      'should render without error when onTap is null (default non-interactive)',
+      (tester) async {
+        // This test confirms the existing no-onTap render path is preserved by
+        // spec 036's changes — the _harness helper already omits onTap.
+        await withClock(_fixedClock, () async {
+          await tester.pumpWidget(_harness(_continuousItem()));
+          await tester.pumpAndSettle();
+        });
+
+        // Name and status chip are present — tile renders correctly.
+        expect(find.text('Aspirin'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('medTile-tile-cont-001')),
+            matching: find.text('Active'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+  });
 }

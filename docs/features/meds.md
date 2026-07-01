@@ -17,9 +17,28 @@ The feature now spans all three Clean-Architecture layers under `lib/features/me
 
 All UI state (search open flag, query string, active filter) is ephemeral `State` — no Riverpod providers are created for it.
 
-## Add-Medication Modal (iteration 6 — visual only)
+## Add / Edit Medication Modal (iterations 6 + 7)
 
-`AddMedicationModal` (in `lib/features/meds/presentation/widgets/add_medication_modal.dart`) is a `ConsumerStatefulWidget` (upgraded from `StatefulWidget` in feature 032) that owns seven `TextEditingController`s (name, dose, stock-remaining, stock-total, stock-warn, course-duration, course-pause) — all disposed in `dispose()`. It is a full-screen modal with:
+`AddMedicationModal` (in `lib/features/meds/presentation/widgets/add_medication_modal.dart`) is a `ConsumerStatefulWidget` (upgraded from `StatefulWidget` in feature 032) that owns seven `TextEditingController`s (name, dose, stock-remaining, stock-total, stock-warn, course-duration, course-pause) — all disposed in `dispose()`.
+
+### Add/Edit dual mode (`initial` parameter)
+
+`AddMedicationModal` accepts an optional `Medication? initial` parameter (added in feature 036). This single field drives both modes:
+
+- **Add mode** (`initial == null`, default): all fields start empty; AppBar title is `medsAddTitle` ("Add medication"); Save routes to `addMedicationProvider`; success SnackBar uses `medsAddSaveSuccess` ("Medication saved").
+- **Edit mode** (`initial != null`): all fields are pre-filled from the supplied `Medication` in `initState`; AppBar title is `medsEditTitle` ("Edit medication"); Save routes to `editMedicationProvider`; success SnackBar uses `medsEditSaveSuccess` ("Medication updated"). The Save button label remains `medsAddSaveButton` ("Save") in both modes.
+
+The `const` constructor is preserved: `const AddMedicationModal()` for add mode, `AddMedicationModal(initial: medication)` for edit mode.
+
+**Pre-fill in `initState`** (edit mode only):
+- `_nameController.text` is set to `initial.name`.
+- The matching `_MedFormOption` is looked up by `o.key == initial.form.name`; `_selectedForm` is set directly (the picker does not fire `onFormSelected` for this programmatic seed).
+- Dose fields: quantity stepper for tablet/capsule; dose amount + unit index for liquid forms. Unit index defaults to 0 if the stored unit is not found in the form's `doseUnitValues`.
+- Stock fields: populated when the form has stock and `initial.stock != null`.
+- Intake times: slots are converted to `TimeOfDay` values, sorted ascending, and loaded into `_intakeTimes`.
+- Intake type and course fields: `ContinuousType` → `_IntakeType.continuous`; `CourseType` → `_IntakeType.course` with duration, pause, and start-date pre-filled. Start date round-trip: the UTC calendar date is reconstructed as a local `DateTime(y, m, d)` so the save path can re-wrap it to UTC without timezone shift.
+
+It is a full-screen modal with:
 
 - A `Scaffold + AppBar` carrying the localized title `context.l10n.medsAddTitle` ("Add medication").
 - A leading `IconButton` (back arrow, `LucideIcons.arrowLeft`) that calls `Navigator.of(context).pop()`.
@@ -40,8 +59,6 @@ Two `_sectionDivider(ColorScheme)` widgets separate the three groups. Each rende
 ### Section-title labels
 
 The "Intake time" and "Intake type" labels use `colorScheme.onSurfaceVariant` (muted) with ~4px space above and 12px space below. `_StockCard` and `_CourseCard` headers intentionally remain at full-emphasis `colorScheme.onSurface` — they are card headers, not section titles.
-
-The Save button's empty callback is **intentional and documented** (spec 026 through 031, iterations 1–6). It does not validate input, persist data, pop the modal, or give user feedback. Real save behaviour — drift persistence, domain layer, Riverpod provider — will be wired in the data-save iteration. There is still no `domain/` or `data/` layer for this feature.
 
 ## Medication-Form Picker (iteration 2 — visual only)
 
@@ -85,13 +102,15 @@ Forms are defined as a top-level `final List<_MedFormOption>` (a private present
 
 > Note: `LucideIcons.pills` (plural) does not exist in `lucide_icons_flutter` 3.1.12 — `LucideIcons.tablets` is used for the Tablet form.
 
-### Scope and intentional no-ops
+### `initialFormKey` — edit-mode pre-selection (feature 036)
+
+`_MedicationFormPicker` accepts an optional `String? initialFormKey` parameter. When non-null, `initState` looks up the matching `_MedFormOption` by `o.key == initialFormKey` and seeds `_selectedIndex` to that option's index. This causes the collapsed display to show the medication's form (icon, name, sub-description) immediately on first build, without requiring the user to open the grid. The picker does **not** fire `onFormSelected` for this programmatic seed — the parent (`_AddMedicationModalState`) sets `_selectedForm` directly in its own `initState`. When `initialFormKey` is `null` (add mode) the picker starts with no selection, identical to its original behavior.
+
+### Scope
 
 - **No Riverpod**: the picker is a plain `StatefulWidget`. No `ConsumerStatefulWidget`, no provider.
-- **Selection hoisted via callback (spec 028)**: `_MedicationFormPicker` accepts a `ValueChanged<_MedFormOption> onFormSelected` callback. The picker keeps its own `_selectedIndex` / `_isOpen` state; `_AddMedicationModalState` receives the selected option and uses it to conditionally render form-dependent fields (see below). The selection is **not** connected to the Save button.
-- **No persistence**: the selected form and all conditional field values are local state — discarded when the modal closes.
-- **Save remains a no-op** (spec 026–028, unchanged): it still does `onPressed: () {}`.
-- **No domain/data layer** for meds: no `Medication` entity, no `MedicationForm` enum in `lib/`, no repository, no data source.
+- **Selection hoisted via callback (spec 028)**: `_MedicationFormPicker` accepts a `ValueChanged<_MedFormOption> onFormSelected` callback. The picker keeps its own `_selectedIndex` / `_isOpen` state; `_AddMedicationModalState` receives the selected option and uses it to conditionally render form-dependent fields. `onFormSelected` is NOT fired for a programmatic `initialFormKey` seed.
+- Selected form and all conditional field values are local state — discarded when the modal closes.
 
 ## Form-Dependent Fields (iteration 3 — visual only)
 
@@ -234,7 +253,7 @@ This is the project's first **ICU-plural + placeholder** ARB message. `medsAddCo
 
 ## Opening the modal
 
-`MedsScreen` uses a private helper to push the modal:
+`MedsScreen` has two private helpers that push the modal — one for add, one for edit:
 
 ```dart
 void _openAddMedicationModal(BuildContext context) {
@@ -242,6 +261,16 @@ void _openAddMedicationModal(BuildContext context) {
     MaterialPageRoute<void>(
       fullscreenDialog: true,
       builder: (_) => const AddMedicationModal(),
+    ),
+  );
+}
+
+// Added in feature 036 — mirrors the add helper but passes initial.
+void _openEditMedicationModal(BuildContext context, Medication medication) {
+  Navigator.of(context, rootNavigator: true).push(
+    MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (_) => AddMedicationModal(initial: medication),
     ),
   );
 }
@@ -261,8 +290,12 @@ This pattern (`rootNavigator: true` + `MaterialPageRoute(fullscreenDialog: true)
 | `medsAddTitle` | Add medication | Medikament hinzufügen | Додати ліки | `011-meds-add-fab` |
 | `medsAddNameLabel` | Medication name | Medikamentenname | Назва ліків | `026-add-med-name-input` |
 | `medsAddSaveButton` | Save | Speichern | Зберегти | `026-add-med-name-input` |
+| `medsEditTitle` | Edit medication | Medikament bearbeiten | Редагувати ліки | `036-meds-edit` |
+| `medsEditSaveSuccess` | Medication updated | Medikament aktualisiert | Ліки оновлено | `036-meds-edit` |
 
 `medsAddFabTooltip` and `medsAddTitle` are intentionally distinct so they can diverge if UX copy evolves (e.g. a shorter tooltip). `medsAddNameLabel` and `medsAddSaveButton` are the first form-field keys; additional field keys will be added as the form grows.
+
+`medsEditTitle` and `medsEditSaveSuccess` are the two keys added for the edit flow (feature 036). The Save button label is shared: `medsAddSaveButton` ("Save") is used in both add and edit mode. Both new keys exist in `app_en.arb`, `app_de.arb`, and `app_uk.arb` with `@`-description metadata in `app_en.arb`.
 
 ### Form picker (added in `027-med-form-picker`)
 
@@ -486,9 +519,11 @@ Because the matcher is feature-agnostic it lives in `core/utils/` and is reusabl
    - data with `totalCount > 0` → `ListView` with two `MedicationSection` children (continuous then course), 88 px bottom padding to clear the FAB. Both sections are always rendered; per-section empty placeholders appear only when `queryActive` is `true`.
 4. **FAB** (`key: ValueKey('medsAddFab')`) — unchanged from before; opens `AddMedicationModal`.
 
-### Tile anatomy
+### Tile anatomy and tap-to-edit (feature 036)
 
-`MedicationTile` renders one `MedListItem` as a non-interactive `Row` (no `InkWell` — navigation is deferred). Completed-course tiles (`activity == MedicationActivityStatus.completed`) are rendered at **0.65 opacity** via an `Opacity` wrapper that wraps the entire tile:
+`MedicationTile` renders one `MedListItem` as a custom `Row` tile. It accepts an optional `VoidCallback? onTap` callback (added in feature 036). When `onTap` is non-null the entire tile body is wrapped in an `InkWell` that provides ripple feedback; when `onTap` is `null` the tile renders as a non-interactive row (default for callers that do not supply a callback). Completed-course tiles (`activity == MedicationActivityStatus.completed`) are rendered at **0.65 opacity** via an `Opacity` wrapper that wraps the entire tile.
+
+**Tap wiring**: `MedicationSection` received a `void Function(Medication)? onTapItem` parameter; for each tile it passes `onTap: () => onTapItem(items[i].medication)` when the callback is non-null, otherwise `onTap: null`. `MedsScreen` supplies `onTapItem: (med) => _openEditMedicationModal(context, med)` to both the continuous and course sections, so tapping any tile opens the edit modal pre-filled with that medication.
 
 | Slot | Content |
 |------|---------|
@@ -516,8 +551,9 @@ Failed inserts are silently discarded so a seeding error never crashes startup. 
 
 ### Deferred items
 
-- **Tile-tap navigation** — tapping a `MedicationTile` is a no-op; navigation to a detail/edit screen is deferred.
+- **Tile-tap navigation** — tapping a `MedicationTile` now opens the edit modal (feature 036). A read-only detail screen is still deferred.
 - **Archive state** — medications cannot yet be archived; the Completed status is derived from a non-cyclic course's end date, not from an explicit archive flag.
+- **Delete** — no delete affordance or `DeleteMedication` use case yet; deferred to a future spec.
 
 ## Evolution
 
@@ -532,8 +568,9 @@ The add-medication form is being built iteratively:
 - **Feature 032 (done)** — real Save behaviour wired. `AddMedicationModal` converted to a `ConsumerStatefulWidget`. Pure-Dart domain layer added (`Medication`, `MedicationForm`, `TimeSlot`, `Schedule`, `MedicationType`, `Dosage`, `PackStock`, value-object IDs). Local drift database created (`Medications` + `TimeSlots` tables, `schemaVersion=1`). `AddMedication` use case validates and delegates. Save invokes the use case, pops on success, shows a localized error SnackBar on failure, disables the button during the in-flight call. See [`medication-persistence.md`](medication-persistence.md).
 - **Feature 034 (done)** — medication list screen. `MedsScreen` upgraded from a `StatelessWidget` placeholder to a `ConsumerStatefulWidget`. Reactive `watchAll` query added to the data source and repository. `medicationsListProvider` stream provider wires the live list to the UI. Pure `buildMedsListView` view-model function. `MedicationTile`, `MedicationSection` widgets. Active/Completed and course cycle-day derivations added to domain. Debug seeder (`devSeedMedications` + `devSeedProvider`). See the [Medication List Screen](#medication-list-screen-feature-034) section above.
 - **Feature 035 (done)** — meds-list search and empty-state fidelity. Animated slide-in search bar replaces the title-swap approach. Fuzzy name matching (`fuzzyNameScore` in `lib/core/utils/fuzzy_name_match.dart`) replaces the plain substring filter — typo-tolerant with score-ranked results within each section while a query is active. Per-section "nothing found" placeholder gated on `queryActive && items.isEmpty`. Completed-course tiles de-emphasised: 0.65 opacity, neutral `surfaceContainerHighest` badge, grey `surfaceContainerHighest` status chip. Course chip order fixed: type chip before status chip. Integration-test harness updated to override `devSeedProvider` with a no-op to protect golden-flow assertions from debug-seeded rows.
+- **Feature 036 (done)** — tap-to-edit. `AddMedicationModal` gained a `Medication? initial` parameter enabling add/edit dual mode. `_MedicationFormPicker` gained `initialFormKey` to pre-select the form in edit mode. `MedicationTile` wrapped in `InkWell(onTap:)`; `MedicationSection` threads `onTapItem`; `MedsScreen` supplies `_openEditMedicationModal`. Domain: new `EditMedication` use case (slot-ID reconciliation, same 4 validation rules). Data: `MedicationRepository.update` + `MedicationLocalDataSource.upsertMedication` (`insertOnConflictUpdate` to avoid cascade-delete of time slots). Provider: `editMedicationProvider`. New l10n keys: `medsEditTitle`, `medsEditSaveSuccess`. See [`medication-persistence.md`](medication-persistence.md) and [`../../specs/036-meds-edit/spec.md`](../../specs/036-meds-edit/spec.md).
 - **Pending** — schedule, reminder, and other form fields as future specs are defined.
-- **Pending** — tile-tap navigation to a medication detail / edit screen.
+- **Pending** — delete a medication (cascade FK already supports it structurally; needs `DeleteMedication` use case and UI affordance).
 - **Pending** — archive state (explicit flag, not derived from course end date).
 
 No changes to the `AppBar` structure, the `/meds` route path, or the modal-opening pattern are expected.
@@ -551,6 +588,7 @@ No changes to the `AppBar` structure, the `/meds` route path, or the modal-openi
 - [`../../specs/032-med-persistence/spec.md`](../../specs/032-med-persistence/spec.md) — the spec that wired real Save persistence (iteration 7)
 - [`../../specs/034-meds-list/spec.md`](../../specs/034-meds-list/spec.md) — the spec that built the reactive medication list screen (feature 034)
 - [`../../specs/035-meds-list-search/spec.md`](../../specs/035-meds-list-search/spec.md) — the spec that added fuzzy search, animated search bar, empty-state gating, and completed-tile de-emphasis (feature 035)
+- [`../../specs/036-meds-edit/spec.md`](../../specs/036-meds-edit/spec.md) — the spec that added tap-to-edit, the modal dual mode, slot reconciliation, and the update persistence path (feature 036)
 - [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen
 - [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology, routing conventions, the `rootNavigator` context, the local database section, and the reactive read pattern
 - [`i18n.md`](i18n.md) — how ARB keys are added and translated

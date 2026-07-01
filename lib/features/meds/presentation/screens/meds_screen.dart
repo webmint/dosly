@@ -237,12 +237,16 @@ class _MedsScreenState extends ConsumerState<MedsScreen>
                       title: l10n.medsListSectionContinuous,
                       items: view.continuous,
                       queryActive: queryActive,
+                      onTapItem: (med) =>
+                          _openEditMedicationModal(context, med),
                     ),
                     const SizedBox(height: 8),
                     MedicationSection(
                       title: l10n.medsListSectionCourse,
                       items: view.course,
                       queryActive: queryActive,
+                      onTapItem: (med) =>
+                          _openEditMedicationModal(context, med),
                     ),
                   ],
                 );
@@ -391,6 +395,21 @@ void _openAddMedicationModal(BuildContext context) {
     MaterialPageRoute<void>(
       fullscreenDialog: true,
       builder: (_) => const AddMedicationModal(),
+    ),
+  );
+}
+
+/// Opens the Edit-medication modal pre-filled with [medication].
+///
+/// Mirrors [_openAddMedicationModal] exactly — same root navigator, same
+/// full-screen dialog transition — but passes [medication] as the [initial]
+/// argument to [AddMedicationModal] so the form fields are pre-populated for
+/// editing.
+void _openEditMedicationModal(BuildContext context, Medication medication) {
+  Navigator.of(context, rootNavigator: true).push(
+    MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (_) => AddMedicationModal(initial: medication),
     ),
   );
 }

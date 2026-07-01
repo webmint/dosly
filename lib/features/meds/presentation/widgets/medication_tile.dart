@@ -2,8 +2,9 @@
 ///
 /// This library exports [MedicationTile], a dumb display widget that renders
 /// one [MedListItem] — a filled rounded-square icon badge, name, subtitle,
-/// status + type chips, and a non-interactive trailing chevron. It carries NO
-/// business logic, NO providers, and NO tap targets.
+/// status + type chips, and a trailing chevron. It carries NO business logic
+/// and NO providers. An optional [MedicationTile.onTap] callback enables tap
+/// interaction; behavior is supplied by the parent.
 library;
 
 import 'package:flutter/material.dart';
@@ -20,12 +21,14 @@ import '../../../../l10n/l10n_extensions.dart';
 import 'medication_display.dart';
 import 'medication_form_icon.dart';
 
-/// Renders a single [MedListItem] as a non-interactive custom Row tile.
+/// Renders a single [MedListItem] as a custom Row tile with an optional tap target.
 ///
 /// Layout: icon badge → 16 px gap → body Column (Expanded) → 16 px gap →
 /// chevron. The root widget is keyed with `ValueKey('medTile-<id>')` for
-/// stable identity in animated lists. There is no [InkWell] or [GestureDetector]
-/// — navigation is deferred to a later task.
+/// stable identity in animated lists. An [InkWell] wraps the tile body and
+/// is activated when [onTap] is non-null; when [onTap] is `null` the tile
+/// renders identically to its previous non-interactive form. Navigation or
+/// behavior is supplied by the parent widget — this widget remains dumb.
 ///
 /// Icon badge: 48×48 filled rounded square (radius 12). Color variant by type:
 /// - continuous → [ColorScheme.primaryContainer] / [ColorScheme.onPrimaryContainer]
@@ -35,10 +38,19 @@ import 'medication_form_icon.dart';
 /// times · stock), and a [Wrap] of status and type chips.
 class MedicationTile extends StatelessWidget {
   /// Creates a [MedicationTile] for the given [item].
-  const MedicationTile({required this.item, super.key});
+  ///
+  /// Supply [onTap] to make the tile tappable; omit it (or pass `null`) for a
+  /// non-interactive tile that renders exactly as before.
+  const MedicationTile({required this.item, this.onTap, super.key});
 
   /// The medication item to render.
   final MedListItem item;
+
+  /// Optional callback invoked when the user taps the tile.
+  ///
+  /// When non-null, the tile body is wrapped in an [InkWell] that provides a
+  /// ripple feedback. When null, the tile is non-interactive.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -61,33 +73,36 @@ class MedicationTile extends StatelessWidget {
     return Opacity(
       key: ValueKey('medTile-${item.medication.id.value}'),
       opacity: isCompleted ? 0.65 : 1.0,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            // ── Icon badge (.med-iconify) ────────────────────────────────────
-            Container(
-              width: 48,
-              height: 48,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: badgeBg,
-                borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              // ── Icon badge (.med-iconify) ──────────────────────────────────
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: badgeBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  medicationFormIcon(item.medication.form),
+                  size: 26,
+                  color: badgeFg,
+                ),
               ),
-              child: Icon(
-                medicationFormIcon(item.medication.form),
-                size: 26,
-                color: badgeFg,
-              ),
-            ),
-            const SizedBox(width: 16),
-            // ── Body column (.mlt-body) ──────────────────────────────────────
-            Expanded(child: _TileBody(item: item)),
-            const SizedBox(width: 16),
-            // ── Trailing chevron (.mlt-trail) ────────────────────────────────
-            Icon(LucideIcons.chevronRight, size: 20, color: cs.onSurfaceVariant),
-          ],
+              const SizedBox(width: 16),
+              // ── Body column (.mlt-body) ────────────────────────────────────
+              Expanded(child: _TileBody(item: item)),
+              const SizedBox(width: 16),
+              // ── Trailing chevron (.mlt-trail) ──────────────────────────────
+              Icon(LucideIcons.chevronRight, size: 20, color: cs.onSurfaceVariant),
+            ],
+          ),
         ),
       ),
     );

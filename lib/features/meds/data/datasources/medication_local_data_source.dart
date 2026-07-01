@@ -41,6 +41,56 @@ class MedicationLocalDataSource {
     });
   }
 
+  /// Updates [medication] in place and reconciles its [slots] in a single
+  /// transaction.
+  ///
+  /// Unlike [insertMedication] (the create path), this is the edit path: the
+  /// medication row is upserted with `insertOnConflictUpdate`, which performs an
+  /// in-place UPDATE on conflict. This is load-bearing — it must NOT be an
+  /// insert-or-replace: a REPLACE deletes and reinserts the parent medication
+  /// row, which cascade-deletes ALL of its time slots through the
+  /// `onDelete: cascade` foreign key, wiping schedule history. `insertOnConflictUpdate`
+  /// updates the existing row and so never triggers that cascade.
+  ///
+  /// Slots are then reconciled against the incoming set: rows belonging to this
+  /// medication whose ids are absent from [slots] are deleted, then every
+  /// incoming slot is upserted — so an unchanged-id row updates in place and a
+  /// new-id row inserts. Callers (the repository) guarantee [slots] is non-empty
+  /// (the `EditMedication` use case rejects empty intake times upstream); this
+  /// is enforced here by an [ArgumentError] guard so the `isNotIn` filter never
+  /// receives an empty id list — an empty list would compile to `NOT IN ()`,
+  /// which SQLite treats as matching every row, silently deleting all of the
+  /// medication's slots.
+  ///
+  /// Throws on failure (e.g. `SqliteException`); callers in the repository layer
+  /// catch and convert these into `Left(Failure)`. Throws [ArgumentError] if
+  /// [slots] is empty.
+  Future<void> upsertMedication(
+    MedicationsCompanion medication,
+    List<TimeSlotsCompanion> slots,
+  ) async {
+    if (slots.isEmpty) {
+      throw ArgumentError.value(slots, 'slots', 'must not be empty');
+    }
+    await _db.transaction(() async {
+      // In-place UPDATE on conflict — never REPLACE — to preserve time slots
+      // that would otherwise be cascade-deleted (see method docs).
+      await _db.into(_db.medications).insertOnConflictUpdate(medication);
+      final String medId = medication.id.value;
+      final List<String> ids = <String>[for (final s in slots) s.id.value];
+      // Drop only the slots that are no longer part of the medication.
+      await (_db.delete(_db.timeSlots)
+            ..where(
+              (t) => t.medicationId.equals(medId) & t.id.isNotIn(ids),
+            ))
+          .go();
+      // Upsert the remaining slots: unchanged ids update in place, new ids insert.
+      for (final slot in slots) {
+        await _db.into(_db.timeSlots).insertOnConflictUpdate(slot);
+      }
+    });
+  }
+
   /// Watches all medications joined with their time slots, re-emitting whenever
   /// either table changes.
   ///

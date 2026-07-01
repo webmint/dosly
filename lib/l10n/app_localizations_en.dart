@@ -216,6 +216,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medsAddSaveSuccess => 'Medication saved';
 
   @override
+  String get medsEditTitle => 'Edit medication';
+
+  @override
+  String get medsEditSaveSuccess => 'Medication updated';
+
+  @override
   String get medsAddSaveErrorName => 'Enter a medication name';
 
   @override

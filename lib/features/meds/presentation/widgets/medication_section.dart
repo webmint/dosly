@@ -4,12 +4,14 @@
 /// a localized section header followed by a [Column] of [MedicationTile]s
 /// separated by [Divider]s, or an inline empty-state placeholder when the
 /// `[items]` list is empty and a search query is active
-/// (`queryActive && items.isEmpty`). It carries NO business logic, NO
-/// providers, and NO tap targets.
+/// (`queryActive && items.isEmpty`). It carries NO business logic and NO
+/// providers. An optional [MedicationSection.onTapItem] callback enables
+/// per-tile tap interaction; behavior is supplied by the parent.
 library;
 
 import 'package:flutter/material.dart';
 
+import '../../domain/entities/medication.dart';
 import '../view_models/meds_list_view_model.dart';
 import '../../../../l10n/l10n_extensions.dart';
 import 'medication_tile.dart';
@@ -31,12 +33,13 @@ import 'medication_tile.dart';
 /// Uses a plain [Column] (not a nested scrollable) — the scroll context belongs
 /// to the parent screen.
 class MedicationSection extends StatelessWidget {
-  /// Creates a [MedicationSection] with the given [title], [items], and
-  /// [queryActive] flag.
+  /// Creates a [MedicationSection] with the given [title], [items],
+  /// [queryActive] flag, and optional [onTapItem] callback.
   const MedicationSection({
     required this.title,
     required this.items,
     required this.queryActive,
+    this.onTapItem,
     super.key,
   });
 
@@ -52,6 +55,12 @@ class MedicationSection extends StatelessWidget {
   /// indicate no search results. When `false` and [items] is empty, only the
   /// section header is shown (no placeholder).
   final bool queryActive;
+
+  /// Optional callback invoked when the user taps a medication tile.
+  ///
+  /// Receives the [Medication] corresponding to the tapped tile. When null,
+  /// tiles are rendered non-interactively (no ripple).
+  final void Function(Medication medication)? onTapItem;
 
   @override
   Widget build(BuildContext context) {
@@ -84,12 +93,23 @@ class MedicationSection extends StatelessWidget {
   /// Each adjacent pair of tiles is separated by a thin [Divider] inset 16 px
   /// on both sides, matching the `.divider` design spec
   /// (`margin: 0 16px; background: outline-variant`).
+  ///
+  /// When [onTapItem] is non-null, each tile receives a callback that forwards
+  /// the tile's [Medication] to the caller. When null, tiles are non-interactive.
   List<Widget> _buildTileList(BuildContext context, List<MedListItem> items) {
     final Color dividerColor =
         Theme.of(context).colorScheme.outlineVariant;
+    final void Function(Medication medication)? onTapItem = this.onTapItem;
     final List<Widget> children = <Widget>[];
     for (int i = 0; i < items.length; i++) {
-      children.add(MedicationTile(item: items[i]));
+      children.add(
+        MedicationTile(
+          item: items[i],
+          onTap: onTapItem == null
+              ? null
+              : () => onTapItem(items[i].medication),
+        ),
+      );
       if (i < items.length - 1) {
         children.add(
           Divider(

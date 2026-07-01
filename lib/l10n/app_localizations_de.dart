@@ -216,6 +216,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get medsAddSaveSuccess => 'Medikament gespeichert';
 
   @override
+  String get medsEditTitle => 'Medikament bearbeiten';
+
+  @override
+  String get medsEditSaveSuccess => 'Medikament aktualisiert';
+
+  @override
   String get medsAddSaveErrorName => 'Bitte Medikamentennamen eingeben';
 
   @override

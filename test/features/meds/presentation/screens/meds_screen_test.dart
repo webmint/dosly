@@ -153,6 +153,10 @@ class _FakeMedicationRepository implements MedicationRepository {
   @override
   Future<Either<Failure, Medication>> add(Medication medication) async =>
       Right(medication);
+
+  @override
+  Future<Either<Failure, Medication>> update(Medication medication) async =>
+      Right(medication);
 }
 
 /// A [MedicationRepository] whose [watchAll] stream never emits (stays loading).
@@ -164,6 +168,10 @@ class _LoadingMedicationRepository implements MedicationRepository {
   @override
   Future<Either<Failure, Medication>> add(Medication medication) async =>
       Right(medication);
+
+  @override
+  Future<Either<Failure, Medication>> update(Medication medication) async =>
+      Right(medication);
 }
 
 /// A [MedicationRepository] whose [watchAll] emits an error.
@@ -174,6 +182,10 @@ class _ErrorMedicationRepository implements MedicationRepository {
 
   @override
   Future<Either<Failure, Medication>> add(Medication medication) async =>
+      Left(Failure.unknown(Exception('not implemented'), StackTrace.empty));
+
+  @override
+  Future<Either<Failure, Medication>> update(Medication medication) async =>
       Left(Failure.unknown(Exception('not implemented'), StackTrace.empty));
 }
 
@@ -1322,11 +1334,11 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // AC-13 — tile not tappable (no route navigation on tap)
+  // AC-13 — tile tappable (tapping a tile opens the edit modal)
   // -------------------------------------------------------------------------
-  group('MedsScreen AC-13 tile not tappable', () {
+  group('MedsScreen AC-13 tile tappable', () {
     testWidgets(
-      'should not navigate to a new route when a medication tile is tapped',
+      'should open AddMedicationModal when a medication tile is tapped',
       (tester) async {
         await withClock(_fixedClock, () async {
           await tester.pumpWidget(
@@ -1338,15 +1350,17 @@ void main() {
           await tester.pumpAndSettle();
         });
 
-        // Record the widget tree state before the tap.
-        final beforeTap = find.byType(MedsScreen);
-        expect(beforeTap, findsOneWidget);
+        // Tile is present before the tap.
+        expect(
+          find.byKey(const ValueKey('medTile-med-cont-001')),
+          findsOneWidget,
+        );
 
         await tester.tap(find.byKey(const ValueKey('medTile-med-cont-001')));
         await tester.pumpAndSettle();
 
-        // MedsScreen is still present — no route was pushed.
-        expect(find.byType(MedsScreen), findsOneWidget);
+        // AddMedicationModal is pushed — the edit modal is now on top.
+        expect(find.byType(AddMedicationModal), findsOneWidget);
       },
     );
   });

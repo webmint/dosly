@@ -22,6 +22,7 @@ import '../../data/repositories/medication_repository_impl.dart';
 import '../../domain/entities/medication.dart';
 import '../../domain/repositories/medication_repository.dart';
 import '../../domain/usecases/add_medication.dart';
+import '../../domain/usecases/edit_medication.dart';
 
 part 'medication_providers.g.dart';
 
@@ -52,6 +53,19 @@ MedicationRepository medicationRepository(Ref ref) =>
 /// input and persist a new medication; it depends only on domain abstractions.
 @riverpod
 AddMedication addMedication(Ref ref) => AddMedication(
+  ref.watch(medicationRepositoryProvider),
+  ref.watch(idGeneratorProvider),
+);
+
+/// Provides the [EditMedication] use case wired to the medication repository and
+/// the application-wide [IdGenerator].
+///
+/// This is the domain operation the edit-medication modal consumes to validate
+/// input, reconcile time-slot identifiers, and persist an update while
+/// preserving the medication's original id and creation time; it depends only
+/// on domain abstractions.
+@riverpod
+EditMedication editMedication(Ref ref) => EditMedication(
   ref.watch(medicationRepositoryProvider),
   ref.watch(idGeneratorProvider),
 );

@@ -1,7 +1,11 @@
-/// Meds feature — full-screen modal for the Add-medication flow (iteration 7).
+/// Meds feature — full-screen modal for the Add-medication and Edit-medication
+/// flows (spec 032 / spec 036, iteration 7).
 ///
 /// This library hosts [AddMedicationModal], a full-screen modal route
-/// pushed when the user taps the Add-medication FAB on the Meds screen.
+/// pushed either when the user taps the Add-medication FAB (add mode,
+/// `initial == null`) or when the user taps an existing medication tile to
+/// edit it (edit mode, `initial != null`).
+///
 /// The body renders three visual groups separated by two full-bleed section
 /// dividers ([_sectionDivider]):
 ///
@@ -12,11 +16,21 @@
 /// * **Group C** — intake-type title + [SegmentedButton], optional
 ///   [_CourseCard] (spec 030, iteration 5), and Save button.
 ///
-/// **Persistence iteration 7 (spec 032)**: [AddMedicationModal] is now a
-/// [ConsumerStatefulWidget]. The Save button invokes [AddMedication] via
-/// [addMedicationProvider], maps form state to typed domain inputs, and
-/// handles both the success (pop + SnackBar) and failure (field-mapped SnackBar,
-/// stays open) branches. The button is disabled while a save is in flight.
+/// **Add mode** (`initial == null`): all fields start empty; Save invokes
+/// [AddMedication] via [addMedicationProvider]; the AppBar title uses
+/// [AppLocalizations.medsAddTitle] and success uses [AppLocalizations.medsAddSaveSuccess].
+///
+/// **Edit mode** (`initial != null`): all fields are pre-filled from the
+/// supplied [Medication] in `initState`; Save invokes [EditMedication] via
+/// [editMedicationProvider]; the AppBar title uses
+/// [AppLocalizations.medsEditTitle] and success uses [AppLocalizations.medsEditSaveSuccess].
+///
+/// **Persistence iteration 7 (spec 032 / 036)**: [AddMedicationModal] is a
+/// [ConsumerStatefulWidget]. The Save button maps form state to typed domain
+/// inputs, routes to [addMedicationProvider] or [editMedicationProvider]
+/// depending on [AddMedicationModal.initial], and handles both the success
+/// (pop + SnackBar) and failure (field-mapped SnackBar, stays open) branches.
+/// The button is disabled while a save is in flight.
 library;
 
 import 'package:clock/clock.dart';
@@ -28,11 +42,12 @@ import '../../../../core/error/failures.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../l10n/l10n_extensions.dart';
 import '../../domain/entities/dosage.dart';
-import 'medication_form_icon.dart';
 import '../../domain/entities/dose_unit.dart';
+import '../../domain/entities/medication.dart';
 import '../../domain/entities/medication_form.dart';
 import '../../domain/entities/medication_type.dart';
 import '../../domain/entities/pack_stock.dart';
+import 'medication_form_icon.dart';
 import '../providers/medication_providers.dart';
 
 // ---------------------------------------------------------------------------
@@ -258,6 +273,11 @@ final List<_MedFormOption> _medFormOptions = [
 /// * [onFormSelected] is invoked whenever the user commits a selection so that
 ///   the parent can react (e.g. show form-dependent fields — spec 028).
 ///
+/// Edit mode (spec 036, iteration 7): when [initialFormKey] is non-null the
+/// picker pre-selects the matching option in `initState` without firing
+/// [onFormSelected] — the parent seeds its own `_selectedForm` directly.
+/// When [initialFormKey] is `null` (add mode) behavior is identical to before.
+///
 /// No [AnimationController] is used — [AnimatedSize] and [AnimatedRotation]
 /// are implicit animations that manage their own lifecycle.
 class _MedicationFormPicker extends StatefulWidget {
@@ -265,7 +285,16 @@ class _MedicationFormPicker extends StatefulWidget {
   ///
   /// [onFormSelected] is called with the newly selected [_MedFormOption]
   /// every time the user picks an option from the grid.
-  const _MedicationFormPicker({required this.onFormSelected});
+  ///
+  /// [initialFormKey] may be supplied in edit mode to pre-select the
+  /// medication's existing form. It must match one of the [_MedFormOption.key]
+  /// values in [_medFormOptions]; if the key is not found the picker starts
+  /// with no selection (same as add mode).  When `null` (add mode) this
+  /// parameter has no effect.
+  const _MedicationFormPicker({
+    required this.onFormSelected,
+    this.initialFormKey,
+  });
 
   /// Callback invoked after the user taps an option chip.
   ///
@@ -273,6 +302,14 @@ class _MedicationFormPicker extends StatefulWidget {
   /// (spec 028, iteration 3).  The picker keeps its own `_selectedIndex`
   /// and `_isOpen` state; this callback is purely additive.
   final ValueChanged<_MedFormOption> onFormSelected;
+
+  /// Optional form key used to pre-select an option in edit mode (spec 036).
+  ///
+  /// Must equal one of the [_MedFormOption.key] values in [_medFormOptions]
+  /// (e.g. `'tablet'`, `'syrup'`). When non-null, `initState` seeds
+  /// `_selectedIndex` once without firing [onFormSelected]. When `null`
+  /// the picker starts with no selection, identical to add mode.
+  final String? initialFormKey;
 
   @override
   State<_MedicationFormPicker> createState() => _MedicationFormPickerState();
@@ -285,6 +322,16 @@ class _MedicationFormPickerState extends State<_MedicationFormPicker> {
 
   /// Whether the option grid is currently visible.
   bool _isOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final key = widget.initialFormKey;
+    if (key != null) {
+      final i = _medFormOptions.indexWhere((o) => o.key == key);
+      if (i >= 0) _selectedIndex = i;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1024,8 +1071,17 @@ class _CourseCard extends StatelessWidget {
 // AddMedicationModal
 // ---------------------------------------------------------------------------
 
-/// Full-screen modal shown when the user taps the Add-medication FAB on the
-/// Meds screen.
+/// Full-screen modal serving both the Add-medication flow and the
+/// Edit-medication flow (spec 036, iteration 7).
+///
+/// When [initial] is `null` (add mode), behaves exactly as before spec 036:
+/// all fields start empty and Save invokes [addMedicationProvider].
+///
+/// When [initial] is non-null (edit mode), all fields are pre-filled from
+/// the supplied [Medication] in `initState` and Save invokes
+/// [editMedicationProvider] instead.  The AppBar title switches to
+/// [AppLocalizations.medsEditTitle] and the success SnackBar uses
+/// [AppLocalizations.medsEditSaveSuccess].
 ///
 /// Renders a [Scaffold] with:
 /// * an [AppBar] (back-arrow leading + localized title via
@@ -1040,20 +1096,32 @@ class _CourseCard extends StatelessWidget {
 ///     * [_StockCard] for tablet / capsule,
 ///   - an intake-time chips section [_TimeChips] (spec 029, iteration 4),
 ///   - a full-width [FilledButton.icon] Save button that invokes
-///     [addMedicationProvider] on tap (spec 032, iteration 7).
+///     [addMedicationProvider] or [editMedicationProvider] on tap
+///     (spec 032, iteration 7; spec 036, iteration 7).
 ///
 /// **Persistence iteration 7 (spec 032)**: [AddMedicationModal] extends
 /// [ConsumerStatefulWidget]. Save maps local form state to typed domain
-/// inputs, calls [AddMedication] via [addMedicationProvider], shows a
-/// success SnackBar and pops on the Right branch, or shows a field-mapped
-/// error SnackBar and stays open on the Left branch. The Save button is
-/// disabled while saving is in flight.
+/// inputs, calls the relevant use case, shows a success SnackBar and pops
+/// on the Right branch, or shows a field-mapped error SnackBar and stays
+/// open on the Left branch. The Save button is disabled while saving is in
+/// flight.
 ///
 /// The modal is pushed via `Navigator.push(MaterialPageRoute(
 /// fullscreenDialog: true, ...))` from `meds_screen.dart`.
 class AddMedicationModal extends ConsumerStatefulWidget {
-  /// Creates the Add-medication modal.
-  const AddMedicationModal({super.key});
+  /// Creates the medication modal.
+  ///
+  /// [initial] is the existing [Medication] to pre-fill when editing, or
+  /// `null` to start an empty add flow.
+  const AddMedicationModal({super.key, this.initial});
+
+  /// The medication to pre-fill and update, or `null` for the add flow.
+  ///
+  /// When non-null, all form fields are seeded from this value in `initState`
+  /// and Save routes to [editMedicationProvider].  When `null` the modal
+  /// behaves identically to before spec 036 — all fields start empty and Save
+  /// routes to [addMedicationProvider].
+  final Medication? initial;
 
   @override
   ConsumerState<AddMedicationModal> createState() =>
@@ -1160,6 +1228,77 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
   // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    if (initial != null) {
+      // Pre-fill name.
+      _nameController.text = initial.name;
+
+      // Resolve and pre-fill the form option.
+      // Use a null-safe lookup so that a future [MedicationForm] value with no
+      // matching option leaves [_selectedForm] null rather than throwing a
+      // [StateError] at runtime.
+      final matches = _medFormOptions.where((o) => o.key == initial.form.name);
+      _selectedForm = matches.isEmpty ? null : matches.first;
+      final form = _selectedForm;
+
+      // Pre-fill dose fields based on the form's capability flags.
+      if (form != null) {
+        if (form.hasQuantity) {
+          _quantity = initial.dosePerIntake?.amount ?? form.quantityMin;
+        } else if (form.hasDose) {
+          _doseController.text =
+              _formatQuantity(initial.dosePerIntake?.amount ?? 0);
+          final unit = initial.dosePerIntake?.unit;
+          final idx =
+              unit == null ? 0 : form.doseUnitValues.indexOf(unit);
+          _selectedDoseUnitIndex = idx < 0 ? 0 : idx;
+        }
+
+        // Pre-fill stock fields.
+        if (form.hasStock) {
+          final stock = initial.stock;
+          if (stock != null) {
+            _stockRemainingController.text = stock.remaining.toString();
+            _stockTotalController.text = stock.total.toString();
+            _stockWarnController.text = stock.warnAt.toString();
+          }
+        }
+      }
+
+      // Pre-fill intake time chips (sorted ascending).
+      _intakeTimes.addAll(
+        initial.schedule.slots.map(
+          (s) => TimeOfDay(
+            hour: s.minuteOfDay ~/ 60,
+            minute: s.minuteOfDay % 60,
+          ),
+        ),
+      );
+      _intakeTimes.sort(
+        (a, b) =>
+            (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute),
+      );
+
+      // Pre-fill intake type and course fields.
+      switch (initial.type) {
+        case ContinuousType():
+          _intakeType = _IntakeType.continuous;
+        case CourseType(
+          :final startDate,
+          :final durationDays,
+          :final pauseDays,
+        ):
+          _intakeType = _IntakeType.course;
+          _durationController.text = durationDays.toString();
+          _pauseController.text = pauseDays.toString();
+          _startDate = DateTime(startDate.year, startDate.month, startDate.day);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -1368,10 +1507,13 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
   // Save logic (spec 032, iteration 7)
   // -------------------------------------------------------------------------
 
-  /// Maps the current form state to typed domain inputs and invokes
-  /// [AddMedication] via [addMedicationProvider].
+  /// Maps the current form state to typed domain inputs and routes to
+  /// [addMedicationProvider] (when [AddMedicationModal.initial] is `null`)
+  /// or [editMedicationProvider] (when non-null).
   ///
-  /// On the [Right] branch shows a success [SnackBar] and pops the modal.
+  /// On the [Right] branch shows a success [SnackBar]
+  /// ([AppLocalizations.medsAddSaveSuccess] in add mode,
+  /// [AppLocalizations.medsEditSaveSuccess] in edit mode) and pops the modal.
   /// On the [Left] branch shows a field-mapped error [SnackBar] and stays
   /// open so the user can correct the input.  The Save button is disabled
   /// for the duration of the async call via [_isSaving].
@@ -1384,6 +1526,7 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final original = widget.initial;
 
     final form = _selectedForm;
     if (form == null) {
@@ -1445,10 +1588,18 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
     // Medication type — continuous or course.
     final MedicationType type;
     if (_intakeType == _IntakeType.continuous) {
-      final now = clock.now();
-      type = MedicationType.continuous(
-        startDate: DateTime.utc(now.year, now.month, now.day),
-      );
+      // In edit mode, preserve the original start date when the medication was
+      // already continuous so we don't silently reset it to today.
+      // For add mode, or a Course→Continuous switch during edit, stamp today.
+      final originalType = widget.initial?.type;
+      if (originalType is ContinuousType) {
+        type = MedicationType.continuous(startDate: originalType.startDate);
+      } else {
+        final now = clock.now();
+        type = MedicationType.continuous(
+          startDate: DateTime.utc(now.year, now.month, now.day),
+        );
+      }
     } else {
       type = MedicationType.course(
         startDate: DateTime.utc(
@@ -1463,14 +1614,25 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
 
     setState(() => _isSaving = true);
 
-    final result = await ref.read(addMedicationProvider).call(
-      name: _nameController.text,
-      form: medForm,
-      intakeMinutes: intakeMinutes,
-      type: type,
-      dosePerIntake: dose,
-      stock: stock,
-    );
+    final result = original == null
+        ? await ref.read(addMedicationProvider).call(
+            name: _nameController.text,
+            form: medForm,
+            intakeMinutes: intakeMinutes,
+            type: type,
+            dosePerIntake: dose,
+            stock: stock,
+          )
+        : await ref.read(editMedicationProvider).call(
+            original: original,
+            name: _nameController.text,
+            form: medForm,
+            intakeMinutes: intakeMinutes,
+            type: type,
+            dosePerIntake: dose,
+            stock: stock,
+            notes: original.notes,
+          );
 
     if (!mounted) return;
 
@@ -1491,7 +1653,13 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
       },
       (_) {
         messenger.showSnackBar(
-          SnackBar(content: Text(l10n.medsAddSaveSuccess)),
+          SnackBar(
+            content: Text(
+              original == null
+                  ? l10n.medsAddSaveSuccess
+                  : l10n.medsEditSaveSuccess,
+            ),
+          ),
         );
         navigator.pop();
       },
@@ -1530,7 +1698,11 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
           onPressed: () => Navigator.of(context).pop(),
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
         ),
-        title: Text(context.l10n.medsAddTitle),
+        title: Text(
+          widget.initial == null
+              ? context.l10n.medsAddTitle
+              : context.l10n.medsEditTitle,
+        ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(
@@ -1565,7 +1737,10 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
                   // Medication-form picker (spec 027, iteration 2).
                   // Selection is hoisted to the parent via _onFormSelected
                   // for conditional field rendering and persistence in _onSave.
-                  _MedicationFormPicker(onFormSelected: _onFormSelected),
+                  _MedicationFormPicker(
+                    onFormSelected: _onFormSelected,
+                    initialFormKey: widget.initial?.form.name,
+                  ),
 
                   // ----------------------------------------------------------------
                   // Form-dependent fields (spec 028, iteration 3).

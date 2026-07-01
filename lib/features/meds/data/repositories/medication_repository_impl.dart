@@ -38,6 +38,19 @@ class MedicationRepositoryImpl implements MedicationRepository {
   }
 
   @override
+  Future<Either<Failure, Medication>> update(Medication medication) async {
+    try {
+      await _dataSource.upsertMedication(
+        medicationToCompanion(medication),
+        timeSlotsToCompanions(medication),
+      );
+      return Right(medication);
+    } catch (e, st) {
+      return Left(Failure.unknown(e, st));
+    }
+  }
+
+  @override
   Stream<Either<Failure, List<Medication>>> watchAll() async* {
     try {
       await for (final rows in _dataSource.watchAllMedications()) {
