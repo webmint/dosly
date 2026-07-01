@@ -193,6 +193,7 @@ void main() {
 | `medicationLocalDataSourceProvider` | `@riverpod` function (autoDispose) | Wires `MedicationLocalDataSource` to `appDatabaseProvider` |
 | `medicationRepositoryProvider` | `@riverpod` function (autoDispose) | Wires `MedicationRepositoryImpl` to the data source; exposes domain-typed `MedicationRepository` |
 | `addMedicationProvider` | `@riverpod` function (autoDispose) | Wires `AddMedication` use case to the repository and `idGeneratorProvider` |
+| `deleteMedicationProvider` | `@riverpod` function (autoDispose) | Wires `DeleteMedication` use case to the repository (`MedicationRepository.delete`) |
 | `medicationsListProvider` | `@riverpod` stream (autoDispose) | Watches `MedicationRepository.watchAll()`, folds `Left`→throw; consumed as `AsyncValue<List<Medication>>` |
 | `devSeedProvider` | `@Riverpod(keepAlive: true)` Future | DEBUG-only, empty-table-guarded seeder; inserts 12 demo medications via the real repository write path; no-op in release builds |
 

@@ -91,6 +91,23 @@ class MedicationLocalDataSource {
     });
   }
 
+  /// Deletes the medication with [id], if present.
+  ///
+  /// Issues a single `delete` on the `medications` table filtered by [id]. The
+  /// medication's time-slot rows are removed automatically by the
+  /// `onDelete: cascade` foreign key on `TimeSlots.medicationId` (enforced by
+  /// `pragma foreign_keys = ON`), so — unlike [upsertMedication] — NO manual
+  /// time-slot delete is performed here.
+  ///
+  /// Returns normally when no row matches [id]: deleting an absent medication
+  /// affects 0 rows and is a no-op, not an error (idempotent success).
+  ///
+  /// Throws on failure (e.g. `SqliteException`); callers in the repository layer
+  /// catch and convert these into `Left(Failure)`.
+  Future<void> deleteMedication(String id) async {
+    await (_db.delete(_db.medications)..where((m) => m.id.equals(id))).go();
+  }
+
   /// Watches all medications joined with their time slots, re-emitting whenever
   /// either table changes.
   ///

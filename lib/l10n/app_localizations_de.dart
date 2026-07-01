@@ -222,6 +222,30 @@ class AppLocalizationsDe extends AppLocalizations {
   String get medsEditSaveSuccess => 'Medikament aktualisiert';
 
   @override
+  String get medsDeleteButtonTooltip => 'Medikament löschen';
+
+  @override
+  String get medsDeleteDialogTitle => 'Medikament löschen?';
+
+  @override
+  String medsDeleteDialogBody(String name) {
+    return '„$name“ löschen? Dies kann nicht rückgängig gemacht werden.';
+  }
+
+  @override
+  String get medsDeleteDialogConfirm => 'Löschen';
+
+  @override
+  String get medsDeleteDialogCancel => 'Abbrechen';
+
+  @override
+  String get medsDeleteSuccess => 'Medikament gelöscht';
+
+  @override
+  String get medsDeleteError =>
+      'Medikament konnte nicht gelöscht werden. Bitte erneut versuchen.';
+
+  @override
   String get medsAddSaveErrorName => 'Bitte Medikamentennamen eingeben';
 
   @override

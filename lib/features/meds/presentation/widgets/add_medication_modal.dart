@@ -31,6 +31,15 @@
 /// depending on [AddMedicationModal.initial], and handles both the success
 /// (pop + SnackBar) and failure (field-mapped SnackBar, stays open) branches.
 /// The button is disabled while a save is in flight.
+///
+/// **Delete (spec 037, edit mode only)**: when [AddMedicationModal.initial]
+/// is non-null, the AppBar renders an additional error-tinted trash
+/// [IconButton] (absent entirely in add mode). Tapping it opens a
+/// confirmation [AlertDialog] naming the medication; on confirm it invokes
+/// [DeleteMedication] via [deleteMedicationProvider], then pops the modal
+/// with a success SnackBar on the [Right] branch or shows an error SnackBar
+/// and stays open on the [Left] branch. The delete path reuses the same
+/// capture-before-await / `mounted`-guard idiom as Save (see [_onDelete]).
 library;
 
 import 'package:clock/clock.dart';
@@ -1226,6 +1235,17 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
   bool _isSaving = false;
 
   // -------------------------------------------------------------------------
+  // Delete-in-flight state (spec 037, edit mode only)
+  // -------------------------------------------------------------------------
+
+  /// Whether a delete call is currently in flight.
+  ///
+  /// While `true` the AppBar trash [IconButton] is disabled to prevent
+  /// double-taps. Only meaningful in edit mode ([AddMedicationModal.initial]
+  /// non-null); the button does not exist at all in add mode.
+  bool _isDeleting = false;
+
+  // -------------------------------------------------------------------------
   // Lifecycle
   // -------------------------------------------------------------------------
 
@@ -1667,6 +1687,81 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
   }
 
   // -------------------------------------------------------------------------
+  // Delete logic (spec 037, edit mode only)
+  // -------------------------------------------------------------------------
+
+  /// Shows a Material [AlertDialog] asking the user to confirm deletion of
+  /// [medication], naming it in the dialog body.
+  ///
+  /// Returns `true` when the user taps the destructive confirm action,
+  /// `false` when they tap Cancel or dismiss the dialog (barrier tap / back
+  /// button), never `null`.
+  Future<bool> _confirmDelete(Medication medication) async {
+    final l10n = context.l10n;
+    final colorScheme = Theme.of(context).colorScheme;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.medsDeleteDialogTitle),
+        content: Text(l10n.medsDeleteDialogBody(medication.name)),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.medsDeleteDialogCancel),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.medsDeleteDialogConfirm),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
+  /// Handles a tap on the AppBar trash [IconButton] (edit mode only).
+  ///
+  /// Opens [_confirmDelete]; on cancel/dismiss, does nothing. On confirm,
+  /// invokes [deleteMedicationProvider] with the original medication's id.
+  /// On the [Right] branch shows a success [SnackBar]
+  /// ([AppLocalizations.medsDeleteSuccess]) and pops the modal. On the [Left]
+  /// branch shows an error [SnackBar] ([AppLocalizations.medsDeleteError])
+  /// and stays open so the user can retry. The trash button is disabled for
+  /// the duration of the async call via [_isDeleting].
+  ///
+  /// Context objects ([ScaffoldMessenger], [Navigator], l10n) are captured
+  /// before the confirmation dialog's `await` (and thus before the delete
+  /// call's `await`) to satisfy `use_build_context_synchronously`, mirroring
+  /// [_onSave]'s exact idiom.
+  Future<void> _onDelete() async {
+    final original = widget.initial;
+    if (original == null) return; // defensive: delete only in edit mode
+    final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    final confirmed = await _confirmDelete(original);
+    if (!confirmed) return;
+    if (!mounted) return;
+
+    setState(() => _isDeleting = true);
+    final result = await ref.read(deleteMedicationProvider).call(original.id);
+    if (!mounted) return;
+
+    result.fold(
+      (failure) {
+        setState(() => _isDeleting = false);
+        messenger.showSnackBar(SnackBar(content: Text(l10n.medsDeleteError)));
+      },
+      (_) {
+        messenger.showSnackBar(SnackBar(content: Text(l10n.medsDeleteSuccess)));
+        navigator.pop();
+      },
+    );
+  }
+
+  // -------------------------------------------------------------------------
   // Section-divider helper
   // -------------------------------------------------------------------------
 
@@ -1703,6 +1798,18 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
               ? context.l10n.medsAddTitle
               : context.l10n.medsEditTitle,
         ),
+        actions: widget.initial == null
+            ? null
+            : <Widget>[
+                IconButton(
+                  icon: Icon(
+                    LucideIcons.trash2,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  tooltip: context.l10n.medsDeleteButtonTooltip,
+                  onPressed: (_isDeleting || _isSaving) ? null : _onDelete,
+                ),
+              ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(
@@ -1880,7 +1987,7 @@ class _AddMedicationModalState extends ConsumerState<AddMedicationModal> {
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     key: const ValueKey('medsAddSaveButton'),
-                    onPressed: _isSaving ? null : _onSave,
+                    onPressed: (_isSaving || _isDeleting) ? null : _onSave,
                     icon: const Icon(LucideIcons.save),
                     label: Text(context.l10n.medsAddSaveButton),
                   ),

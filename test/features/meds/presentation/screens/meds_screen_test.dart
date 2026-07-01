@@ -157,6 +157,10 @@ class _FakeMedicationRepository implements MedicationRepository {
   @override
   Future<Either<Failure, Medication>> update(Medication medication) async =>
       Right(medication);
+
+  @override
+  Future<Either<Failure, void>> delete(MedicationId id) async =>
+      const Right(null);
 }
 
 /// A [MedicationRepository] whose [watchAll] stream never emits (stays loading).
@@ -172,6 +176,10 @@ class _LoadingMedicationRepository implements MedicationRepository {
   @override
   Future<Either<Failure, Medication>> update(Medication medication) async =>
       Right(medication);
+
+  @override
+  Future<Either<Failure, void>> delete(MedicationId id) async =>
+      const Right(null);
 }
 
 /// A [MedicationRepository] whose [watchAll] emits an error.
@@ -187,6 +195,10 @@ class _ErrorMedicationRepository implements MedicationRepository {
   @override
   Future<Either<Failure, Medication>> update(Medication medication) async =>
       Left(Failure.unknown(Exception('not implemented'), StackTrace.empty));
+
+  @override
+  Future<Either<Failure, void>> delete(MedicationId id) async =>
+      const Right(null);
 }
 
 // ---------------------------------------------------------------------------

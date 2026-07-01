@@ -98,6 +98,54 @@ The data source receives a fully-assembled companion list and simply persists it
 
 The edit form does not collect `notes` or a continuous `startDate`; these are forwarded from `original` via `copyWith` and are not altered. A continuous medication's `startDate` round-trips byte-for-byte. The `original.id` and `original.createdAt` are never regenerated — they survive every edit.
 
+## Delete Flow (end to end)
+
+Added in feature `037-meds-delete`. Tapping the trash icon in edit mode (see [meds.md](meds.md#delete-feature-037)) removes the medication and, via the database's cascade FK, its time slots.
+
+```
+AddMedicationModal(initial: medication)
+  └─ _confirmDelete()                      ← showDialog<bool> AlertDialog
+  └─ ref.read(deleteMedicationProvider)    ← composition seam
+        └─ DeleteMedication (use case)
+              └─ MedicationRepository.delete(medication.id)
+                    └─ MedicationRepositoryImpl
+                          └─ MedicationLocalDataSource.deleteMedication(id)
+                                └─ (delete(medications)..where((m) => m.id.equals(id))).go()
+                                      — time_slots cascade-removed via the
+                                        onDelete: cascade FK, no manual delete
+```
+
+On `Right(null)` the modal pops and shows `medsDeleteSuccess` ("Medication deleted"). On `Left(failure)` an error SnackBar (`medsDeleteError`) is shown and the modal stays open. Cancelling the confirmation dialog (or dismissing it) is a no-op — no provider call is made.
+
+### Load-bearing decisions
+
+**`Either<Failure, void>`, not `Unit`**
+
+Unlike `add`/`update` (which return the stored `Medication`), delete has nothing meaningful to return. The contract is `Future<Either<Failure, void>> delete(MedicationId id)`, returning `const Right(null)` on success — matching the settings-layer convention (`SettingsRepository.save*`) rather than introducing fpdart's `Unit`.
+
+**Idempotent success**
+
+Deleting an id that does not exist affects 0 rows and is **not** an error — `deleteMedication` returns normally, and the repository returns `Right(null)`. The end state (row absent) matches intent; only a thrown data-source exception (a real DB error) becomes `Left(Failure.unknown(e, st))`.
+
+**No manual slot cleanup**
+
+Unlike `upsertMedication` (the edit path), which must reconcile surviving/removed slot ids and guard against the `NOT IN ()` empty-list footgun (see above), `deleteMedication` issues a single statement — `(delete(medications)..where((m) => m.id.equals(id))).go()` — and relies entirely on the existing `onDelete: cascade` foreign key (enforced by `pragma foreign_keys = ON`, set in `beforeOpen`) to remove the medication's `time_slots` rows. No transaction wrapper is needed for a single statement.
+
+**`DeleteMedication` performs no validation**
+
+Unlike `AddMedication`/`EditMedication`, `DeleteMedication` is a thin pass-through with no validation rules — there is nothing to validate before removing a row by id:
+
+```dart
+class DeleteMedication {
+  const DeleteMedication(this._repository);
+
+  final MedicationRepository _repository;
+
+  Future<Either<Failure, void>> call(MedicationId id) =>
+      _repository.delete(id);
+}
+```
+
 ## Domain Model
 
 All entities live under `lib/features/meds/domain/` and are pure Dart — no Flutter, drift, or uuid imports.
@@ -298,9 +346,13 @@ EditMedication editMedication(Ref ref) => EditMedication(
   ref.watch(medicationRepositoryProvider),
   ref.watch(idGeneratorProvider),
 );
+
+@riverpod
+DeleteMedication deleteMedication(Ref ref) =>
+    DeleteMedication(ref.watch(medicationRepositoryProvider));
 ```
 
-All four providers are plain `@riverpod` (autoDispose) function providers. Save is a one-shot imperative call from the modal (`ref.read(addMedicationProvider)` or `ref.read(editMedicationProvider)`), not a notifier — there is no shared observed state to hold between calls.
+All five providers are plain `@riverpod` (autoDispose) function providers. Save/Delete are one-shot imperative calls from the modal (`ref.read(addMedicationProvider)`, `ref.read(editMedicationProvider)`, or `ref.read(deleteMedicationProvider)`), not a notifier — there is no shared observed state to hold between calls.
 
 The `appDatabaseProvider` and `idGeneratorProvider` are `@Riverpod(keepAlive: true)` singletons defined in `lib/core/`.
 
@@ -357,20 +409,38 @@ Two new keys added to `app_en.arb`, `app_de.arb`, and `app_uk.arb` for the edit 
 
 Both keys have `@`-description metadata in `app_en.arb`.
 
+## Localization Keys (feature 037)
+
+Seven new keys added to `app_en.arb`, `app_de.arb`, and `app_uk.arb` for the delete flow:
+
+| Key | English |
+|-----|---------|
+| `medsDeleteButtonTooltip` | Delete medication |
+| `medsDeleteDialogTitle` | Delete medication? |
+| `medsDeleteDialogBody` | Delete "{name}"? This can't be undone. |
+| `medsDeleteDialogConfirm` | Delete |
+| `medsDeleteDialogCancel` | Cancel |
+| `medsDeleteSuccess` | Medication deleted |
+| `medsDeleteError` | Couldn't delete medication. Please try again. |
+
+All seven keys have `@`-description metadata in `app_en.arb`.
+
 ## Tests
 
 - `test/features/meds/domain/usecases/add_medication_test.dart` — 5 unit tests: happy path, name-empty, no-times, course-duration-zero, repository-failure passthrough. Uses a `mocktail` mock for `MedicationRepository` and a fixed `Clock`.
 - `test/features/meds/domain/usecases/edit_medication_test.dart` — (feature 036) id/createdAt preservation on update, slot-ID reconciliation (unchanged minutes keep their id, new minutes mint one), each of the 4 validation branches, and repository-failure passthrough.
-- `test/features/meds/data/repositories/medication_repository_impl_test.dart` — in-memory drift round-trip and failure path for `add()` and `watchAll()`; a `MedicationRepositoryImpl.update()` group (feature 036) covers in-place row update, preserved/added/removed slot IDs, and the failure path.
+- `test/features/meds/domain/usecases/delete_medication_test.dart` — (feature 037) `DeleteMedication` forwards `id` to `MedicationRepository.delete` unchanged and propagates both the `Right` and `Left` results verbatim.
+- `test/features/meds/data/datasources/medication_local_data_source_delete_test.dart` — (feature 037) in-memory drift test: inserts a medication with ≥1 time slot, deletes it, and asserts both the medication row and its slot rows are gone (cascade proof); deleting an absent id is a no-throw no-op.
+- `test/features/meds/data/repositories/medication_repository_impl_test.dart` — in-memory drift round-trip and failure path for `add()` and `watchAll()`; a `MedicationRepositoryImpl.update()` group (feature 036) covers in-place row update, preserved/added/removed slot IDs, and the failure path; a `MedicationRepositoryImpl.delete()` group (feature 037) covers success → `Right(null)` and data-source throw → `Left(Failure.unknown)`.
 - `test/features/meds/data/mappers/medication_mapper_test.dart` — 45 tests covering every nullable field combination and the full domain→companion→row→domain round-trip.
-- `test/features/meds/presentation/widgets/add_medication_modal_test.dart` — rewritten: valid input invokes the use case and pops; invalid input shows the error SnackBar and does not pop. The earlier "Save is a no-op" assertions are removed. An `AddMedicationModal edit mode (spec 036)` group covers pre-fill and update-routing.
+- `test/features/meds/presentation/widgets/add_medication_modal_test.dart` — rewritten: valid input invokes the use case and pops; invalid input shows the error SnackBar and does not pop. The earlier "Save is a no-op" assertions are removed. An `AddMedicationModal edit mode (spec 036)` group covers pre-fill and update-routing. An `AddMedicationModal delete (spec 037)` group covers: trash shown in edit mode / absent in add mode; tap opens the confirmation dialog naming the medication; Cancel is a no-op; Delete invokes `deleteMedicationProvider` and, on `Right`, pops with a success SnackBar, or on `Left`, shows an error SnackBar and stays open.
 - `test/features/meds/presentation/widgets/medication_tile_test.dart` — a `MedicationTile onTap (spec 036)` group covers tap-triggers-callback and the unchanged non-interactive default when `onTap` is `null`.
 
 ## What This Feature Does NOT Include
 
 - Reading / listing saved medications (`getAll` / `watch`) — body of `MedsScreen` remains `SizedBox.shrink()`. A future "meds list" spec adds the reactive query, empty state, and the FK index on `TimeSlots.medicationId`.
 - Editing a medication beyond `add` — see [feature 036](#update--edit-flow-end-to-end) which added the full edit path.
-- Deleting a medication. The cascade FK (`onDelete: cascade` on `TimeSlots.medicationId`) already supports it structurally; a dedicated `DeleteMedication` use case and `MedicationRepository.delete` method are deferred to a future spec.
+- Deleting a medication — see [feature 037](#delete-flow-end-to-end) which added the full delete path.
 - Notifications or reminder scheduling.
 - `Intakes` records, intake state machine, or adherence calculation.
 - Schedule frequencies other than `daily`.
@@ -394,12 +464,9 @@ Both keys have `@`-description metadata in `app_en.arb`.
 
 The update path now exists as `MedicationRepository.update`, `EditMedication`, `editMedicationProvider`, and `MedicationLocalDataSource.upsertMedication`. See the [Update / Edit Flow](#update--edit-flow-end-to-end) section above for the full walkthrough.
 
-**Adding a new use case (e.g. `DeleteMedication`)**
+**Adding a delete path (already implemented — see feature 037)**
 
-1. Add `Future<Either<Failure, Unit>> delete(MedicationId id)` to `MedicationRepository`.
-2. Implement in `MedicationRepositoryImpl` — the `onDelete: cascade` FK means deleting the medication row automatically removes its time slots.
-3. Add the use case class under `domain/usecases/`.
-4. Wire a new provider in `medication_providers.dart`.
+The delete path now exists as `MedicationRepository.delete`, `DeleteMedication`, `deleteMedicationProvider`, and `MedicationLocalDataSource.deleteMedication`. See the [Delete Flow](#delete-flow-end-to-end) section above for the full walkthrough.
 
 **Schema changes**
 
@@ -412,4 +479,5 @@ Always bump `AppDatabase.schemaVersion` and add a migration to `MigrationStrateg
 - [`../../specs/032-med-persistence/spec.md`](../../specs/032-med-persistence/spec.md) — the full add spec with all acceptance criteria
 - [`../../specs/032-med-persistence/data-model.md`](../../specs/032-med-persistence/data-model.md) — entity/table reference
 - [`../../specs/036-meds-edit/spec.md`](../../specs/036-meds-edit/spec.md) — the edit spec: tap-to-edit, slot reconciliation, upsert constraints
+- [`../../specs/037-meds-delete/spec.md`](../../specs/037-meds-delete/spec.md) — the delete spec: confirmation dialog, single-statement delete, cascade FK reliance, idempotent-success semantics
 - [`../../constitution.md`](../../constitution.md) — §2.1 (domain purity), §4.2.1 (drift as system of record)

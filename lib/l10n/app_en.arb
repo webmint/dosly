@@ -270,6 +270,35 @@
   "@medsEditSaveSuccess": {
     "description": "SnackBar message shown after an existing medication is successfully updated."
   },
+  "medsDeleteButtonTooltip": "Delete medication",
+  "@medsDeleteButtonTooltip": {
+    "description": "Tooltip for the AppBar trash-icon button that deletes the current medication."
+  },
+  "medsDeleteDialogTitle": "Delete medication?",
+  "@medsDeleteDialogTitle": {
+    "description": "Title of the confirmation dialog shown before deleting a medication."
+  },
+  "medsDeleteDialogBody": "Delete \"{name}\"? This can't be undone.",
+  "@medsDeleteDialogBody": {
+    "description": "Body text of the delete-confirmation dialog, naming the medication to be deleted.",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "medsDeleteDialogConfirm": "Delete",
+  "@medsDeleteDialogConfirm": {
+    "description": "Label for the destructive confirm button in the delete-medication dialog."
+  },
+  "medsDeleteDialogCancel": "Cancel",
+  "@medsDeleteDialogCancel": {
+    "description": "Label for the cancel button in the delete-medication dialog."
+  },
+  "medsDeleteSuccess": "Medication deleted",
+  "@medsDeleteSuccess": {
+    "description": "SnackBar message shown after a medication is successfully deleted."
+  },
+  "medsDeleteError": "Couldn't delete medication. Please try again.",
+  "@medsDeleteError": {
+    "description": "SnackBar message shown when deleting a medication fails for an unexpected reason."
+  },
   "medsAddSaveErrorName": "Enter a medication name",
   "@medsAddSaveErrorName": {
     "description": "Validation error shown when the user attempts to save without entering a medication name."

@@ -226,6 +226,29 @@ class AppLocalizationsUk extends AppLocalizations {
   String get medsEditSaveSuccess => 'Ліки оновлено';
 
   @override
+  String get medsDeleteButtonTooltip => 'Видалити ліки';
+
+  @override
+  String get medsDeleteDialogTitle => 'Видалити ліки?';
+
+  @override
+  String medsDeleteDialogBody(String name) {
+    return 'Видалити «$name»? Цю дію не можна скасувати.';
+  }
+
+  @override
+  String get medsDeleteDialogConfirm => 'Видалити';
+
+  @override
+  String get medsDeleteDialogCancel => 'Скасувати';
+
+  @override
+  String get medsDeleteSuccess => 'Ліки видалено';
+
+  @override
+  String get medsDeleteError => 'Не вдалося видалити ліки. Спробуйте ще раз.';
+
+  @override
   String get medsAddSaveErrorName => 'Введіть назву ліків';
 
   @override

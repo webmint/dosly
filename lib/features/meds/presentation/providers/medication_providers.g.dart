@@ -266,6 +266,66 @@ final class EditMedicationProvider
 
 String _$editMedicationHash() => r'ef0f50268b82578e65ff242c9bfd7341ef57eb8b';
 
+/// Provides the [DeleteMedication] use case wired to the medication repository.
+///
+/// The domain operation the edit-medication modal consumes to delete a
+/// medication; it depends only on domain abstractions.
+
+@ProviderFor(deleteMedication)
+final deleteMedicationProvider = DeleteMedicationProvider._();
+
+/// Provides the [DeleteMedication] use case wired to the medication repository.
+///
+/// The domain operation the edit-medication modal consumes to delete a
+/// medication; it depends only on domain abstractions.
+
+final class DeleteMedicationProvider
+    extends
+        $FunctionalProvider<
+          DeleteMedication,
+          DeleteMedication,
+          DeleteMedication
+        >
+    with $Provider<DeleteMedication> {
+  /// Provides the [DeleteMedication] use case wired to the medication repository.
+  ///
+  /// The domain operation the edit-medication modal consumes to delete a
+  /// medication; it depends only on domain abstractions.
+  DeleteMedicationProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'deleteMedicationProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$deleteMedicationHash();
+
+  @$internal
+  @override
+  $ProviderElement<DeleteMedication> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  DeleteMedication create(Ref ref) {
+    return deleteMedication(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DeleteMedication value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DeleteMedication>(value),
+    );
+  }
+}
+
+String _$deleteMedicationHash() => r'0a19031ae956bd6a3854feb4f0c25a18c21409f3';
+
 /// Reactively exposes all persisted medications as `AsyncValue<List<Medication>>`.
 ///
 /// Watches the repository's [MedicationRepository.watchAll] stream and folds each
