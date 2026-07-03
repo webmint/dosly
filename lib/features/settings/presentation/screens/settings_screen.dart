@@ -1,7 +1,7 @@
 /// Settings feature — settings screen with appearance and language controls.
 ///
 /// This library hosts [SettingsScreen], the screen displayed when the user
-/// taps the gear icon in the [HomeScreen] AppBar. The screen renders an
+/// taps the gear icon in the Today screen's AppBar. The screen renders an
 /// Appearance section with a [ThemeSelector] widget and a Language section
 /// with a [LanguageSelector] widget.
 library;

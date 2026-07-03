@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **settings feature** owns the Settings screen — a push destination reached from the gear icon in `HomeScreen`'s `AppBar`. It introduced the first full Clean Architecture stack in the project (domain + data + presentation) and brought Riverpod, `shared_preferences`, and `fpdart` into the codebase.
+The **settings feature** owns the Settings screen — a push destination reached from the gear icon in the Today screen's `AppBar` (`TodayScreen`, `lib/features/meds/presentation/screens/today_screen.dart` — the placeholder `HomeScreen` that originally hosted this gear icon was retired in feature 038). It introduced the first full Clean Architecture stack in the project (domain + data + presentation) and brought Riverpod, `shared_preferences`, and `fpdart` into the codebase.
 
 The feature exposes two groups of controls: **Appearance** (theme mode) and **Language**. The user can follow the device system theme or manually select Light or Dark, and separately can follow the device language or pin the app to English, German, or Ukrainian.
 
@@ -156,7 +156,7 @@ Each dropdown menu item renders the language's `nativeName` — never a translat
 context.push('/settings');
 ```
 
-Use `push` (not `go`) to preserve the back stack. The entry point is `HomeScreen`'s gear `IconButton`.
+Use `push` (not `go`) to preserve the back stack. The entry point is `TodayScreen`'s gear `IconButton`.
 
 ## Persistence
 
@@ -192,7 +192,7 @@ The key string literals are defined once in `lib/core/providers/settings_prefs_k
 - [`../architecture.md`](../architecture.md) — Riverpod bootstrap, `sharedPreferencesProvider`, `Failure` hierarchy
 - [`theme.md`](theme.md) — M3 theme tokens; `AppTheme.lightTheme` / `darkTheme`
 - [`i18n.md`](i18n.md) — how to add or change localized strings
-- [`home.md`](home.md) — `HomeScreen`, which hosts the gear icon entry point
+- [`home.md`](home.md) — `AppBottomNav`/`AppShell`, and where the Today screen (which now hosts the gear icon entry point) lives
 - [`../../specs/009-theme-settings/spec.md`](../../specs/009-theme-settings/spec.md) — the spec that introduced the settings stack and theme control
 - [`../../specs/010-language-settings/spec.md`](../../specs/010-language-settings/spec.md) — the spec that added the language control
 - [`../../specs/014-surface-settings-errors/spec.md`](../../specs/014-surface-settings-errors/spec.md) — the spec that added the error-stream and SnackBar feedback

@@ -1,39 +1,23 @@
-# Home
+# Home / Bottom Navigation
 
 ## Overview
 
-The **home feature** owns the app's root screen — `HomeScreen`. `HomeScreen` renders the top `AppBar` and a placeholder body for the Today tab. The shared bottom navigation bar (`AppBottomNav`) lives in `lib/core/routing/` — not inside this feature — and is hosted by the routing shell at `lib/core/routing/app_shell.dart`, which wires it to go_router's `StatefulShellRoute` and supplies real `selectedIndex` / `onDestinationSelected` values.
+There is no `home` feature folder anymore. `lib/features/home/` (and its placeholder `HomeScreen`) was **deleted** in feature `038-today-intake-log`. This doc now covers what's still current: the shared bottom-navigation chrome — `AppBottomNav` and `AppShell` — which lives in `lib/core/routing/`, not in any feature folder, and hosts all three tabs (Today · Meds · History).
 
-Everything in this feature lives under `lib/features/home/presentation/`. There is no `domain/` or `data/` layer yet — the home screen is pure UI sitting on top of the core theme.
+### What replaced `HomeScreen`?
 
-## HomeScreen
+The Today tab (route `/`, branch 0 of the shell) used to render a placeholder `HomeScreen` (`Scaffold` + `AppBar` + `Center(Text('Hello World'))`). Feature 038 replaced it with a real, reactive daily intake checklist: `TodayScreen`.
 
-`HomeScreen` (in `lib/features/home/presentation/screens/home_screen.dart`) is a `StatelessWidget` that renders a `Scaffold` with:
-
-- An `AppBar` with the hard-coded title `"Dosly"` (not localized — the app name is a proper noun).
-- A settings gear `IconButton` in `actions` that calls `context.push('/settings')`. The tooltip is the localized `settingsTooltip` string.
-- A 1-px `Divider` pinned to the bottom of the `AppBar` via `PreferredSize`.
-- A placeholder `body` with a centered "Hello World" text.
+`TodayScreen` does **not** live in a `home/` feature — it lives at `lib/features/meds/presentation/screens/today_screen.dart`, inside the **`meds`** feature, because it consumes `meds` domain entities, providers, view models, and widgets. Constitution §2.1 forbids presentation code outside a feature from importing that feature's `presentation/` layer, so the screen belongs in `meds` even though it is not the "Meds" tab. `lib/core/routing/app_router.dart` (the sanctioned composition root) still wires it at `/`:
 
 ```dart
-// lib/features/home/presentation/screens/home_screen.dart
-AppBar(
-  title: const Text('Dosly'),
-  actions: [
-    IconButton(
-      onPressed: () => context.push('/settings'),
-      tooltip: context.l10n.settingsTooltip,
-      icon: const Icon(LucideIcons.settings),
-    ),
-  ],
-  bottom: const PreferredSize(
-    preferredSize: Size.fromHeight(1),
-    child: Divider(height: 1, thickness: 1),
-  ),
-),
+// lib/core/routing/app_router.dart
+GoRoute(path: '/', builder: (context, state) => const TodayScreen()),
 ```
 
-`context.push` is used (not `context.go`) so that the settings screen is pushed onto the navigator stack — the back button and back gesture work correctly, and the user returns to the home tab when they dismiss settings.
+`TodayScreen` keeps the same AppBar chrome `HomeScreen` had — the settings-gear `IconButton` (`context.push('/settings')`) and the 1-px bottom `Divider` — but the title is now the localized `"Today"` (`todayTitle`) instead of the hard-coded brand name, and the body is a live checklist instead of a placeholder. See [`meds.md`](meds.md#today-screen--intake-logging-feature-038) for the full walkthrough: schedule expansion, the lazy intake model, mark/skip/undo, and the grace window.
+
+Everything below this point — `AppBottomNav`, `AppShell`, their tests and rules — lives in `lib/core/routing/`, is feature-agnostic, and is unaffected by the `home` feature's removal.
 
 ## The bottom navigation bar
 
@@ -105,7 +89,7 @@ AppBottomNav(
 
 `navigationShell.goBranch` is a method tearoff that satisfies `ValueChanged<int>` directly — no lambda wrapper. The shell provides `selectedIndex` from `navigationShell.currentIndex`, which go_router updates automatically as branches are switched.
 
-`HomeScreen` does not host `AppBottomNav`. Each branch screen (`HomeScreen`, `MedsScreen`, `HistoryScreen`) provides only its own `AppBar`; the shell provides the shared bottom bar around all three.
+`TodayScreen` does not host `AppBottomNav`. Each branch screen (`TodayScreen`, `MedsScreen`, `HistoryScreen`) provides only its own `AppBar`; the shell provides the shared bottom bar around all three.
 
 ## Why built-in `NavigationBar` (not a custom widget)
 
@@ -152,8 +136,10 @@ If a future change breaks any of these, the failing test name will point directl
 - [`../../specs/005-bottom-nav/spec.md`](../../specs/005-bottom-nav/spec.md) — the spec that introduced this feature
 - [`../../specs/005-bottom-nav/plan.md`](../../specs/005-bottom-nav/plan.md) — design decisions (built-in vs custom, statefulness, theme wiring)
 - [`../../specs/005-bottom-nav/summary.md`](../../specs/005-bottom-nav/summary.md) — concise feature summary
+- [`../../specs/038-today-intake-log/spec.md`](../../specs/038-today-intake-log/spec.md) — the spec that retired `HomeScreen` and introduced `TodayScreen`
+- [`meds.md`](meds.md#today-screen--intake-logging-feature-038) — `TodayScreen`, the reactive intake checklist now served at `/`
 - [`i18n.md`](i18n.md) — how localized strings are sourced, how to add new strings and locales
 - [`theme.md`](theme.md) — the `ColorScheme` roles the nav bar reads from
 - [`icons.md`](icons.md) — the Lucide icon set the destinations use
-- [`settings.md`](settings.md) — the Settings screen pushed from the home gear icon
-- [`../architecture.md`](../architecture.md) — where the home feature sits in the Clean Architecture layering
+- [`settings.md`](settings.md) — the Settings screen pushed from the Today screen's gear icon
+- [`../architecture.md`](../architecture.md) — Clean Architecture layering and the routing topology (`AppShell`, route table)

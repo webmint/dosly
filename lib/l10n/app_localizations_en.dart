@@ -358,4 +358,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get doseUnitSachet => 'sachet';
+
+  @override
+  String get todayTitle => 'Today';
+
+  @override
+  String get todayMarkTaken => 'Take';
+
+  @override
+  String get todaySkip => 'Skip';
+
+  @override
+  String get todayUndo => 'Undo';
+
+  @override
+  String get todayStatusTaken => 'Taken';
+
+  @override
+  String get todayStatusSkipped => 'Skipped';
+
+  @override
+  String get todayEmptyTitle => 'Nothing due today';
+
+  @override
+  String get todayEmptyBody => 'You have no doses scheduled for today.';
+
+  @override
+  String get todayLoadError => 'Couldn\'t load today\'s doses.';
+
+  @override
+  String get todayActionError => 'Something went wrong. Please try again.';
 }

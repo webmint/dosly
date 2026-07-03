@@ -1,9 +1,13 @@
+import 'package:dosly/core/database/database.dart';
+import 'package:dosly/core/database/database_provider.dart';
 import 'package:dosly/core/error/failures.dart';
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
+import 'package:drift/drift.dart' show DatabaseConnection;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,25 +55,53 @@ class _FakeSettingsRepository implements SettingsRepository {
 
 void main() {
   late _FakeSettingsRepository fakeRepo;
+  late AppDatabase db;
 
   setUp(() {
     fakeRepo = _FakeSettingsRepository();
-  });
-
-  testWidgets('DoslyApp renders the home screen with app bar and Hello World', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [settingsRepositoryProvider.overrideWithValue(fakeRepo)],
-        child: const DoslyApp(),
+    // DoslyApp's '/' branch is TodayScreen, which watches
+    // medicationsListProvider / intakesListProvider — both derived from
+    // appDatabaseProvider. Without this override the real (unregistered
+    // platform-channel) database never resolves, so TodayScreen stays in
+    // AsyncValue.loading and its CircularProgressIndicator's indeterminate
+    // animation makes pumpAndSettle() time out. closeStreamsSynchronously:
+    // true avoids a "Timer is still pending" teardown failure.
+    db = AppDatabase(
+      DatabaseConnection(
+        NativeDatabase.memory(),
+        closeStreamsSynchronously: true,
       ),
     );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Hello World'), findsOneWidget);
-    expect(find.text('Dosly'), findsOneWidget);
   });
+
+  tearDown(() async {
+    await db.close();
+  });
+
+  testWidgets(
+    'DoslyApp renders the Today screen with app bar and empty state',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            settingsRepositoryProvider.overrideWithValue(fakeRepo),
+            appDatabaseProvider.overrideWithValue(db),
+          ],
+          child: const DoslyApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Empty DB → the Today screen's empty-state copy (AC-11).
+      expect(find.text('Nothing due today'), findsOneWidget);
+      // "Today" appears twice (AppBar title + bottom-nav destination label);
+      // scope to the AppBar to assert the title specifically.
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: find.text('Today')),
+        findsOneWidget,
+      );
+    },
+  );
 
   group('MaterialApp.locale reactivity', () {
     testWidgets(
@@ -77,7 +109,10 @@ void main() {
       (tester) async {
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [settingsRepositoryProvider.overrideWithValue(fakeRepo)],
+            overrides: [
+              settingsRepositoryProvider.overrideWithValue(fakeRepo),
+              appDatabaseProvider.overrideWithValue(db),
+            ],
             child: const DoslyApp(),
           ),
         );
@@ -103,6 +138,7 @@ void main() {
           ProviderScope(
             overrides: [
               settingsRepositoryProvider.overrideWithValue(preSeededRepo),
+              appDatabaseProvider.overrideWithValue(db),
             ],
             child: const DoslyApp(),
           ),

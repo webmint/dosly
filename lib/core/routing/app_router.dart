@@ -4,8 +4,8 @@
 /// that creates a `StatefulShellRoute.indexedStack` with three branches
 /// (Today `/`, Meds `/meds`, History `/history`) sharing a single [AppShell]
 /// scaffold + [AppBottomNav], plus a sibling top-level [GoRoute] for
-/// `/settings`. Branch 0 (`/`) is built by [HomeScreen] but is surfaced in the
-/// bottom nav as the localized "Today" destination (class `HomeScreen`,
+/// `/settings`. Branch 0 (`/`) is built by [TodayScreen] and is surfaced in
+/// the bottom nav as the localized "Today" destination (class `TodayScreen`,
 /// destination label "Today").
 ///
 /// Branch order matches [AppBottomNav] destination order (0=Today, 1=Meds,
@@ -17,8 +17,8 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../features/history/presentation/screens/history_screen.dart';
-import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/meds/presentation/screens/meds_screen.dart';
+import '../../features/meds/presentation/screens/today_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../logging/logger.dart';
@@ -55,7 +55,7 @@ GoRouter appRouter(Ref ref) {
             routes: [
               GoRoute(
                 path: '/',
-                builder: (context, state) => const HomeScreen(),
+                builder: (context, state) => const TodayScreen(),
               ),
             ],
           ),

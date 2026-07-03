@@ -59,16 +59,24 @@ Medication data (and all future health data) is persisted via **drift** (SQLite 
 
 `AppDatabase` (in `lib/core/database/database.dart`) is a `@DriftDatabase` class opened via `drift_flutter`'s `driftDatabase(name: 'dosly')`. It is exposed as a `@Riverpod(keepAlive: true)` singleton in `lib/core/database/database_provider.dart`, with `ref.onDispose(db.close)` bound to the `ProviderScope` lifecycle. Tests inject an in-memory executor via the optional `QueryExecutor` constructor parameter.
 
-Current schema: `schemaVersion = 1`, two tables (`Medications`, `TimeSlots`). Foreign keys are enabled per connection in the `beforeOpen` hook:
+Current schema: `schemaVersion = 2`, three tables (`Medications`, `TimeSlots`, `Intakes`). `Intakes` (added by feature `038-today-intake-log`) is the project's **first schema migration** — it exists only from `schemaVersion` 2 onward, via an add-only `onUpgrade` step that touches no existing table. Foreign keys are enabled per connection in the `beforeOpen` hook:
 
 ```dart
 MigrationStrategy(
   onCreate: (m) => m.createAll(),
+  onUpgrade: (Migrator m, int from, int to) async {
+    // v1→v2: add-only. Create the new intakes table; alter nothing else.
+    if (from < 2) {
+      await m.createTable(intakes);
+    }
+  },
   beforeOpen: (details) async {
     await customStatement('pragma foreign_keys = ON;');
   },
 )
 ```
+
+**Migrations**: any schema change bumps `schemaVersion` and adds a step to `onUpgrade`; `onCreate` (fresh installs) always creates every currently-declared table, so it needs no matching change for an add-only migration. The v1→v2 migration is verified by `test/core/database/migration_test.dart` using drift's `SchemaVerifier` against a captured v1 snapshot (`drift_schemas/drift_schema_v1.json`) — one test proves the upgraded schema matches a fresh v2 `createAll()`, one proves pre-existing `medications`/`time_slots` rows survive the upgrade unchanged, and one proves a brand-new install gets all three tables via `onCreate`. See [`features/medication-persistence.md`](features/medication-persistence.md#schema-migration-v1--v2-feature-038) for the full walkthrough — future migrations should follow the same snapshot + `SchemaVerifier` pattern.
 
 ### Schema conventions
 
@@ -117,6 +125,8 @@ Stream<List<Medication>> medicationsList(Ref ref) =>
 The `Left(failure)` → `throw failure` fold causes Riverpod to surface the failure as `AsyncValue.error(failure)`, consistent with the side-channel error-stream pattern used for write operations. Screens consume the provider as `ref.watch(medicationsListProvider)` and handle loading/error/data states with `.when(...)`.
 
 This is the read-side analog of the `Future<Either<Failure, T>>` write methods used by use cases. Use this pattern for any feature that needs a live-updating list driven by drift queries.
+
+Feature 038's `intakesListProvider` (`presentation/providers/intake_providers.dart`) follows this pattern verbatim, watching `IntakeRepository.watchAll()`. `TodayScreen` combines it with `medicationsListProvider` — two independent reactive streams, joined by a pure view-model function (`buildTodayView`) rather than a single cross-table drift join — to build the day's checklist. See [`features/meds.md`](features/meds.md#today-screen--intake-logging-feature-038).
 
 ## App-wide state: Riverpod + `SharedPreferences`
 
@@ -196,6 +206,11 @@ void main() {
 | `deleteMedicationProvider` | `@riverpod` function (autoDispose) | Wires `DeleteMedication` use case to the repository (`MedicationRepository.delete`) |
 | `medicationsListProvider` | `@riverpod` stream (autoDispose) | Watches `MedicationRepository.watchAll()`, folds `Left`→throw; consumed as `AsyncValue<List<Medication>>` |
 | `devSeedProvider` | `@Riverpod(keepAlive: true)` Future | DEBUG-only, empty-table-guarded seeder; inserts 12 demo medications via the real repository write path; no-op in release builds |
+| `intakeLocalDataSourceProvider` | `@riverpod` function (autoDispose) | Wires `IntakeLocalDataSource` to `appDatabaseProvider` (feature 038) |
+| `intakeRepositoryProvider` | `@riverpod` function (autoDispose) | Wires `IntakeRepositoryImpl` to the data source; exposes domain-typed `IntakeRepository` (feature 038) |
+| `markIntakeTakenProvider` / `skipIntakeProvider` | `@riverpod` function (autoDispose) | Wire `MarkIntakeTaken` / `SkipIntake` use cases to the intake repository and `idGeneratorProvider` (feature 038) |
+| `undoIntakeProvider` | `@riverpod` function (autoDispose) | Wires `UndoIntake` use case to the intake repository (feature 038) |
+| `intakesListProvider` | `@riverpod` stream (autoDispose) | Watches `IntakeRepository.watchAll()`, folds `Left`→throw; consumed as `AsyncValue<List<Intake>>` (feature 038) |
 
 ### Failure handling
 
@@ -301,10 +316,12 @@ Branch order matches `AppBottomNav` destination order (0 = Today, 1 = Meds, 2 = 
 
 | Path | Screen | Shell | Notes |
 |---|---|---|---|
-| `/` | `HomeScreen` | yes | App entry — Today tab placeholder |
-| `/meds` | `MedsScreen` | yes | Meds tab placeholder |
+| `/` | `TodayScreen` | yes | App entry — Today tab; reactive daily intake checklist (feature 038). Lives in `lib/features/meds/presentation/screens/`, not a `home` feature — see below |
+| `/meds` | `MedsScreen` | yes | Meds tab — reactive medication list + add/edit/delete |
 | `/history` | `HistoryScreen` | yes | History tab placeholder |
-| `/settings` | `SettingsScreen` | no | Push destination from home gear icon |
+| `/settings` | `SettingsScreen` | no | Push destination from the Today screen's gear icon |
+
+`HomeScreen` (the original Today-tab placeholder, `lib/features/home/`) was **retired** in feature 038 — the `home` feature folder no longer exists. `TodayScreen` replaced it but was placed inside `features/meds/presentation/` rather than a `home` feature, because it depends directly on `meds` domain entities, providers, view models, and widgets; constitution §2.1 forbids presentation code outside a feature from importing that feature's `presentation/` layer. The router (the composition root) still wires it at `/` exactly as it wired `HomeScreen` before. See [`features/meds.md`](features/meds.md#today-screen--intake-logging-feature-038) and [`features/home.md`](features/home.md).
 
 ### AppShell
 
@@ -337,6 +354,7 @@ class AppShell extends StatelessWidget {
 
 - **`lib/core/routing/` is the composition root for routes.** It is the only place in the app allowed to import from multiple feature folders simultaneously — the documented exception to the "feature A never imports feature B" rule.
 - **`@riverpod` provider files may import their own feature's `data/` layer** solely to construct the repository or data source they expose as a domain-typed provider (constitution §2.1 composition-seam exception). The emitted provider value is always typed as the domain interface — screens and widgets still never import `data/` directly.
+- **A tab's screen can live in a feature other than its own tab slot.** `TodayScreen` (branch 0, the "Today" tab) lives in `features/meds/presentation/` — not a `home` feature — because it consumes `meds`-feature providers, view models, and widgets, and constitution §2.1 forbids a widget elsewhere from importing `meds/presentation`. The router still wires it at `/` from `lib/core/routing/app_router.dart`; only the screen's file location moved. This established the project's precedent (feature 038) for "presentation code that needs another feature's presentation layer becomes part of that feature."
 - **`appRouter` is a function-form `@Riverpod(keepAlive: true)` provider.** The emitted symbol is `appRouterProvider`. Lifecycle is bound to the `ProviderScope` via `ref.onDispose(router.dispose)`. Tests that need a different route topology override with `appRouterProvider.overrideWith((ref) { final r = ...; ref.onDispose(r.dispose); return r; })` — the override callback's `Ref` mirrors the production lifecycle binding so tests do not call `dispose()` directly. The earlier rationale for keeping the router on plain primitives (Riverpod hadn't landed yet) was retired by spec 018.
 - **Navigation is `context.go(...)` / `context.push(...)`** from `package:go_router/go_router.dart`, not `Navigator.of(context)`.
 - **Full-screen modals over the shell use `Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(fullscreenDialog: true, ...))`** — the only sanctioned use of the imperative `Navigator` API. `rootNavigator: true` is required so the modal covers `AppShell`'s bottom nav bar. See [`features/meds.md`](features/meds.md) for the reference implementation.
@@ -362,6 +380,9 @@ The drift database (`appDatabaseProvider`) is a `keepAlive` provider lazy-opened
 - [features/theme.md](features/theme.md) — the theme feature walkthrough
 - [features/settings.md](features/settings.md) — Settings screen and theme-mode selector
 - [features/medication-persistence.md](features/medication-persistence.md) — drift schema, domain model, and Save flow for the meds feature
+- [features/meds.md](features/meds.md) — the Meds tab and the Today screen / intake logging (feature 038)
+- [features/home.md](features/home.md) — `AppBottomNav`/`AppShell` and the retirement of the placeholder `HomeScreen`
 - [specs/001-m3-theme/plan.md](../specs/001-m3-theme/plan.md) — the plan that introduced the M3 theme
 - [specs/009-theme-settings/spec.md](../specs/009-theme-settings/spec.md) — the spec that introduced Riverpod, SharedPreferences, and the Failure hierarchy
 - [specs/032-med-persistence/plan.md](../specs/032-med-persistence/plan.md) — the plan that introduced drift, the domain model, and IdGenerator
+- [specs/038-today-intake-log/plan.md](../specs/038-today-intake-log/plan.md) — the plan that introduced the first schema migration and the Today screen

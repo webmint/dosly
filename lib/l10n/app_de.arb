@@ -109,5 +109,15 @@
   "doseUnitUnits": "IE",
   "doseUnitPuff": "Hub",
   "doseUnitApplication": "Dosis",
-  "doseUnitSachet": "Btl."
+  "doseUnitSachet": "Btl.",
+  "todayTitle": "Heute",
+  "todayMarkTaken": "Einnehmen",
+  "todaySkip": "Überspringen",
+  "todayUndo": "Rückgängig",
+  "todayStatusTaken": "Eingenommen",
+  "todayStatusSkipped": "Übersprungen",
+  "todayEmptyTitle": "Heute nichts fällig",
+  "todayEmptyBody": "Sie haben heute keine geplanten Einnahmen.",
+  "todayLoadError": "Die heutigen Einnahmen konnten nicht geladen werden.",
+  "todayActionError": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."
 }

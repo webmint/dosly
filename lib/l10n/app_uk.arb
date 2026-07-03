@@ -109,5 +109,15 @@
   "doseUnitUnits": "МО",
   "doseUnitPuff": "впорск",
   "doseUnitApplication": "доза",
-  "doseUnitSachet": "саше"
+  "doseUnitSachet": "саше",
+  "todayTitle": "Сьогодні",
+  "todayMarkTaken": "Прийняти",
+  "todaySkip": "Пропустити",
+  "todayUndo": "Скасувати",
+  "todayStatusTaken": "Прийнято",
+  "todayStatusSkipped": "Пропущено",
+  "todayEmptyTitle": "На сьогодні нічого не заплановано",
+  "todayEmptyBody": "У вас немає запланованих прийомів на сьогодні.",
+  "todayLoadError": "Не вдалося завантажити сьогоднішні прийоми.",
+  "todayActionError": "Щось пішло не так. Спробуйте ще раз."
 }
