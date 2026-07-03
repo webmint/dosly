@@ -450,5 +450,45 @@
   "doseUnitSachet": "sachet",
   "@doseUnitSachet": {
     "description": "Short dose-unit abbreviation for sachets, shown in medication card subtitle."
+  },
+  "todayTitle": "Today",
+  "@todayTitle": {
+    "description": "AppBar title for the Today screen."
+  },
+  "todayMarkTaken": "Take",
+  "@todayMarkTaken": {
+    "description": "Label for the action button on a Today dose row that marks the dose as taken."
+  },
+  "todaySkip": "Skip",
+  "@todaySkip": {
+    "description": "Label for the action button on a Today dose row that marks the dose as skipped."
+  },
+  "todayUndo": "Undo",
+  "@todayUndo": {
+    "description": "Label for the action that reverts a dose on the Today screen back to its pending state after being marked taken or skipped."
+  },
+  "todayStatusTaken": "Taken",
+  "@todayStatusTaken": {
+    "description": "Status label shown on a Today dose row once the dose has been marked as taken."
+  },
+  "todayStatusSkipped": "Skipped",
+  "@todayStatusSkipped": {
+    "description": "Status label shown on a Today dose row once the dose has been marked as skipped."
+  },
+  "todayEmptyTitle": "Nothing due today",
+  "@todayEmptyTitle": {
+    "description": "Title of the empty-state illustration shown on the Today screen when no doses are scheduled."
+  },
+  "todayEmptyBody": "You have no doses scheduled for today.",
+  "@todayEmptyBody": {
+    "description": "Body text of the empty-state illustration on the Today screen."
+  },
+  "todayLoadError": "Couldn't load today's doses.",
+  "@todayLoadError": {
+    "description": "Error message shown on the Today screen when loading today's doses fails."
+  },
+  "todayActionError": "Something went wrong. Please try again.",
+  "@todayActionError": {
+    "description": "SnackBar shown when marking a dose taken/skipped or undoing it fails."
   }
 }

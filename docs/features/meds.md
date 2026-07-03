@@ -8,6 +8,8 @@ The feature now spans all three Clean-Architecture layers under `lib/features/me
 
 As of feature 037, medication CRUD is complete: Create (`AddMedication`), Read (`watchAll`), Update (`EditMedication`), and Delete (`DeleteMedication`).
 
+As of feature 038, the `meds` feature also owns the **Today tab**'s screen (`TodayScreen`, destination index 0 in `AppBottomNav`, mounted at `/`) — not just the Meds tab. `TodayScreen` lives here rather than in a `home` feature because it depends directly on this feature's domain entities, providers, and widgets; constitution §2.1 forbids presentation code outside `meds` from importing `meds/presentation`. See [Today Screen — Intake Logging](#today-screen--intake-logging-feature-038) below.
+
 ## MedsScreen
 
 `MedsScreen` (in `lib/features/meds/presentation/screens/meds_screen.dart`) is a `ConsumerStatefulWidget` (upgraded from a placeholder `StatelessWidget` in feature 034) that renders a `Scaffold` with:
@@ -572,6 +574,109 @@ Failed inserts are silently discarded so a seeding error never crashes startup. 
 - **Tile-tap navigation** — tapping a `MedicationTile` now opens the edit modal (feature 036). A read-only detail screen is still deferred.
 - **Archive state** — medications cannot yet be archived; the Completed status is derived from a non-cyclic course's end date, not from an explicit archive flag.
 
+## Today Screen — Intake Logging (feature 038)
+
+Feature 038 turned the placeholder Today tab into the app's daily-driver screen: `TodayScreen` (`lib/features/meds/presentation/screens/today_screen.dart`), a reactive, time-sorted checklist of every dose due today. This is the **intake** pillar of the product vision (*medication → schedule → intake → adherence*) — the sibling of medication CRUD documented above. It retired the placeholder `HomeScreen` (see [`home.md`](home.md)); the router now builds `const TodayScreen()` directly at `/`.
+
+### Lazy intake model
+
+An `Intake` row is written to the new `intakes` drift table **only** when the user marks a dose taken or skipped:
+
+- **`pending`** — the derived state of a dose with no stored `Intake` row. Never persisted.
+- **`taken` / `skipped`** — the only two `IntakeStatus` values this slice ever writes to storage.
+- **`missed`** — reserved for a later feature (an auto-miss window-expiry sweep). The enum value exists so no rename/migration is needed when that feature lands, but nothing produces it yet.
+
+This is a deliberate MVP interpretation of the constitution §5.2 state machine, not the full literal model. See [`medication-persistence.md`](medication-persistence.md#intakes-table-feature-038) for the `intakes` table schema and the schemaVersion 1→2 migration.
+
+### Schedule expansion — `expandDueDoses`
+
+`expandDueDoses({meds, now})` (pure, in `domain/value_objects/due_dose.dart`) expands the tracked medications into the flat list of `DueDose`s due on the **local calendar day** of `now`. It reuses the existing DST-safe day math rather than re-deriving it:
+
+- **`ContinuousType`** — due once its local start day has arrived (`!today.isBefore(localCalendarDate(startDate))`); a future-dated start yields no doses.
+- **`CourseType`** — due only when ALL of: the local start day has arrived, `resolveMedicationActivity(med, now)` is not `completed`, and `CourseProgress.resolve(course, now).phase == CoursePhase.activeWindow` (excludes cyclic pause-gap days).
+- Each due medication contributes one `DueDose` per `TimeSlot`, carrying the slot's effective dose (`slot.doseOverride ?? medication.dosePerIntake`) and a `scheduledAt` UTC instant (today's local date at the slot's `minuteOfDay`).
+- The result is sorted ascending by `minuteOfDay`, ties broken by medication name (case-insensitive), then `TimeSlot.id` for determinism.
+
+`domain/value_objects/local_calendar_date.dart` now exports the shared, public `localCalendarDate(DateTime)` helper — the same UTC-midnight-anchored idiom used by `CourseProgress`/`resolveMedicationActivity` (see [Medication List Screen](#medication-list-screen-feature-034) above), promoted out of its private duplicates so this expansion (and future callers) can reuse it directly.
+
+### View model — `buildTodayView`
+
+`buildTodayView({meds, intakes, now})` (pure, in `presentation/view_models/today_view_model.dart`) shapes the day's `DueDose`s plus the stored `Intake`s into a `TodayView` of `TodayDose`s, mirroring `buildMedsListView`'s pure-function pattern:
+
+1. Expand `meds` via `expandDueDoses`.
+2. For each `DueDose`, find the matching `Intake` — same `medicationId` and `slotId`, AND `scheduledAt` on the same **local calendar date** (via `localCalendarDate`), not raw instant equality. Matching by local date (rather than exact instant) avoids an instant-equality trap and is what makes the unique `(medicationId, slotId, scheduledAt)` index safe to rely on.
+3. Derive `TodayDose.status` from the match (`pending` if none), carry its `confirmedAt`, and compute `TodayDose.undoable`: `true` only when the status is non-pending, `confirmedAt` is non-null, and `now − confirmedAt` is within `kIntakeUndoGracePeriod` (inclusive boundary; a future `confirmedAt` is never undoable).
+
+```dart
+// lib/features/meds/presentation/view_models/today_view_model.dart
+TodayView buildTodayView({
+  required List<Medication> meds,
+  required List<Intake> intakes,
+  required DateTime now,
+});
+```
+
+Every due dose appears regardless of whether its scheduled time is past or future relative to `now` — **early marking is allowed**, and there is deliberately **no overdue styling**: a past-scheduled pending dose renders identically to an upcoming one.
+
+### Screen layout
+
+`TodayScreen` is a `ConsumerStatefulWidget` rendering a `Scaffold` with:
+
+- **AppBar** — localized title `context.l10n.todayTitle` ("Today"), the same settings-gear `IconButton` (`context.push('/settings')`) and 1-px bottom `Divider` `HomeScreen` used to have.
+- **Date header** — a muted `Text` below the AppBar showing today's date via `MaterialLocalizations.of(context).formatFullDate(now)`.
+- **Body** — combines `ref.watch(medicationsListProvider)` and `ref.watch(intakesListProvider)` (both `AsyncValue`): either loading → `CircularProgressIndicator`; either error → muted centered `todayLoadError` text; otherwise `buildTodayView(...)` shapes the data and the body renders `TodayEmptyState` (nothing due) or a `ListView.builder` of `TodayDoseTile`s in ascending schedule-time order, with 88px bottom padding.
+
+Each `TodayDoseTile` (`presentation/widgets/today_dose_tile.dart`) is a "dumb" `StatelessWidget` — a form-icon badge, the medication name, an `"HH:mm · dose"` subtitle (24-hour, via `MaterialLocalizations.formatTimeOfDay(..., alwaysUse24HourFormat: true)`), and a trailing actions area that switches on `TodayDose.status`: Skip/Take buttons while `pending`; a status label plus an Undo `TextButton` (shown only when `undoable`) once `taken`/`skipped`. It carries no provider access — the screen supplies all three callbacks.
+
+### Mark / skip / undo
+
+Tapping **Take** or **Skip** calls `ref.read(markIntakeTakenProvider)` / `ref.read(skipIntakeProvider)` with the dose's `medicationId`, `slotId`, `scheduledAt`, and `clock.now()`. Both use cases upsert an `Intake` row keyed by the occurrence's unique `(medicationId, slotId, scheduledAt)` index — re-marking the same occurrence **updates** the existing row (e.g. taken → skipped) instead of inserting a duplicate. Because the list is reactive (`medicationsListProvider` + `intakesListProvider`), the row reflects the new state without a manual refresh.
+
+Tapping **Undo** calls `ref.read(undoIntakeProvider)` with the matched `intakeId`, `confirmedAt`, and `clock.now()`. `UndoIntake` (domain use case) owns the grace-window rule: if `now − confirmedAt` exceeds `kIntakeUndoGracePeriod` it returns a `ValidationFailure` **without touching the repository**; otherwise it deletes the stored `Intake` row, returning the dose to `pending`. The UI mirrors this rule (`TodayDose.undoable` gates whether the Undo button even renders) as defense-in-depth, but the domain is the source of truth.
+
+```dart
+// lib/features/meds/domain/value_objects/intake_grace.dart
+const Duration kIntakeUndoGracePeriod = Duration(minutes: 5);
+```
+
+All three actions follow the same async-safety idiom as the add/edit/delete modal (capture `ScaffoldMessenger`/l10n before the `await`, guard with `mounted` after): a failed call shows the generic localized `todayActionError` SnackBar; a successful call shows nothing, since the reactive streams update the checklist automatically.
+
+### Grace-window refresh: a one-shot `Timer`, not a periodic one
+
+The Undo affordance must disappear on its own once the grace window elapses, even if the user never interacts again. `TodayScreen` schedules a single **one-shot** `Timer` (not `Timer.periodic`, which breaks `pumpAndSettle` in widget tests) computed to fire exactly when the *soonest* currently-undoable dose's grace window elapses, triggering a `setState` rebuild. The timer is recomputed on every successful build (cancelling any prior one first) and cancelled in `dispose()`, so at most one timer is ever pending. If no dose is currently undoable, no timer is scheduled at all.
+
+### New `intakes` table (schemaVersion 1 → 2)
+
+This is the project's **first drift schema migration**. See [`medication-persistence.md`](medication-persistence.md#intakes-table-feature-038) for the full table definition, the add-only `onUpgrade`, and the `SchemaVerifier`/data-survival test convention.
+
+### Localization keys (feature 038)
+
+| Key | English | Notes |
+|---|---|---|
+| `todayTitle` | Today | AppBar title |
+| `todayMarkTaken` | Take | Action button on a pending dose row |
+| `todaySkip` | Skip | Action button on a pending dose row |
+| `todayUndo` | Undo | Reverts a taken/skipped dose to pending, within the grace window |
+| `todayStatusTaken` | Taken | Status label once a dose is marked taken |
+| `todayStatusSkipped` | Skipped | Status label once a dose is marked skipped |
+| `todayEmptyTitle` | Nothing due today | Empty-state title |
+| `todayEmptyBody` | You have no doses scheduled for today. | Empty-state body |
+| `todayLoadError` | Couldn't load today's doses. | Shown when the reactive stream errors |
+| `todayActionError` | Something went wrong. Please try again. | SnackBar shown when mark/skip/undo fails |
+
+All keys exist in `app_en.arb`, `app_de.arb`, and `app_uk.arb` with `@`-description metadata, consumed exclusively via `context.l10n`.
+
+### Deferred / out of scope
+
+Explicitly deferred to future features (see `specs/038-today-intake-log/spec.md` §6):
+
+- **Adherence / History screen** — the History tab (destination index 2) is still a placeholder; no adherence ratio or `AdherenceRecord` aggregation exists yet.
+- **Reminders / local notifications** — `flutter_local_notifications`, `timezone`, and permission wiring are not part of this slice.
+- **Automatic `pending → missed`** — the intake window and any background/on-open sweep job that would produce `IntakeStatus.missed` do not exist; the enum value is reserved but unproduced.
+- **Settings for the grace period** — `kIntakeUndoGracePeriod` (5 minutes) is a hard-coded constant; a Settings UI to configure it (§5.2 range: 0–30 minutes) is deferred.
+- **Manual correction after grace expiry** — once the grace window elapses, a dose's taken/skipped state is locked; the audit-logged manual-correction edit flow is deferred.
+- **Pack-stock decrement** on taking a dose, and `notes` on intakes, are also out of scope.
+
 ## Evolution
 
 The add-medication form is being built iteratively:
@@ -587,8 +692,10 @@ The add-medication form is being built iteratively:
 - **Feature 035 (done)** — meds-list search and empty-state fidelity. Animated slide-in search bar replaces the title-swap approach. Fuzzy name matching (`fuzzyNameScore` in `lib/core/utils/fuzzy_name_match.dart`) replaces the plain substring filter — typo-tolerant with score-ranked results within each section while a query is active. Per-section "nothing found" placeholder gated on `queryActive && items.isEmpty`. Completed-course tiles de-emphasised: 0.65 opacity, neutral `surfaceContainerHighest` badge, grey `surfaceContainerHighest` status chip. Course chip order fixed: type chip before status chip. Integration-test harness updated to override `devSeedProvider` with a no-op to protect golden-flow assertions from debug-seeded rows.
 - **Feature 036 (done)** — tap-to-edit. `AddMedicationModal` gained a `Medication? initial` parameter enabling add/edit dual mode. `_MedicationFormPicker` gained `initialFormKey` to pre-select the form in edit mode. `MedicationTile` wrapped in `InkWell(onTap:)`; `MedicationSection` threads `onTapItem`; `MedsScreen` supplies `_openEditMedicationModal`. Domain: new `EditMedication` use case (slot-ID reconciliation, same 4 validation rules). Data: `MedicationRepository.update` + `MedicationLocalDataSource.upsertMedication` (`insertOnConflictUpdate` to avoid cascade-delete of time slots). Provider: `editMedicationProvider`. New l10n keys: `medsEditTitle`, `medsEditSaveSuccess`. See [`medication-persistence.md`](medication-persistence.md) and [`../../specs/036-meds-edit/spec.md`](../../specs/036-meds-edit/spec.md).
 - **Feature 037 (done)** — delete medication, completing CRUD. Edit-mode-only error-tinted trash `IconButton` in the AppBar opens a Material `AlertDialog` confirmation (`showDialog<bool>`). Domain: new `DeleteMedication` use case (pure pass-through, no validation needed). Data: `MedicationRepository.delete` + `MedicationLocalDataSource.deleteMedication` (single drift `DELETE`; time slots removed by the existing `onDelete: cascade` FK). Provider: `deleteMedicationProvider`. Deleting an absent id is an idempotent success. New l10n keys: `medsDeleteButtonTooltip`, `medsDeleteDialogTitle`, `medsDeleteDialogBody`, `medsDeleteDialogConfirm`, `medsDeleteDialogCancel`, `medsDeleteSuccess`, `medsDeleteError`. See [`medication-persistence.md`](medication-persistence.md#delete-flow-end-to-end) and [`../../specs/037-meds-delete/spec.md`](../../specs/037-meds-delete/spec.md).
+- **Feature 038 (done)** — Today screen / intake logging, retiring the placeholder `HomeScreen`. New `TodayScreen` (mounted at `/`, living in `meds/presentation/` per constitution §2.1) renders a reactive, time-sorted checklist of today's due doses. Domain: `Intake`/`IntakeStatus` entities, `IntakeId` value object, pure `expandDueDoses` schedule expansion, `kIntakeUndoGracePeriod` (5 min), `IntakeRepository` contract, `MarkIntakeTaken`/`SkipIntake`/`UndoIntake` use cases. Core: new `intakes` drift table — the project's **first schema migration** (`schemaVersion` 1→2, add-only `onUpgrade`). Data: `IntakeLocalDataSource` (upsert on the occurrence unique key), `intake_mapper.dart`, `IntakeRepositoryImpl`. Presentation: `intake_providers.dart` composition seam, pure `buildTodayView` view model, `TodayDoseTile`/`TodayEmptyState` widgets, a one-shot grace-refresh `Timer`. New l10n keys: `todayTitle`, `todayMarkTaken`, `todaySkip`, `todayUndo`, `todayStatusTaken`, `todayStatusSkipped`, `todayEmptyTitle`, `todayEmptyBody`, `todayLoadError`, `todayActionError`. See the [Today Screen — Intake Logging](#today-screen--intake-logging-feature-038) section above, [`medication-persistence.md`](medication-persistence.md#intakes-table-feature-038), and [`../../specs/038-today-intake-log/spec.md`](../../specs/038-today-intake-log/spec.md).
 - **Pending** — schedule, reminder, and other form fields as future specs are defined.
 - **Pending** — archive state (explicit flag, not derived from course end date).
+- **Pending** — adherence/History screen, notifications, automatic `pending → missed`, and Settings-configurable grace period (see [Deferred / out of scope](#deferred--out-of-scope) above).
 
 No changes to the `AppBar` structure, the `/meds` route path, or the modal-opening pattern are expected.
 
@@ -607,7 +714,8 @@ No changes to the `AppBar` structure, the `/meds` route path, or the modal-openi
 - [`../../specs/035-meds-list-search/spec.md`](../../specs/035-meds-list-search/spec.md) — the spec that added fuzzy search, animated search bar, empty-state gating, and completed-tile de-emphasis (feature 035)
 - [`../../specs/036-meds-edit/spec.md`](../../specs/036-meds-edit/spec.md) — the spec that added tap-to-edit, the modal dual mode, slot reconciliation, and the update persistence path (feature 036)
 - [`../../specs/037-meds-delete/spec.md`](../../specs/037-meds-delete/spec.md) — the spec that added the delete flow, completing medication CRUD (feature 037)
-- [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen
+- [`../../specs/038-today-intake-log/spec.md`](../../specs/038-today-intake-log/spec.md) — the spec that added the Today screen, the lazy intake model, and the first schema migration (feature 038)
+- [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen (and the retirement of the placeholder `HomeScreen` that `TodayScreen` replaced)
 - [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology, routing conventions, the `rootNavigator` context, the local database section, and the reactive read pattern
 - [`i18n.md`](i18n.md) — how ARB keys are added and translated
 - [`icons.md`](icons.md) — icon conventions (Lucide vs. Material) and the `medicationFormIcon` shared resolver

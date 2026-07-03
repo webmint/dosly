@@ -12,7 +12,7 @@
 | Architecture | Clean Architecture (see [`architecture.md`](architecture.md)) |
 | State management | Riverpod (`flutter_riverpod`) |
 | Error handling | `Either<Failure, T>` via `fpdart` |
-| Persistence | `shared_preferences` (settings); `drift` SQLite (medication data — `AppDatabase`, `schemaVersion=1`) |
+| Persistence | `shared_preferences` (settings); `drift` SQLite (medication data — `AppDatabase`, `schemaVersion=2`) |
 | Icon set | Lucide via [`lucide_icons_flutter`](features/icons.md) (matches the HTML design template) |
 | Network | None. Fully offline. |
 
@@ -50,7 +50,7 @@ flutter run -d android  # Android emulator
 
 - [`architecture.md`](architecture.md) — layer boundaries, Riverpod bootstrap, SharedPreferences, drift database, Failure hierarchy
 - [`features/theme.md`](features/theme.md) — the Material 3 theme feature
-- [`features/home.md`](features/home.md) — the home screen and its bottom navigation bar
+- [`features/home.md`](features/home.md) — the bottom navigation bar (`AppBottomNav`/`AppShell`); the placeholder home screen it used to host was retired in favor of the Today screen (see `features/meds.md`)
 - [`features/icons.md`](features/icons.md) — the Lucide icon set
 - [`features/settings.md`](features/settings.md) — Settings screen and theme-mode persistence
 - [`features/meds.md`](features/meds.md) — the Meds tab, FAB, and add-medication modal (visual iterations 026–031)

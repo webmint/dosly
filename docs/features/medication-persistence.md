@@ -258,11 +258,12 @@ Validation lives in the use cases — `AddMedication` for the add path and `Edit
 
 ### AppDatabase
 
-`lib/core/database/database.dart` — `@DriftDatabase(tables: [Medications, TimeSlots])`.
+`lib/core/database/database.dart` — `@DriftDatabase(tables: [Medications, TimeSlots, Intakes])`. The `Intakes` table (feature 038) was added by the project's first migration; see [Intakes table](#intakes-table-feature-038) and [Schema migration: v1 → v2](#schema-migration-v1--v2-feature-038) below.
 
-- `schemaVersion = 1`
-- `MigrationStrategy.onCreate` → `createAll()`
-- `beforeOpen` → `pragma foreign_keys = ON;` (enforces the cascade delete on TimeSlots)
+- `schemaVersion = 2`
+- `MigrationStrategy.onCreate` → `createAll()` (fresh installs get all three tables)
+- `MigrationStrategy.onUpgrade` → add-only `if (from < 2) { await m.createTable(intakes); }`
+- `beforeOpen` → `pragma foreign_keys = ON;` (enforces the cascade delete on TimeSlots and on Intakes)
 
 The database file is named `dosly`. Pass a `QueryExecutor` to the constructor to inject an in-memory database in tests.
 
@@ -299,6 +300,56 @@ The database file is named `dosly`. Pass a `QueryExecutor` to the constructor to
 | `doseUnit` | `textEnum<DoseUnit>()` | yes | `doseOverride.unit`; always null this spec |
 
 The cascade FK is dormant this spec (no delete path yet) but is correct from v1 and is enforced via the `pragma foreign_keys = ON` pragma.
+
+### Intakes table (feature 038)
+
+`@DataClassName('IntakeRow')`. Added in feature `038-today-intake-log`, one row per **user-confirmed** dose occurrence (see [`meds.md`](meds.md#today-screen--intake-logging-feature-038) for the lazy-materialization model this table backs).
+
+| Column | Drift type | Nullable | Notes |
+|--------|-----------|----------|-------|
+| `id` | `text()` | no | PK; domain `IntakeId` value |
+| `medicationId` | `text().references(Medications, #id, onDelete: KeyAction.cascade)` | no | FK → `Medications.id`, cascades on delete — intakes never outlive their medication |
+| `slotId` | `text()` | no | **No FK** — plain text. An FK cascade here would wipe intake history the moment a slot is reconciled away by an edit (see [Slot-ID preservation](#update--edit-flow-end-to-end) above); keeping it a plain column decouples intake history from slot reconciliation |
+| `scheduledAt` | `dateTime()` | no | UTC instant of the scheduled dose |
+| `confirmedAt` | `dateTime().nullable()` | yes | UTC; set when the user marks taken/skipped, `null` until then |
+| `status` | `textEnum<IntakeStatus>()` | no | stored by enum name; this slice only ever writes `taken` or `skipped` — `pending` is derived, `missed` is reserved and unused |
+| `notes` | `text().nullable()` | yes | unused this slice, always `null` |
+
+**Uniqueness / upsert**: a `UNIQUE` index on `(medicationId, slotId, scheduledAt)` identifies one dose occurrence. `IntakeLocalDataSource.upsertIntake` targets this index (not the primary key) in its `onConflict: DoUpdate(...)` — each confirmation mints a fresh `id`, so a PK-targeted upsert would never collide and would insert a duplicate row per re-mark. Targeting the occurrence index means re-marking the same occurrence (e.g. taken → skipped) resolves to an SQL `UPDATE` in place. This is the AC-6 idempotency guarantee: one occurrence is ever represented by at most one row.
+
+### Schema migration: v1 → v2 (feature 038)
+
+This is the project's **first drift schema migration** — every table before it was created fresh via `onCreate`. The migration is deliberately **add-only**:
+
+```dart
+// lib/core/database/database.dart
+@override
+int get schemaVersion => 2;
+
+@override
+MigrationStrategy get migration => MigrationStrategy(
+  onCreate: (m) => m.createAll(),
+  onUpgrade: (Migrator m, int from, int to) async {
+    // v1→v2: add-only. Create the new intakes table; alter nothing else.
+    if (from < 2) {
+      await m.createTable(intakes);
+    }
+  },
+  beforeOpen: (details) async {
+    await customStatement('pragma foreign_keys = ON;');
+  },
+);
+```
+
+It creates the new `intakes` table and touches **no** existing column, table, or enum on `medications`/`time_slots`. `onCreate` (fresh installs) is unchanged — it now includes `Intakes` because the table is registered in `@DriftDatabase(tables: [...])`.
+
+**Migration test convention** (`test/core/database/migration_test.dart`): uses drift's `SchemaVerifier`, fed by a generated schema snapshot (`dart run drift_dev schema dump` → `drift_schemas/drift_schema_v1.json`, then `dart run drift_dev schema generate` → the `test/core/database/schema/` helper). Three tests establish the pattern future migrations should follow:
+
+1. **`upgrade v1 to v2 validates`** — boots a v1-shaped database, opens it as `AppDatabase` (triggering the real `onUpgrade`), and calls `db.validateDatabaseSchema()` to prove the migrated result is structurally identical to a fresh `createAll()` of the currently-declared (v2) tables.
+2. **`v1 data survives the upgrade`** — seeds a v1-shaped database directly through the generated v1 companion classes, reopens it as `AppDatabase` on an independent connection to the same underlying database (triggering the upgrade), and reads the medication/time-slot rows back through the real v2 schema to prove no existing column or row was altered.
+3. **`fresh install has all three tables`** — a brand-new `AppDatabase(NativeDatabase.memory())` takes the `onCreate` path (not `onUpgrade`) and must expose `medications`, `time_slots`, and `intakes`.
+
+Any future schema change should add an equivalent snapshot + `SchemaVerifier` test pair rather than hand-writing migration assertions.
 
 ### Schema contract
 
@@ -442,10 +493,10 @@ All seven keys have `@`-description metadata in `app_en.arb`.
 - Editing a medication beyond `add` — see [feature 036](#update--edit-flow-end-to-end) which added the full edit path.
 - Deleting a medication — see [feature 037](#delete-flow-end-to-end) which added the full delete path.
 - Notifications or reminder scheduling.
-- `Intakes` records, intake state machine, or adherence calculation.
+- Adherence calculation / the History screen. (`Intakes` records and the taken/skipped intake state machine were added in feature 038 — see [Intakes table](#intakes-table-feature-038) above and [`meds.md`](meds.md#today-screen--intake-logging-feature-038); adherence aggregation is still deferred.)
 - Schedule frequencies other than `daily`.
 - Pack-stock decrement on intake or low-stock warnings.
-- Schema migrations beyond v1.
+- Schema migrations beyond v2. (v1→v2, adding `Intakes`, shipped in feature 038 — see [Schema migration: v1 → v2](#schema-migration-v1--v2-feature-038) above.)
 - Encryption-at-rest. Drift writes an unencrypted SQLite file. This is a deliberate MVP trade-off: the app is local-only with no sync surface, and the added complexity of SQLCipher was judged disproportionate at this stage. This decision should be revisited before any cloud sync or backup feature lands.
 
 ## Extending This Feature (guide for future specs)
@@ -480,4 +531,5 @@ Always bump `AppDatabase.schemaVersion` and add a migration to `MigrationStrateg
 - [`../../specs/032-med-persistence/data-model.md`](../../specs/032-med-persistence/data-model.md) — entity/table reference
 - [`../../specs/036-meds-edit/spec.md`](../../specs/036-meds-edit/spec.md) — the edit spec: tap-to-edit, slot reconciliation, upsert constraints
 - [`../../specs/037-meds-delete/spec.md`](../../specs/037-meds-delete/spec.md) — the delete spec: confirmation dialog, single-statement delete, cascade FK reliance, idempotent-success semantics
+- [`../../specs/038-today-intake-log/spec.md`](../../specs/038-today-intake-log/spec.md) — the Today-screen spec: `Intakes` table, the first schema migration, and the lazy intake model
 - [`../../constitution.md`](../../constitution.md) — §2.1 (domain purity), §4.2.1 (drift as system of record)

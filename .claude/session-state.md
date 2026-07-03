@@ -2,19 +2,28 @@
 # Session State
 
 ## Current Feature
-037-meds-delete — Delete a medication (finish CRUD) — VERIFIED, gaps closed
+038-today-intake-log — Today screen + daily intake checklist (lazy Intake model, first drift migration) — VERIFIED + hardened
 
 ## Progress
-All 8 tasks Complete. /review + /verify done → APPROVED. All 3 test gaps closed (587 tests).
-Next: /summarize → /finalize.
+All 16/16 tasks Complete → /review → /verify APPROVED → /finalize (docs done) → /fix closed all 6 verify warnings.
+Full suite 681 green, dart analyze clean, APK builds, security PASS.
+Next: complete /finalize squash → PR.
 
 ## Recent Task Completions
-- /verify: 14/14 ACs PASS; APPROVED
-- Test-hardening: +4 tests (AC-12 in-flight guard, AC-13 DE/UK render, AC-10 delete re-emit) — 587 green
+- /fix (warnings): +22 tests (IntakeRepositoryImpl + Today error branch, MarkIntakeTaken/SkipIntake units, DE/UK locale spot-check, no-overdue-styling, FK cascade) + buildTodayView O(doses×intakes)→map refactor (code review APPROVE, behavior-preserving).
+- /finalize docs: tech-writer updated meds/home/medication-persistence/architecture/overview/settings/i18n docs; reconciled HomeScreen retirement.
 
 ## Recent Decisions
-- All coverage gaps closed; test assessment now ADEQUATE (14/14).
+- Closed all 6 /verify warnings before finalize (user chose "All 6"). Fix commits kept as [WIP] (sub-workflow in unfinished feature) — folded into the finalize squash.
+- buildTodayView now indexes intakes by (medId, slotId, localDate) → O(doses+intakes); dead "prefer non-pending" fallback removed (DB unique key ⇒ ≤1 match).
+
+## Open Follow-ups (non-blocking)
+- 33 pre-existing files not tall-dart-format-clean (standing audit debt).
+- Constitution §6.6 names a migrations/ dir convention never followed (inline MigrationStrategy) — reconcile.
+- iOS bundle id com.example.dosly vs Android dev.webmint.dosly (pre-existing).
+- Perf deferral: date-scope watchAllIntakes + scheduledAt index when History lands.
 
 ## Recently Modified Files
-- test/features/meds/presentation/widgets/add_medication_modal_test.dart
-- test/features/meds/data/datasources/medication_local_data_source_delete_test.dart
+- lib/features/meds/presentation/view_models/today_view_model.dart (perf map)
+- test/features/meds/data/repositories/intake_repository_impl_test.dart (new)
+- test/features/meds/domain/usecases/{mark_intake_taken,skip_intake}_test.dart (new)

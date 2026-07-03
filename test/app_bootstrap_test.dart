@@ -9,6 +9,8 @@ import 'dart:async';
 
 import 'package:dosly/app.dart';
 import 'package:dosly/app_bootstrap.dart';
+import 'package:dosly/core/database/database.dart';
+import 'package:dosly/core/database/database_provider.dart';
 import 'package:dosly/core/error/failures.dart';
 import 'package:dosly/core/providers/shared_preferences_provider.dart';
 import 'package:dosly/core/widgets/prefs_load_error_screen.dart';
@@ -18,6 +20,8 @@ import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
+import 'package:drift/drift.dart' show DatabaseConnection;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -84,6 +88,7 @@ void main() {
 
   late SharedPreferencesWithCache realPrefs;
   late _FakeSettingsRepository fakeRepo;
+  late AppDatabase db;
 
   setUpAll(() async {
     realPrefs = await _buildRealPrefs();
@@ -91,6 +96,24 @@ void main() {
 
   setUp(() {
     fakeRepo = _FakeSettingsRepository();
+    // Every test that reaches the data branch mounts the real DoslyApp router,
+    // whose '/' branch is TodayScreen — it watches medicationsListProvider /
+    // intakesListProvider, both derived from appDatabaseProvider. Without this
+    // override the real (unregistered-platform-channel) database never
+    // resolves, so TodayScreen stays in AsyncValue.loading and its
+    // CircularProgressIndicator's indeterminate animation makes
+    // pumpAndSettle() time out. closeStreamsSynchronously: true avoids a
+    // "Timer is still pending" teardown failure, mirroring app_router_test.dart.
+    db = AppDatabase(
+      DatabaseConnection(
+        NativeDatabase.memory(),
+        closeStreamsSynchronously: true,
+      ),
+    );
+  });
+
+  tearDown(() async {
+    await db.close();
   });
 
   // -------------------------------------------------------------------------
@@ -148,6 +171,7 @@ void main() {
             // Provide a fake settings repo so DoslyApp can inflate once the
             // completer resolves (avoids the synchronous-provider throw).
             settingsRepositoryProvider.overrideWithValue(fakeRepo),
+            appDatabaseProvider.overrideWithValue(db),
           ],
           child: const AppBootstrap(),
         ),
@@ -190,6 +214,7 @@ void main() {
               // Provide a fake settings repo so DoslyApp can inflate after
               // retry succeeds.
               settingsRepositoryProvider.overrideWithValue(fakeRepo),
+              appDatabaseProvider.overrideWithValue(db),
             ],
             child: const AppBootstrap(),
           ),
@@ -232,6 +257,7 @@ void main() {
               // Provide a fake settings repo so the settings provider tree
               // does not hit the real SharedPreferences.
               settingsRepositoryProvider.overrideWithValue(fakeRepo),
+              appDatabaseProvider.overrideWithValue(db),
             ],
             child: const AppBootstrap(),
           ),
@@ -273,6 +299,7 @@ void main() {
               ),
               // settingsRepositoryProvider is intentionally NOT overridden —
               // sharedPreferencesProvider must serve the resolved prefs.
+              appDatabaseProvider.overrideWithValue(db),
             ],
             child: const AppBootstrap(),
           ),

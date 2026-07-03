@@ -759,6 +759,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'sachet'**
   String get doseUnitSachet;
+
+  /// AppBar title for the Today screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get todayTitle;
+
+  /// Label for the action button on a Today dose row that marks the dose as taken.
+  ///
+  /// In en, this message translates to:
+  /// **'Take'**
+  String get todayMarkTaken;
+
+  /// Label for the action button on a Today dose row that marks the dose as skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get todaySkip;
+
+  /// Label for the action that reverts a dose on the Today screen back to its pending state after being marked taken or skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get todayUndo;
+
+  /// Status label shown on a Today dose row once the dose has been marked as taken.
+  ///
+  /// In en, this message translates to:
+  /// **'Taken'**
+  String get todayStatusTaken;
+
+  /// Status label shown on a Today dose row once the dose has been marked as skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get todayStatusSkipped;
+
+  /// Title of the empty-state illustration shown on the Today screen when no doses are scheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing due today'**
+  String get todayEmptyTitle;
+
+  /// Body text of the empty-state illustration on the Today screen.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no doses scheduled for today.'**
+  String get todayEmptyBody;
+
+  /// Error message shown on the Today screen when loading today's doses fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load today\'s doses.'**
+  String get todayLoadError;
+
+  /// SnackBar shown when marking a dose taken/skipped or undoing it fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get todayActionError;
 }
 
 class _AppLocalizationsDelegate

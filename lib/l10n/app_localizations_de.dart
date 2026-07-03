@@ -361,4 +361,36 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get doseUnitSachet => 'Btl.';
+
+  @override
+  String get todayTitle => 'Heute';
+
+  @override
+  String get todayMarkTaken => 'Einnehmen';
+
+  @override
+  String get todaySkip => 'Überspringen';
+
+  @override
+  String get todayUndo => 'Rückgängig';
+
+  @override
+  String get todayStatusTaken => 'Eingenommen';
+
+  @override
+  String get todayStatusSkipped => 'Übersprungen';
+
+  @override
+  String get todayEmptyTitle => 'Heute nichts fällig';
+
+  @override
+  String get todayEmptyBody => 'Sie haben heute keine geplanten Einnahmen.';
+
+  @override
+  String get todayLoadError =>
+      'Die heutigen Einnahmen konnten nicht geladen werden.';
+
+  @override
+  String get todayActionError =>
+      'Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.';
 }

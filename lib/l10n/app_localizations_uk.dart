@@ -362,4 +362,34 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get doseUnitSachet => 'саше';
+
+  @override
+  String get todayTitle => 'Сьогодні';
+
+  @override
+  String get todayMarkTaken => 'Прийняти';
+
+  @override
+  String get todaySkip => 'Пропустити';
+
+  @override
+  String get todayUndo => 'Скасувати';
+
+  @override
+  String get todayStatusTaken => 'Прийнято';
+
+  @override
+  String get todayStatusSkipped => 'Пропущено';
+
+  @override
+  String get todayEmptyTitle => 'На сьогодні нічого не заплановано';
+
+  @override
+  String get todayEmptyBody => 'У вас немає запланованих прийомів на сьогодні.';
+
+  @override
+  String get todayLoadError => 'Не вдалося завантажити сьогоднішні прийоми.';
+
+  @override
+  String get todayActionError => 'Щось пішло не так. Спробуйте ще раз.';
 }
