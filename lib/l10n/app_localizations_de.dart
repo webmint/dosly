@@ -52,6 +52,41 @@ class AppLocalizationsDe extends AppLocalizations {
       'Einstellung konnte nicht gespeichert werden. Bitte erneut versuchen.';
 
   @override
+  String get settingsIntakeHeader => 'Einnahme';
+
+  @override
+  String get settingsIntakeWindowLabel => 'Einnahmefenster';
+
+  @override
+  String get settingsIntakeWindowDescription =>
+      'Wie lange nach der geplanten Zeit eine Dosis noch markiert werden kann';
+
+  @override
+  String get settingsGracePeriodLabel => 'Kulanzzeit';
+
+  @override
+  String get settingsGracePeriodDescription =>
+      'Wie lange eine Dosis nach dem Markieren rückgängig gemacht werden kann';
+
+  @override
+  String get settingsAllowMarkAheadLabel => 'Vorab markieren erlauben';
+
+  @override
+  String get settingsAllowMarkAheadDescription =>
+      'Dosen markieren, bevor ihr Zeitfenster beginnt';
+
+  @override
+  String settingsMinutesValue(int minutes) {
+    return '$minutes Min.';
+  }
+
+  @override
+  String get settingsStepperIncreaseTooltip => 'Erhöhen';
+
+  @override
+  String get settingsStepperDecreaseTooltip => 'Verringern';
+
+  @override
   String get medsAddFabTooltip => 'Medikament hinzufügen';
 
   @override

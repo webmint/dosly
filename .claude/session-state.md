@@ -2,28 +2,26 @@
 # Session State
 
 ## Current Feature
-038-today-intake-log — Today screen + daily intake checklist (lazy Intake model, first drift migration) — VERIFIED + hardened
+039-intake-settings — intake-behavior settings (IntakeWindow/GracePeriod VOs, allowMarkAhead) — COMPLETE + reviewed + gaps closed
 
 ## Progress
-All 16/16 tasks Complete → /review → /verify APPROVED → /finalize (docs done) → /fix closed all 6 verify warnings.
-Full suite 681 green, dart analyze clean, APK builds, security PASS.
-Next: complete /finalize squash → PR.
+11/11 tasks Complete → /review (security PASS, perf clean, tests GAPS FOUND) → /fix closed the gaps.
+Full suite 764/764 green, project-wide `dart analyze` clean.
+Next: `/verify` → `/summarize` → `/finalize`. (Foundation spec A of the Today-redesign chain: B=auto-miss, C=Today UI — commands saved in research/2026-07-03-today-hourly-grouping-full-fidelity.md.)
 
 ## Recent Task Completions
-- /fix (warnings): +22 tests (IntakeRepositoryImpl + Today error branch, MarkIntakeTaken/SkipIntake units, DE/UK locale spot-check, no-overdue-styling, FK cascade) + buildTodayView O(doses×intakes)→map refactor (code review APPROVE, behavior-preserving).
-- /finalize docs: tech-writer updated meds/home/medication-persistence/architecture/overview/settings/i18n docs; reconciled HomeScreen retirement.
+- /fix (review gaps): +8 tests — screen-integration mount test + 3 intake failure→SnackBar tests (passed → wiring was real, just untested); allowMarkAhead true→false at notifier+widget; de/uk Intake render; corrected a false "covered elsewhere" comment. Test-only, code review APPROVE. Kept as [WIP] (folds into /finalize squash).
+- /review: security 0 findings PASS; perf clean; qa GAPS FOUND (screen integration, toggle-off, de/uk) — all now closed by /fix.
 
 ## Recent Decisions
-- Closed all 6 /verify warnings before finalize (user chose "All 6"). Fix commits kept as [WIP] (sub-workflow in unfinished feature) — folded into the finalize squash.
-- buildTodayView now indexes intakes by (medId, slotId, localDate) → O(doses+intakes); dead "prefer non-pending" fallback removed (DB unique key ⇒ ≤1 match).
+- Fix commits kept [WIP] (sub-workflow in unfinished feature) → /finalize squashes the whole feature.
+- Did NOT run `dart format` on the 3 touched test files: it would reflow pre-existing untouched code (formatter/SDK drift, standing debt); `dart analyze` is the real gate and is clean.
 
 ## Open Follow-ups (non-blocking)
-- 33 pre-existing files not tall-dart-format-clean (standing audit debt).
-- Constitution §6.6 names a migrations/ dir convention never followed (inline MigrationStrategy) — reconcile.
-- iOS bundle id com.example.dosly vs Android dev.webmint.dosly (pre-existing).
-- Perf deferral: date-scope watchAllIntakes + scheduledAt index when History lands.
+- audits/2026-06-10-audit-2.md was accidentally deleted by a review sub-agent (untracked → not git-recoverable). User to check IDE local history / Time Machine, or regenerate via /audit.
+- Settings tests hardcode SharedPreferencesWithCache allowList literals instead of importing settingsPrefsKeys (recurring foot-gun).
 
 ## Recently Modified Files
-- lib/features/meds/presentation/view_models/today_view_model.dart (perf map)
-- test/features/meds/data/repositories/intake_repository_impl_test.dart (new)
-- test/features/meds/domain/usecases/{mark_intake_taken,skip_intake}_test.dart (new)
+- test/features/settings/presentation/screens/settings_screen_test.dart
+- test/features/settings/presentation/widgets/intake_settings_controls_test.dart
+- test/features/settings/presentation/providers/settings_provider_test.dart

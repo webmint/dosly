@@ -4,8 +4,12 @@ import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
+import 'package:dosly/features/settings/domain/value_objects/grace_period.dart';
+import 'package:dosly/features/settings/domain/value_objects/intake_window.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
 import 'package:dosly/features/settings/presentation/screens/settings_screen.dart';
+import 'package:dosly/features/settings/presentation/widgets/intake_settings_controls.dart';
+import 'package:dosly/features/settings/presentation/widgets/language_selector.dart';
 import 'package:dosly/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +27,9 @@ class _FakeSettingsRepository implements SettingsRepository {
   bool failOnSaveUseSystemTheme = false;
   bool failOnSaveUseSystemLanguage = false;
   bool failOnSaveManualLanguage = false;
+  bool failOnSaveIntakeWindow = false;
+  bool failOnSaveGracePeriod = false;
+  bool failOnSaveAllowMarkAhead = false;
 
   @override
   Either<Failure, AppSettings> load() => Right(_settings);
@@ -62,6 +69,33 @@ class _FakeSettingsRepository implements SettingsRepository {
     _settings = _settings.copyWith(manualLanguage: language);
     return const Right(null);
   }
+
+  @override
+  Future<Either<Failure, void>> saveIntakeWindow(IntakeWindow window) async {
+    if (failOnSaveIntakeWindow) {
+      return Left(Failure.unknown(Exception('mock failure'), StackTrace.empty));
+    }
+    _settings = _settings.copyWith(intakeWindow: window);
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Failure, void>> saveGracePeriod(GracePeriod grace) async {
+    if (failOnSaveGracePeriod) {
+      return Left(Failure.unknown(Exception('mock failure'), StackTrace.empty));
+    }
+    _settings = _settings.copyWith(gracePeriod: grace);
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Failure, void>> saveAllowMarkAhead(bool value) async {
+    if (failOnSaveAllowMarkAhead) {
+      return Left(Failure.unknown(Exception('mock failure'), StackTrace.empty));
+    }
+    _settings = _settings.copyWith(allowMarkAhead: value);
+    return const Right(null);
+  }
 }
 
 /// Builds a widget tree wrapping [SettingsScreen] under the requested [locale].
@@ -84,6 +118,29 @@ Widget _harness({required Locale locale, _FakeSettingsRepository? fakeRepo}) {
       home: const SettingsScreen(),
     ),
   );
+}
+
+const String _windowRowLabel = 'Intake window';
+const String _graceRowLabel = 'Grace period';
+const String _increaseTooltip = 'Increase';
+
+/// Finds the [ListTile] stepper row whose title is [rowLabel].
+///
+/// The intake window and grace period rows share the same "Increase"/
+/// "Decrease" tooltips, so lookups must be scoped to the specific row rather
+/// than using a bare `find.byTooltip(...)` (ambiguous across rows) or a
+/// positional `find.byType(IconButton).at(n)` (fragile to layout changes).
+Finder _stepperRow(String rowLabel) =>
+    find.ancestor(of: find.text(rowLabel), matching: find.byType(ListTile));
+
+/// Finds the tappable stepper `IconButton` with [tooltip] scoped to the row
+/// titled [rowLabel].
+Finder _stepperButton({required String rowLabel, required String tooltip}) {
+  final tooltipFinder = find.descendant(
+    of: _stepperRow(rowLabel),
+    matching: find.byTooltip(tooltip),
+  );
+  return find.ancestor(of: tooltipFinder, matching: find.byType(IconButton));
 }
 
 void main() {
@@ -206,6 +263,26 @@ void main() {
     });
   });
 
+  group('SettingsScreen intake section', () {
+    testWidgets(
+      'mounts the Intake section (header + IntakeSettingsControls) after '
+      'the Language section',
+      (tester) async {
+        await tester.pumpWidget(_harness(locale: const Locale('en')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('INTAKE'), findsOneWidget);
+        expect(find.byType(IntakeSettingsControls), findsOneWidget);
+
+        final languageHeaderY = tester.getTopLeft(find.text('LANGUAGE')).dy;
+        final intakeControlsY = tester
+            .getTopLeft(find.byType(IntakeSettingsControls))
+            .dy;
+        expect(intakeControlsY, greaterThan(languageHeaderY));
+      },
+    );
+  });
+
   group('SettingsScreen error SnackBar', () {
     testWidgets('shows localized error SnackBar when setUseSystemTheme fails', (
       tester,
@@ -238,8 +315,14 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Tap the "Use device language" SwitchListTile (the 2nd/last switch).
-        await tester.tap(find.byType(SwitchListTile).last);
+        // Tap the "Use device language" SwitchListTile, scoped to the
+        // LanguageSelector so it's immune to switches added elsewhere on the
+        // screen (e.g. the Intake section's "allow mark ahead" switch).
+        final languageSwitchFinder = find.descendant(
+          of: find.byType(LanguageSelector),
+          matching: find.byType(SwitchListTile),
+        );
+        await tester.tap(languageSwitchFinder);
         await tester.pump(); // mutator runs
         await tester.pump(const Duration(milliseconds: 100)); // SnackBar enters
 
@@ -290,8 +373,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // Turn "Use device language" OFF (save succeeds) so the DropdownButton
-      // becomes interactive.
-      await tester.tap(find.byType(SwitchListTile).last);
+      // becomes interactive. Scoped to the LanguageSelector so it's immune to
+      // switches added elsewhere on the screen (e.g. the Intake section's
+      // "allow mark ahead" switch).
+      final languageSwitchFinder = find.descendant(
+        of: find.byType(LanguageSelector),
+        matching: find.byType(SwitchListTile),
+      );
+      await tester.tap(languageSwitchFinder);
       await tester.pumpAndSettle();
 
       // Open the dropdown to fire setManualLanguage. In this harness the menu
@@ -311,6 +400,86 @@ void main() {
       // render box; the gesture still dispatches to the item's onTap, so the
       // SnackBar assertion below self-validates that setManualLanguage fired.
       await tester.tap(deutschMenuItem.last, warnIfMissed: false);
+      await tester.pump(); // mutator runs
+      await tester.pump(const Duration(milliseconds: 100)); // SnackBar enters
+
+      expect(
+        find.text("Couldn't save your preference. Please try again."),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows localized error SnackBar when setIntakeWindow fails', (
+      tester,
+    ) async {
+      final fakeRepo = _FakeSettingsRepository()..failOnSaveIntakeWindow = true;
+      await tester.pumpWidget(
+        _harness(locale: const Locale('en'), fakeRepo: fakeRepo),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap the intake window row's "+" stepper, scoped to that row so it's
+      // immune to the grace period row's identically-tooltipped "+" button.
+      await tester.tap(
+        _stepperButton(rowLabel: _windowRowLabel, tooltip: _increaseTooltip),
+      );
+      await tester.pump(); // mutator runs
+      await tester.pump(const Duration(milliseconds: 100)); // SnackBar enters
+
+      expect(
+        find.text("Couldn't save your preference. Please try again."),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows localized error SnackBar when setGracePeriod fails', (
+      tester,
+    ) async {
+      final fakeRepo = _FakeSettingsRepository()..failOnSaveGracePeriod = true;
+      await tester.pumpWidget(
+        _harness(locale: const Locale('en'), fakeRepo: fakeRepo),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap the grace period row's "+" stepper, scoped to that row so it's
+      // immune to the intake window row's identically-tooltipped "+" button.
+      await tester.tap(
+        _stepperButton(rowLabel: _graceRowLabel, tooltip: _increaseTooltip),
+      );
+      await tester.pump(); // mutator runs
+      await tester.pump(const Duration(milliseconds: 100)); // SnackBar enters
+
+      expect(
+        find.text("Couldn't save your preference. Please try again."),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows localized error SnackBar when setAllowMarkAhead fails', (
+      tester,
+    ) async {
+      final fakeRepo = _FakeSettingsRepository()
+        ..failOnSaveAllowMarkAhead = true;
+      await tester.pumpWidget(
+        _harness(locale: const Locale('en'), fakeRepo: fakeRepo),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap the "Allow marking ahead" SwitchListTile, scoped to the
+      // IntakeSettingsControls widget. With the whole SettingsScreen
+      // mounted there are 3 switches on screen (theme, language, intake),
+      // so a bare `find.byType(SwitchListTile).last` would be fragile to
+      // section reordering — scope to the single switch this widget owns.
+      final markAheadSwitchFinder = find.descendant(
+        of: find.byType(IntakeSettingsControls),
+        matching: find.byType(SwitchListTile),
+      );
+      // The switch sits below the fold in the default test viewport (it's
+      // the third row of the Intake section, after the two stepper rows) —
+      // scroll it into view before tapping.
+      await tester.ensureVisible(markAheadSwitchFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(markAheadSwitchFinder);
       await tester.pump(); // mutator runs
       await tester.pump(const Duration(milliseconds: 100)); // SnackBar enters
 

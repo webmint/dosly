@@ -267,6 +267,151 @@ final class SetManualLanguageProvider
 
 String _$setManualLanguageHash() => r'7aee4de463e8216e8cb1cf28eb2252da72c51ae3';
 
+/// Provides a [SetIntakeWindow] use case wired to the settings repository.
+
+@ProviderFor(setIntakeWindow)
+final setIntakeWindowProvider = SetIntakeWindowProvider._();
+
+/// Provides a [SetIntakeWindow] use case wired to the settings repository.
+
+final class SetIntakeWindowProvider
+    extends
+        $FunctionalProvider<SetIntakeWindow, SetIntakeWindow, SetIntakeWindow>
+    with $Provider<SetIntakeWindow> {
+  /// Provides a [SetIntakeWindow] use case wired to the settings repository.
+  SetIntakeWindowProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'setIntakeWindowProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$setIntakeWindowHash();
+
+  @$internal
+  @override
+  $ProviderElement<SetIntakeWindow> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  SetIntakeWindow create(Ref ref) {
+    return setIntakeWindow(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SetIntakeWindow value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SetIntakeWindow>(value),
+    );
+  }
+}
+
+String _$setIntakeWindowHash() => r'71fb73b0d61837d1ecdec3a25e6f3a150821f2a9';
+
+/// Provides a [SetGracePeriod] use case wired to the settings repository.
+
+@ProviderFor(setGracePeriod)
+final setGracePeriodProvider = SetGracePeriodProvider._();
+
+/// Provides a [SetGracePeriod] use case wired to the settings repository.
+
+final class SetGracePeriodProvider
+    extends $FunctionalProvider<SetGracePeriod, SetGracePeriod, SetGracePeriod>
+    with $Provider<SetGracePeriod> {
+  /// Provides a [SetGracePeriod] use case wired to the settings repository.
+  SetGracePeriodProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'setGracePeriodProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$setGracePeriodHash();
+
+  @$internal
+  @override
+  $ProviderElement<SetGracePeriod> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  SetGracePeriod create(Ref ref) {
+    return setGracePeriod(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SetGracePeriod value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SetGracePeriod>(value),
+    );
+  }
+}
+
+String _$setGracePeriodHash() => r'6d261b6b399233bbe0281db763c4431b57730a91';
+
+/// Provides a [SetAllowMarkAhead] use case wired to the settings repository.
+
+@ProviderFor(setAllowMarkAhead)
+final setAllowMarkAheadProvider = SetAllowMarkAheadProvider._();
+
+/// Provides a [SetAllowMarkAhead] use case wired to the settings repository.
+
+final class SetAllowMarkAheadProvider
+    extends
+        $FunctionalProvider<
+          SetAllowMarkAhead,
+          SetAllowMarkAhead,
+          SetAllowMarkAhead
+        >
+    with $Provider<SetAllowMarkAhead> {
+  /// Provides a [SetAllowMarkAhead] use case wired to the settings repository.
+  SetAllowMarkAheadProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'setAllowMarkAheadProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$setAllowMarkAheadHash();
+
+  @$internal
+  @override
+  $ProviderElement<SetAllowMarkAhead> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  SetAllowMarkAhead create(Ref ref) {
+    return setAllowMarkAhead(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SetAllowMarkAhead value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SetAllowMarkAhead>(value),
+    );
+  }
+}
+
+String _$setAllowMarkAheadHash() => r'7c61cff4761c17a7b5a9d9451d70a0ece1c71f7e';
+
 /// Notifier that manages [AppSettings] state.
 ///
 /// Reads initial settings synchronously from the repository cache and
@@ -318,7 +463,7 @@ final class SettingsNotifierProvider
   }
 }
 
-String _$settingsNotifierHash() => r'24db1c69a664cd355d35e5643f5b497865c32dec';
+String _$settingsNotifierHash() => r'8a2dc296c7aa5acd36ada532e08d5b5ba16653a3';
 
 /// Notifier that manages [AppSettings] state.
 ///

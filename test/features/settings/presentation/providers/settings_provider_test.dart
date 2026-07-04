@@ -5,6 +5,8 @@ import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
+import 'package:dosly/features/settings/domain/value_objects/grace_period.dart';
+import 'package:dosly/features/settings/domain/value_objects/intake_window.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,6 +34,15 @@ class _FakeSettingsRepository implements SettingsRepository {
   /// When true, [saveManualLanguage] returns a [Left] with an [UnknownFailure].
   bool failOnSaveManualLanguage = false;
 
+  /// When true, [saveIntakeWindow] returns a [Left] with an [UnknownFailure].
+  bool failOnSaveIntakeWindow = false;
+
+  /// When true, [saveGracePeriod] returns a [Left] with an [UnknownFailure].
+  bool failOnSaveGracePeriod = false;
+
+  /// When true, [saveAllowMarkAhead] returns a [Left] with an [UnknownFailure].
+  bool failOnSaveAllowMarkAhead = false;
+
   /// Snapshot of the current persisted [AppSettings] (mirrors what `load()`
   /// would return). Useful for stronger end-state assertions in tests that
   /// exercise atomic two-write use cases.
@@ -48,6 +59,15 @@ class _FakeSettingsRepository implements SettingsRepository {
 
   /// Convenience accessor for the persisted "follow device language" flag.
   bool get savedUseSystemLanguage => _settings.useSystemLanguage;
+
+  /// Convenience accessor for the persisted intake window.
+  IntakeWindow get savedIntakeWindow => _settings.intakeWindow;
+
+  /// Convenience accessor for the persisted grace period.
+  GracePeriod get savedGracePeriod => _settings.gracePeriod;
+
+  /// Convenience accessor for the persisted allow-mark-ahead flag.
+  bool get savedAllowMarkAhead => _settings.allowMarkAhead;
 
   @override
   Either<Failure, AppSettings> load() {
@@ -92,6 +112,33 @@ class _FakeSettingsRepository implements SettingsRepository {
     _settings = _settings.copyWith(manualLanguage: language);
     return const Right(null);
   }
+
+  @override
+  Future<Either<Failure, void>> saveIntakeWindow(IntakeWindow window) async {
+    if (failOnSaveIntakeWindow) {
+      return Left(Failure.unknown(Exception('mock failure'), StackTrace.empty));
+    }
+    _settings = _settings.copyWith(intakeWindow: window);
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Failure, void>> saveGracePeriod(GracePeriod grace) async {
+    if (failOnSaveGracePeriod) {
+      return Left(Failure.unknown(Exception('mock failure'), StackTrace.empty));
+    }
+    _settings = _settings.copyWith(gracePeriod: grace);
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Failure, void>> saveAllowMarkAhead(bool value) async {
+    if (failOnSaveAllowMarkAhead) {
+      return Left(Failure.unknown(Exception('mock failure'), StackTrace.empty));
+    }
+    _settings = _settings.copyWith(allowMarkAhead: value);
+    return const Right(null);
+  }
 }
 
 /// Minimal [SettingsRepository] stub that returns a pre-seeded [AppSettings]
@@ -123,6 +170,18 @@ class _SeededFakeSettingsRepository implements SettingsRepository {
   Future<Either<Failure, void>> saveManualLanguage(
     AppLanguage language,
   ) async => const Right(null);
+
+  @override
+  Future<Either<Failure, void>> saveIntakeWindow(IntakeWindow window) async =>
+      const Right(null);
+
+  @override
+  Future<Either<Failure, void>> saveGracePeriod(GracePeriod grace) async =>
+      const Right(null);
+
+  @override
+  Future<Either<Failure, void>> saveAllowMarkAhead(bool value) async =>
+      const Right(null);
 }
 
 void main() {
@@ -581,6 +640,249 @@ void main() {
       expect(emissions, hasLength(2));
 
       await sub.cancel();
+    });
+  });
+
+  // AC-1: a freshly-built notifier (no prior save) exposes the intake defaults
+  // baked into `const AppSettings()`.
+  group('SettingsNotifier default intake settings (AC-1)', () {
+    test(
+      'default AppSettings has intakeWindow=120, gracePeriod=5, allowMarkAhead=false',
+      () {
+        final fakeRepo = _FakeSettingsRepository();
+        final container = ProviderContainer(
+          overrides: [settingsRepositoryProvider.overrideWithValue(fakeRepo)],
+        );
+        addTearDown(container.dispose);
+
+        final settings = container.read(settingsNotifierProvider);
+
+        expect(settings.intakeWindow, IntakeWindow(120));
+        expect(settings.gracePeriod, GracePeriod(5));
+        expect(settings.allowMarkAhead, isFalse);
+      },
+    );
+  });
+
+  group('SettingsNotifier setIntakeWindow', () {
+    late _FakeSettingsRepository fakeRepo;
+    late ProviderContainer container;
+
+    setUp(() {
+      fakeRepo = _FakeSettingsRepository();
+      container = ProviderContainer(
+        overrides: [settingsRepositoryProvider.overrideWithValue(fakeRepo)],
+      );
+    });
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    test('setIntakeWindow(IntakeWindow(135)) updates intakeWindow and leaves '
+        'other fields unchanged', () async {
+      await container
+          .read(settingsNotifierProvider.notifier)
+          .setIntakeWindow(IntakeWindow(135));
+
+      final settings = container.read(settingsNotifierProvider);
+
+      expect(settings.intakeWindow, IntakeWindow(135));
+      expect(settings.gracePeriod, GracePeriod.defaultValue);
+      expect(settings.allowMarkAhead, isFalse);
+      expect(settings.manualThemeMode, AppThemeMode.light);
+    });
+
+    test('setIntakeWindow does not update state when save fails', () async {
+      fakeRepo.failOnSaveIntakeWindow = true;
+
+      await container
+          .read(settingsNotifierProvider.notifier)
+          .setIntakeWindow(IntakeWindow(135));
+
+      final settings = container.read(settingsNotifierProvider);
+
+      expect(settings.intakeWindow, IntakeWindow.defaultValue);
+    });
+
+    test(
+      'settingsErrorsProvider emits UnknownFailure when setIntakeWindow fails',
+      () async {
+        fakeRepo.failOnSaveIntakeWindow = true;
+        final emissions = <Failure>[];
+        final sub = container
+            .read(settingsNotifierProvider.notifier)
+            .errors
+            .listen(emissions.add);
+
+        await container
+            .read(settingsNotifierProvider.notifier)
+            .setIntakeWindow(IntakeWindow(135));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(emissions, hasLength(1));
+        expect(emissions.single, isA<UnknownFailure>());
+
+        await sub.cancel();
+      },
+    );
+  });
+
+  group('SettingsNotifier setGracePeriod', () {
+    late _FakeSettingsRepository fakeRepo;
+    late ProviderContainer container;
+
+    setUp(() {
+      fakeRepo = _FakeSettingsRepository();
+      container = ProviderContainer(
+        overrides: [settingsRepositoryProvider.overrideWithValue(fakeRepo)],
+      );
+    });
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    test('setGracePeriod(GracePeriod(15)) updates gracePeriod and leaves other '
+        'fields unchanged', () async {
+      await container
+          .read(settingsNotifierProvider.notifier)
+          .setGracePeriod(GracePeriod(15));
+
+      final settings = container.read(settingsNotifierProvider);
+
+      expect(settings.gracePeriod, GracePeriod(15));
+      expect(settings.intakeWindow, IntakeWindow.defaultValue);
+      expect(settings.allowMarkAhead, isFalse);
+      expect(settings.manualThemeMode, AppThemeMode.light);
+    });
+
+    test('setGracePeriod does not update state when save fails', () async {
+      fakeRepo.failOnSaveGracePeriod = true;
+
+      await container
+          .read(settingsNotifierProvider.notifier)
+          .setGracePeriod(GracePeriod(15));
+
+      final settings = container.read(settingsNotifierProvider);
+
+      expect(settings.gracePeriod, GracePeriod.defaultValue);
+    });
+
+    test(
+      'settingsErrorsProvider emits UnknownFailure when setGracePeriod fails',
+      () async {
+        fakeRepo.failOnSaveGracePeriod = true;
+        final emissions = <Failure>[];
+        final sub = container
+            .read(settingsNotifierProvider.notifier)
+            .errors
+            .listen(emissions.add);
+
+        await container
+            .read(settingsNotifierProvider.notifier)
+            .setGracePeriod(GracePeriod(15));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(emissions, hasLength(1));
+        expect(emissions.single, isA<UnknownFailure>());
+
+        await sub.cancel();
+      },
+    );
+  });
+
+  group('SettingsNotifier setAllowMarkAhead', () {
+    late _FakeSettingsRepository fakeRepo;
+    late ProviderContainer container;
+
+    setUp(() {
+      fakeRepo = _FakeSettingsRepository();
+      container = ProviderContainer(
+        overrides: [settingsRepositoryProvider.overrideWithValue(fakeRepo)],
+      );
+    });
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    test('setAllowMarkAhead(true) updates allowMarkAhead and leaves other '
+        'fields unchanged', () async {
+      await container
+          .read(settingsNotifierProvider.notifier)
+          .setAllowMarkAhead(true);
+
+      final settings = container.read(settingsNotifierProvider);
+
+      expect(settings.allowMarkAhead, isTrue);
+      expect(settings.intakeWindow, IntakeWindow.defaultValue);
+      expect(settings.gracePeriod, GracePeriod.defaultValue);
+      expect(settings.manualThemeMode, AppThemeMode.light);
+    });
+
+    test('setAllowMarkAhead does not update state when save fails', () async {
+      fakeRepo.failOnSaveAllowMarkAhead = true;
+
+      await container
+          .read(settingsNotifierProvider.notifier)
+          .setAllowMarkAhead(true);
+
+      final settings = container.read(settingsNotifierProvider);
+
+      expect(settings.allowMarkAhead, isFalse);
+    });
+
+    test(
+      'settingsErrorsProvider emits UnknownFailure when setAllowMarkAhead fails',
+      () async {
+        fakeRepo.failOnSaveAllowMarkAhead = true;
+        final emissions = <Failure>[];
+        final sub = container
+            .read(settingsNotifierProvider.notifier)
+            .errors
+            .listen(emissions.add);
+
+        await container
+            .read(settingsNotifierProvider.notifier)
+            .setAllowMarkAhead(true);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(emissions, hasLength(1));
+        expect(emissions.single, isA<UnknownFailure>());
+
+        await sub.cancel();
+      },
+    );
+  });
+
+  group('SettingsNotifier setAllowMarkAhead toggle-off', () {
+    test('setAllowMarkAhead(false) updates allowMarkAhead to false when '
+        'seeded true, leaving other fields unchanged', () async {
+      // Seed the notifier's initial state via load() rather than via a
+      // setAllowMarkAhead(true) call, mirroring the AC-6 seeded-repo
+      // pattern below — this covers the true->false direction absent from
+      // the AC-12 coverage above (which only exercises false->true).
+      final seededRepo = _SeededFakeSettingsRepository(
+        const AppSettings(allowMarkAhead: true),
+      );
+      final container = ProviderContainer(
+        overrides: [settingsRepositoryProvider.overrideWithValue(seededRepo)],
+      );
+      addTearDown(container.dispose);
+
+      expect(container.read(settingsNotifierProvider).allowMarkAhead, isTrue);
+
+      await container
+          .read(settingsNotifierProvider.notifier)
+          .setAllowMarkAhead(false);
+
+      final settings = container.read(settingsNotifierProvider);
+
+      expect(settings.allowMarkAhead, isFalse);
+      expect(settings.intakeWindow, IntakeWindow.defaultValue);
+      expect(settings.gracePeriod, GracePeriod.defaultValue);
+      expect(settings.manualThemeMode, AppThemeMode.light);
     });
   });
 

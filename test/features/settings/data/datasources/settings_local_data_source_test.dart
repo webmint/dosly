@@ -3,6 +3,8 @@ library;
 import 'package:dosly/features/settings/data/datasources/settings_local_data_source.dart';
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
+import 'package:dosly/features/settings/domain/value_objects/grace_period.dart';
+import 'package:dosly/features/settings/domain/value_objects/intake_window.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -24,6 +26,9 @@ Future<SettingsLocalDataSource> _buildDataSource({
         'useSystemTheme',
         'useSystemLanguage',
         'manualLanguage',
+        'intakeWindowMinutes',
+        'gracePeriodMinutes',
+        'allowMarkAhead',
       },
     ),
   );
@@ -201,6 +206,146 @@ void main() {
         await ds.setManualLanguage(AppLanguage.uk);
 
         expect(ds.getManualLanguage(), AppLanguage.uk);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // getIntakeWindow
+    // -------------------------------------------------------------------------
+    group('getIntakeWindow', () {
+      test(
+        'should return IntakeWindow.defaultValue (120) when key is absent',
+        () async {
+          final ds = await _buildDataSource();
+
+          expect(ds.getIntakeWindow(), IntakeWindow.defaultValue);
+        },
+      );
+
+      test(
+        'should clamp a stored value above maxMinutes (500) down to 240',
+        () async {
+          final ds = await _buildDataSource(
+            initialData: {'intakeWindowMinutes': 500},
+          );
+
+          expect(ds.getIntakeWindow(), IntakeWindow(240));
+        },
+      );
+
+      test(
+        'should clamp a stored value below minMinutes (3) up to 15',
+        () async {
+          final ds = await _buildDataSource(
+            initialData: {'intakeWindowMinutes': 3},
+          );
+
+          expect(ds.getIntakeWindow(), IntakeWindow(15));
+        },
+      );
+    });
+
+    // -------------------------------------------------------------------------
+    // setIntakeWindow
+    // -------------------------------------------------------------------------
+    group('setIntakeWindow', () {
+      test('should persist IntakeWindow(90) and read it back', () async {
+        final ds = await _buildDataSource();
+
+        await ds.setIntakeWindow(IntakeWindow(90));
+
+        expect(ds.getIntakeWindow(), IntakeWindow(90));
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // getGracePeriod
+    // -------------------------------------------------------------------------
+    group('getGracePeriod', () {
+      test(
+        'should return GracePeriod.defaultValue (5) when key is absent',
+        () async {
+          final ds = await _buildDataSource();
+
+          expect(ds.getGracePeriod(), GracePeriod.defaultValue);
+        },
+      );
+
+      test(
+        'should clamp a stored value above maxMinutes (99) down to 30',
+        () async {
+          final ds = await _buildDataSource(
+            initialData: {'gracePeriodMinutes': 99},
+          );
+
+          expect(ds.getGracePeriod(), GracePeriod(30));
+        },
+      );
+
+      test(
+        'should clamp a stored value below minMinutes (-5) up to 0',
+        () async {
+          final ds = await _buildDataSource(
+            initialData: {'gracePeriodMinutes': -5},
+          );
+
+          expect(ds.getGracePeriod(), GracePeriod(0));
+        },
+      );
+    });
+
+    // -------------------------------------------------------------------------
+    // setGracePeriod
+    // -------------------------------------------------------------------------
+    group('setGracePeriod', () {
+      test('should persist GracePeriod(10) and read it back', () async {
+        final ds = await _buildDataSource();
+
+        await ds.setGracePeriod(GracePeriod(10));
+
+        expect(ds.getGracePeriod(), GracePeriod(10));
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // getAllowMarkAhead
+    // -------------------------------------------------------------------------
+    group('getAllowMarkAhead', () {
+      test('should return false (default) when key is absent', () async {
+        final ds = await _buildDataSource();
+
+        expect(ds.getAllowMarkAhead(), isFalse);
+      });
+
+      test('should return true when stored value is true', () async {
+        final ds = await _buildDataSource(
+          initialData: {'allowMarkAhead': true},
+        );
+
+        expect(ds.getAllowMarkAhead(), isTrue);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // setAllowMarkAhead
+    // -------------------------------------------------------------------------
+    group('setAllowMarkAhead', () {
+      test('should persist true and read it back', () async {
+        final ds = await _buildDataSource();
+
+        await ds.setAllowMarkAhead(true);
+
+        expect(ds.getAllowMarkAhead(), isTrue);
+      });
+
+      test('should persist false and read it back', () async {
+        final ds = await _buildDataSource(
+          initialData: {'allowMarkAhead': true},
+        );
+
+        await ds.setAllowMarkAhead(false);
+
+        expect(ds.getAllowMarkAhead(), isFalse);
       });
     });
   });

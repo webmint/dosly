@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/providers/settings_prefs_keys.dart';
 import '../../domain/entities/app_language.dart';
 import '../../domain/entities/app_theme_mode.dart';
+import '../../domain/value_objects/grace_period.dart';
+import '../../domain/value_objects/intake_window.dart';
 
 /// Key used to persist the user's manual theme-mode preference.
 ///
@@ -99,4 +101,49 @@ class SettingsLocalDataSource {
   /// Persists the user's manual [language] choice as its IETF code.
   Future<void> setManualLanguage(AppLanguage language) =>
       _prefs.setString(_kManualLanguageKey, language.code);
+
+  /// Returns the persisted [IntakeWindow].
+  ///
+  /// The raw stored `int` is routed through the [IntakeWindow] factory, so an
+  /// out-of-range persisted value is clamped on read. Falls back to
+  /// [IntakeWindow.defaultValue] when no value has been stored.
+  ///
+  /// Unguarded by design: a wrong-type cached value throws inside
+  /// `SharedPreferencesWithCache.getInt`; that `TypeError` propagates to
+  /// [SettingsRepositoryImpl.load]'s `catch`, the single containment boundary.
+  IntakeWindow getIntakeWindow() => IntakeWindow(
+    _prefs.getInt(intakeWindowMinutesPrefsKey) ??
+        IntakeWindow.defaultValue.minutes,
+  );
+
+  /// Persists the [value] intake window as its length in minutes.
+  Future<void> setIntakeWindow(IntakeWindow value) =>
+      _prefs.setInt(intakeWindowMinutesPrefsKey, value.minutes);
+
+  /// Returns the persisted [GracePeriod].
+  ///
+  /// The raw stored `int` is routed through the [GracePeriod] factory, so an
+  /// out-of-range persisted value is clamped on read. Falls back to
+  /// [GracePeriod.defaultValue] when no value has been stored.
+  ///
+  /// Unguarded by design: a wrong-type cached value throws inside
+  /// `SharedPreferencesWithCache.getInt`; that `TypeError` propagates to
+  /// [SettingsRepositoryImpl.load]'s `catch`, the single containment boundary.
+  GracePeriod getGracePeriod() => GracePeriod(
+    _prefs.getInt(gracePeriodMinutesPrefsKey) ??
+        GracePeriod.defaultValue.minutes,
+  );
+
+  /// Persists the [value] grace period as its length in minutes.
+  Future<void> setGracePeriod(GracePeriod value) =>
+      _prefs.setInt(gracePeriodMinutesPrefsKey, value.minutes);
+
+  /// Returns whether the user may mark intakes ahead of their scheduled time.
+  ///
+  /// Defaults to `false` when no value has been stored.
+  bool getAllowMarkAhead() => _prefs.getBool(allowMarkAheadPrefsKey) ?? false;
+
+  /// Persists the [value] for the "allow marking intakes ahead of time" flag.
+  Future<void> setAllowMarkAhead(bool value) =>
+      _prefs.setBool(allowMarkAheadPrefsKey, value);
 }

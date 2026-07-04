@@ -54,6 +54,41 @@ class AppLocalizationsUk extends AppLocalizations {
       'Не вдалося зберегти налаштування. Спробуйте ще раз.';
 
   @override
+  String get settingsIntakeHeader => 'Прийом';
+
+  @override
+  String get settingsIntakeWindowLabel => 'Вікно прийому';
+
+  @override
+  String get settingsIntakeWindowDescription =>
+      'Скільки часу після запланованого можна позначити прийом';
+
+  @override
+  String get settingsGracePeriodLabel => 'Час на скасування';
+
+  @override
+  String get settingsGracePeriodDescription =>
+      'Скільки часу можна скасувати прийом після позначення';
+
+  @override
+  String get settingsAllowMarkAheadLabel => 'Дозволити позначати наперед';
+
+  @override
+  String get settingsAllowMarkAheadDescription =>
+      'Дозволяє позначати прийоми до початку їх вікна';
+
+  @override
+  String settingsMinutesValue(int minutes) {
+    return '$minutes хв';
+  }
+
+  @override
+  String get settingsStepperIncreaseTooltip => 'Збільшити';
+
+  @override
+  String get settingsStepperDecreaseTooltip => 'Зменшити';
+
+  @override
   String get medsAddFabTooltip => 'Додати ліки';
 
   @override

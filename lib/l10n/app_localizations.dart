@@ -184,6 +184,66 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save your preference. Please try again.'**
   String get settingsPersistenceError;
 
+  /// Header for the intake-behavior settings section.
+  ///
+  /// In en, this message translates to:
+  /// **'Intake'**
+  String get settingsIntakeHeader;
+
+  /// Label for the intake window stepper.
+  ///
+  /// In en, this message translates to:
+  /// **'Intake window'**
+  String get settingsIntakeWindowLabel;
+
+  /// Subtitle explaining the intake window setting.
+  ///
+  /// In en, this message translates to:
+  /// **'How long after the scheduled time a dose can still be marked'**
+  String get settingsIntakeWindowDescription;
+
+  /// Label for the grace period stepper.
+  ///
+  /// In en, this message translates to:
+  /// **'Grace period'**
+  String get settingsGracePeriodLabel;
+
+  /// Subtitle explaining the grace period setting.
+  ///
+  /// In en, this message translates to:
+  /// **'How long you can undo a dose after marking it'**
+  String get settingsGracePeriodDescription;
+
+  /// Label for the allow-mark-ahead switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow marking ahead'**
+  String get settingsAllowMarkAheadLabel;
+
+  /// Subtitle explaining the allow-mark-ahead setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Let doses be marked before their window opens'**
+  String get settingsAllowMarkAheadDescription;
+
+  /// Displays a minute count for a setting value.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String settingsMinutesValue(int minutes);
+
+  /// Tooltip for a stepper increment button.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase'**
+  String get settingsStepperIncreaseTooltip;
+
+  /// Tooltip for a stepper decrement button.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease'**
+  String get settingsStepperDecreaseTooltip;
+
   /// Tooltip for the FAB on the Meds screen that opens the placeholder Add-medication modal.
   ///
   /// In en, this message translates to:
