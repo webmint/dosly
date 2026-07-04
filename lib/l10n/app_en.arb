@@ -56,6 +56,49 @@
   "@settingsPersistenceError": {
     "description": "SnackBar message shown on the Settings screen when a preference change fails to persist (e.g. SharedPreferences write error)."
   },
+  "settingsIntakeHeader": "Intake",
+  "@settingsIntakeHeader": {
+    "description": "Header for the intake-behavior settings section."
+  },
+  "settingsIntakeWindowLabel": "Intake window",
+  "@settingsIntakeWindowLabel": {
+    "description": "Label for the intake window stepper."
+  },
+  "settingsIntakeWindowDescription": "How long after the scheduled time a dose can still be marked",
+  "@settingsIntakeWindowDescription": {
+    "description": "Subtitle explaining the intake window setting."
+  },
+  "settingsGracePeriodLabel": "Grace period",
+  "@settingsGracePeriodLabel": {
+    "description": "Label for the grace period stepper."
+  },
+  "settingsGracePeriodDescription": "How long you can undo a dose after marking it",
+  "@settingsGracePeriodDescription": {
+    "description": "Subtitle explaining the grace period setting."
+  },
+  "settingsAllowMarkAheadLabel": "Allow marking ahead",
+  "@settingsAllowMarkAheadLabel": {
+    "description": "Label for the allow-mark-ahead switch."
+  },
+  "settingsAllowMarkAheadDescription": "Let doses be marked before their window opens",
+  "@settingsAllowMarkAheadDescription": {
+    "description": "Subtitle explaining the allow-mark-ahead setting."
+  },
+  "settingsMinutesValue": "{minutes} min",
+  "@settingsMinutesValue": {
+    "description": "Displays a minute count for a setting value.",
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "settingsStepperIncreaseTooltip": "Increase",
+  "@settingsStepperIncreaseTooltip": {
+    "description": "Tooltip for a stepper increment button."
+  },
+  "settingsStepperDecreaseTooltip": "Decrease",
+  "@settingsStepperDecreaseTooltip": {
+    "description": "Tooltip for a stepper decrement button."
+  },
   "medsAddFabTooltip": "Add medication",
   "@medsAddFabTooltip": {
     "description": "Tooltip for the FAB on the Meds screen that opens the placeholder Add-medication modal."

@@ -406,7 +406,7 @@ try { doThing(); } catch (e) {
 | `Intake` | A record of an intake event: `id`, `medicationId`, `slotId`, `scheduledAt` (UTC), `confirmedAt` (nullable UTC), `status` (`pending`, `taken`, `missed`, `skipped`), optional `notes` |
 | `IntakeStatus` | Enum: `pending`, `taken`, `missed`, `skipped` |
 | `AdherenceRecord` | A daily/weekly aggregation: `date`, `scheduledCount`, `takenCount`, `missedCount`, `skippedCount`, `adherenceRatio` (double, 0..1) |
-| `Settings` | User preferences: `gracePeriodMinutes` (default 5), `intakeWindowMinutes` (default 120), `notificationLeadMinutes` (default 0), `quietHoursStart`, `quietHoursEnd` |
+| `Settings` | User preferences: `gracePeriodMinutes` (default 5), `intakeWindowMinutes` (default 120), `allowMarkAhead` (default false), `notificationLeadMinutes` (default 0), `quietHoursStart`, `quietHoursEnd`. In the settings domain, `intakeWindowMinutes`/`gracePeriodMinutes` are modeled as the `IntakeWindow` (15–240) and `GracePeriod` (0–30) value objects. |
 
 Each entity is a `freezed` immutable class. Each `*Id` field is a typed value object.
 

@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AppSettings {
 
- bool get useSystemTheme; AppThemeMode get manualThemeMode; bool get useSystemLanguage; AppLanguage get manualLanguage;
+ bool get useSystemTheme; AppThemeMode get manualThemeMode; bool get useSystemLanguage; AppLanguage get manualLanguage; IntakeWindow get intakeWindow; GracePeriod get gracePeriod; bool get allowMarkAhead;
 /// Create a copy of AppSettings
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $AppSettingsCopyWith<AppSettings> get copyWith => _$AppSettingsCopyWithImpl<AppS
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppSettings&&(identical(other.useSystemTheme, useSystemTheme) || other.useSystemTheme == useSystemTheme)&&(identical(other.manualThemeMode, manualThemeMode) || other.manualThemeMode == manualThemeMode)&&(identical(other.useSystemLanguage, useSystemLanguage) || other.useSystemLanguage == useSystemLanguage)&&(identical(other.manualLanguage, manualLanguage) || other.manualLanguage == manualLanguage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppSettings&&(identical(other.useSystemTheme, useSystemTheme) || other.useSystemTheme == useSystemTheme)&&(identical(other.manualThemeMode, manualThemeMode) || other.manualThemeMode == manualThemeMode)&&(identical(other.useSystemLanguage, useSystemLanguage) || other.useSystemLanguage == useSystemLanguage)&&(identical(other.manualLanguage, manualLanguage) || other.manualLanguage == manualLanguage)&&(identical(other.intakeWindow, intakeWindow) || other.intakeWindow == intakeWindow)&&(identical(other.gracePeriod, gracePeriod) || other.gracePeriod == gracePeriod)&&(identical(other.allowMarkAhead, allowMarkAhead) || other.allowMarkAhead == allowMarkAhead));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,useSystemTheme,manualThemeMode,useSystemLanguage,manualLanguage);
+int get hashCode => Object.hash(runtimeType,useSystemTheme,manualThemeMode,useSystemLanguage,manualLanguage,intakeWindow,gracePeriod,allowMarkAhead);
 
 @override
 String toString() {
-  return 'AppSettings(useSystemTheme: $useSystemTheme, manualThemeMode: $manualThemeMode, useSystemLanguage: $useSystemLanguage, manualLanguage: $manualLanguage)';
+  return 'AppSettings(useSystemTheme: $useSystemTheme, manualThemeMode: $manualThemeMode, useSystemLanguage: $useSystemLanguage, manualLanguage: $manualLanguage, intakeWindow: $intakeWindow, gracePeriod: $gracePeriod, allowMarkAhead: $allowMarkAhead)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $AppSettingsCopyWith<$Res>  {
   factory $AppSettingsCopyWith(AppSettings value, $Res Function(AppSettings) _then) = _$AppSettingsCopyWithImpl;
 @useResult
 $Res call({
- bool useSystemTheme, AppThemeMode manualThemeMode, bool useSystemLanguage, AppLanguage manualLanguage
+ bool useSystemTheme, AppThemeMode manualThemeMode, bool useSystemLanguage, AppLanguage manualLanguage, IntakeWindow intakeWindow, GracePeriod gracePeriod, bool allowMarkAhead
 });
 
 
@@ -62,13 +62,16 @@ class _$AppSettingsCopyWithImpl<$Res>
 
 /// Create a copy of AppSettings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? useSystemTheme = null,Object? manualThemeMode = null,Object? useSystemLanguage = null,Object? manualLanguage = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? useSystemTheme = null,Object? manualThemeMode = null,Object? useSystemLanguage = null,Object? manualLanguage = null,Object? intakeWindow = null,Object? gracePeriod = null,Object? allowMarkAhead = null,}) {
   return _then(_self.copyWith(
 useSystemTheme: null == useSystemTheme ? _self.useSystemTheme : useSystemTheme // ignore: cast_nullable_to_non_nullable
 as bool,manualThemeMode: null == manualThemeMode ? _self.manualThemeMode : manualThemeMode // ignore: cast_nullable_to_non_nullable
 as AppThemeMode,useSystemLanguage: null == useSystemLanguage ? _self.useSystemLanguage : useSystemLanguage // ignore: cast_nullable_to_non_nullable
 as bool,manualLanguage: null == manualLanguage ? _self.manualLanguage : manualLanguage // ignore: cast_nullable_to_non_nullable
-as AppLanguage,
+as AppLanguage,intakeWindow: null == intakeWindow ? _self.intakeWindow : intakeWindow // ignore: cast_nullable_to_non_nullable
+as IntakeWindow,gracePeriod: null == gracePeriod ? _self.gracePeriod : gracePeriod // ignore: cast_nullable_to_non_nullable
+as GracePeriod,allowMarkAhead: null == allowMarkAhead ? _self.allowMarkAhead : allowMarkAhead // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -153,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool useSystemTheme,  AppThemeMode manualThemeMode,  bool useSystemLanguage,  AppLanguage manualLanguage)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool useSystemTheme,  AppThemeMode manualThemeMode,  bool useSystemLanguage,  AppLanguage manualLanguage,  IntakeWindow intakeWindow,  GracePeriod gracePeriod,  bool allowMarkAhead)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppSettings() when $default != null:
-return $default(_that.useSystemTheme,_that.manualThemeMode,_that.useSystemLanguage,_that.manualLanguage);case _:
+return $default(_that.useSystemTheme,_that.manualThemeMode,_that.useSystemLanguage,_that.manualLanguage,_that.intakeWindow,_that.gracePeriod,_that.allowMarkAhead);case _:
   return orElse();
 
 }
@@ -174,10 +177,10 @@ return $default(_that.useSystemTheme,_that.manualThemeMode,_that.useSystemLangua
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool useSystemTheme,  AppThemeMode manualThemeMode,  bool useSystemLanguage,  AppLanguage manualLanguage)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool useSystemTheme,  AppThemeMode manualThemeMode,  bool useSystemLanguage,  AppLanguage manualLanguage,  IntakeWindow intakeWindow,  GracePeriod gracePeriod,  bool allowMarkAhead)  $default,) {final _that = this;
 switch (_that) {
 case _AppSettings():
-return $default(_that.useSystemTheme,_that.manualThemeMode,_that.useSystemLanguage,_that.manualLanguage);case _:
+return $default(_that.useSystemTheme,_that.manualThemeMode,_that.useSystemLanguage,_that.manualLanguage,_that.intakeWindow,_that.gracePeriod,_that.allowMarkAhead);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +197,10 @@ return $default(_that.useSystemTheme,_that.manualThemeMode,_that.useSystemLangua
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool useSystemTheme,  AppThemeMode manualThemeMode,  bool useSystemLanguage,  AppLanguage manualLanguage)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool useSystemTheme,  AppThemeMode manualThemeMode,  bool useSystemLanguage,  AppLanguage manualLanguage,  IntakeWindow intakeWindow,  GracePeriod gracePeriod,  bool allowMarkAhead)?  $default,) {final _that = this;
 switch (_that) {
 case _AppSettings() when $default != null:
-return $default(_that.useSystemTheme,_that.manualThemeMode,_that.useSystemLanguage,_that.manualLanguage);case _:
+return $default(_that.useSystemTheme,_that.manualThemeMode,_that.useSystemLanguage,_that.manualLanguage,_that.intakeWindow,_that.gracePeriod,_that.allowMarkAhead);case _:
   return null;
 
 }
@@ -209,13 +212,16 @@ return $default(_that.useSystemTheme,_that.manualThemeMode,_that.useSystemLangua
 
 
 class _AppSettings implements AppSettings {
-  const _AppSettings({this.useSystemTheme = true, this.manualThemeMode = AppThemeMode.light, this.useSystemLanguage = true, this.manualLanguage = AppLanguage.en});
+  const _AppSettings({this.useSystemTheme = true, this.manualThemeMode = AppThemeMode.light, this.useSystemLanguage = true, this.manualLanguage = AppLanguage.en, this.intakeWindow = IntakeWindow.defaultValue, this.gracePeriod = GracePeriod.defaultValue, this.allowMarkAhead = false});
   
 
 @override@JsonKey() final  bool useSystemTheme;
 @override@JsonKey() final  AppThemeMode manualThemeMode;
 @override@JsonKey() final  bool useSystemLanguage;
 @override@JsonKey() final  AppLanguage manualLanguage;
+@override@JsonKey() final  IntakeWindow intakeWindow;
+@override@JsonKey() final  GracePeriod gracePeriod;
+@override@JsonKey() final  bool allowMarkAhead;
 
 /// Create a copy of AppSettings
 /// with the given fields replaced by the non-null parameter values.
@@ -227,16 +233,16 @@ _$AppSettingsCopyWith<_AppSettings> get copyWith => __$AppSettingsCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppSettings&&(identical(other.useSystemTheme, useSystemTheme) || other.useSystemTheme == useSystemTheme)&&(identical(other.manualThemeMode, manualThemeMode) || other.manualThemeMode == manualThemeMode)&&(identical(other.useSystemLanguage, useSystemLanguage) || other.useSystemLanguage == useSystemLanguage)&&(identical(other.manualLanguage, manualLanguage) || other.manualLanguage == manualLanguage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppSettings&&(identical(other.useSystemTheme, useSystemTheme) || other.useSystemTheme == useSystemTheme)&&(identical(other.manualThemeMode, manualThemeMode) || other.manualThemeMode == manualThemeMode)&&(identical(other.useSystemLanguage, useSystemLanguage) || other.useSystemLanguage == useSystemLanguage)&&(identical(other.manualLanguage, manualLanguage) || other.manualLanguage == manualLanguage)&&(identical(other.intakeWindow, intakeWindow) || other.intakeWindow == intakeWindow)&&(identical(other.gracePeriod, gracePeriod) || other.gracePeriod == gracePeriod)&&(identical(other.allowMarkAhead, allowMarkAhead) || other.allowMarkAhead == allowMarkAhead));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,useSystemTheme,manualThemeMode,useSystemLanguage,manualLanguage);
+int get hashCode => Object.hash(runtimeType,useSystemTheme,manualThemeMode,useSystemLanguage,manualLanguage,intakeWindow,gracePeriod,allowMarkAhead);
 
 @override
 String toString() {
-  return 'AppSettings(useSystemTheme: $useSystemTheme, manualThemeMode: $manualThemeMode, useSystemLanguage: $useSystemLanguage, manualLanguage: $manualLanguage)';
+  return 'AppSettings(useSystemTheme: $useSystemTheme, manualThemeMode: $manualThemeMode, useSystemLanguage: $useSystemLanguage, manualLanguage: $manualLanguage, intakeWindow: $intakeWindow, gracePeriod: $gracePeriod, allowMarkAhead: $allowMarkAhead)';
 }
 
 
@@ -247,7 +253,7 @@ abstract mixin class _$AppSettingsCopyWith<$Res> implements $AppSettingsCopyWith
   factory _$AppSettingsCopyWith(_AppSettings value, $Res Function(_AppSettings) _then) = __$AppSettingsCopyWithImpl;
 @override @useResult
 $Res call({
- bool useSystemTheme, AppThemeMode manualThemeMode, bool useSystemLanguage, AppLanguage manualLanguage
+ bool useSystemTheme, AppThemeMode manualThemeMode, bool useSystemLanguage, AppLanguage manualLanguage, IntakeWindow intakeWindow, GracePeriod gracePeriod, bool allowMarkAhead
 });
 
 
@@ -264,13 +270,16 @@ class __$AppSettingsCopyWithImpl<$Res>
 
 /// Create a copy of AppSettings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? useSystemTheme = null,Object? manualThemeMode = null,Object? useSystemLanguage = null,Object? manualLanguage = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? useSystemTheme = null,Object? manualThemeMode = null,Object? useSystemLanguage = null,Object? manualLanguage = null,Object? intakeWindow = null,Object? gracePeriod = null,Object? allowMarkAhead = null,}) {
   return _then(_AppSettings(
 useSystemTheme: null == useSystemTheme ? _self.useSystemTheme : useSystemTheme // ignore: cast_nullable_to_non_nullable
 as bool,manualThemeMode: null == manualThemeMode ? _self.manualThemeMode : manualThemeMode // ignore: cast_nullable_to_non_nullable
 as AppThemeMode,useSystemLanguage: null == useSystemLanguage ? _self.useSystemLanguage : useSystemLanguage // ignore: cast_nullable_to_non_nullable
 as bool,manualLanguage: null == manualLanguage ? _self.manualLanguage : manualLanguage // ignore: cast_nullable_to_non_nullable
-as AppLanguage,
+as AppLanguage,intakeWindow: null == intakeWindow ? _self.intakeWindow : intakeWindow // ignore: cast_nullable_to_non_nullable
+as IntakeWindow,gracePeriod: null == gracePeriod ? _self.gracePeriod : gracePeriod // ignore: cast_nullable_to_non_nullable
+as GracePeriod,allowMarkAhead: null == allowMarkAhead ? _self.allowMarkAhead : allowMarkAhead // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

@@ -1,10 +1,12 @@
 /// Riverpod providers for application settings.
 ///
-/// Exposes [settingsRepositoryProvider] (wires the data layer), the four use
-/// case providers ([setThemeModeProvider], [setUseSystemThemeProvider],
-/// [setUseSystemLanguageProvider], [setManualLanguageProvider]) that the
-/// notifier delegates through, and [settingsNotifierProvider] (the notifier
-/// that holds [AppSettings] state and persists changes via the use cases).
+/// Exposes [settingsRepositoryProvider] (wires the data layer), the use case
+/// providers ([setThemeModeProvider], [setUseSystemThemeProvider],
+/// [setUseSystemLanguageProvider], [setManualLanguageProvider],
+/// [setIntakeWindowProvider], [setGracePeriodProvider],
+/// [setAllowMarkAheadProvider]) that the notifier delegates through, and
+/// [settingsNotifierProvider] (the notifier that holds [AppSettings] state
+/// and persists changes via the use cases).
 library;
 
 import 'dart:async';
@@ -19,10 +21,15 @@ import '../../domain/entities/app_language.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/app_theme_mode.dart';
 import '../../domain/repositories/settings_repository.dart';
+import '../../domain/usecases/set_allow_mark_ahead.dart';
+import '../../domain/usecases/set_grace_period.dart';
+import '../../domain/usecases/set_intake_window.dart';
 import '../../domain/usecases/set_manual_language.dart';
 import '../../domain/usecases/set_theme_mode.dart';
 import '../../domain/usecases/set_use_system_language.dart';
 import '../../domain/usecases/set_use_system_theme.dart';
+import '../../domain/value_objects/grace_period.dart';
+import '../../domain/value_objects/intake_window.dart';
 
 part 'settings_provider.g.dart';
 
@@ -54,6 +61,21 @@ SetUseSystemLanguage setUseSystemLanguage(Ref ref) =>
 @riverpod
 SetManualLanguage setManualLanguage(Ref ref) =>
     SetManualLanguage(ref.watch(settingsRepositoryProvider));
+
+/// Provides a [SetIntakeWindow] use case wired to the settings repository.
+@riverpod
+SetIntakeWindow setIntakeWindow(Ref ref) =>
+    SetIntakeWindow(ref.watch(settingsRepositoryProvider));
+
+/// Provides a [SetGracePeriod] use case wired to the settings repository.
+@riverpod
+SetGracePeriod setGracePeriod(Ref ref) =>
+    SetGracePeriod(ref.watch(settingsRepositoryProvider));
+
+/// Provides a [SetAllowMarkAhead] use case wired to the settings repository.
+@riverpod
+SetAllowMarkAhead setAllowMarkAhead(Ref ref) =>
+    SetAllowMarkAhead(ref.watch(settingsRepositoryProvider));
 
 /// Notifier that manages [AppSettings] state.
 ///
@@ -170,6 +192,40 @@ class SettingsNotifier extends _$SettingsNotifier {
     final result = await ref.read(setManualLanguageProvider).call(language);
     result.fold((failure) => _errors.add(failure), (_) {
       state = state.copyWith(manualLanguage: language);
+    });
+  }
+
+  /// Updates the intake window, persists it, and notifies listeners.
+  ///
+  /// On persistence failure the in-memory state is not updated and the failure
+  /// is forwarded to [settingsErrorsProvider] so the UI can surface it.
+  Future<void> setIntakeWindow(IntakeWindow window) async {
+    final result = await ref.read(setIntakeWindowProvider).call(window);
+    result.fold((failure) => _errors.add(failure), (_) {
+      state = state.copyWith(intakeWindow: window);
+    });
+  }
+
+  /// Updates the grace period, persists it, and notifies listeners.
+  ///
+  /// On persistence failure the in-memory state is not updated and the failure
+  /// is forwarded to [settingsErrorsProvider] so the UI can surface it.
+  Future<void> setGracePeriod(GracePeriod grace) async {
+    final result = await ref.read(setGracePeriodProvider).call(grace);
+    result.fold((failure) => _errors.add(failure), (_) {
+      state = state.copyWith(gracePeriod: grace);
+    });
+  }
+
+  /// Updates whether the user may mark an intake ahead of time, persists it,
+  /// and notifies listeners.
+  ///
+  /// On persistence failure the in-memory state is not updated and the failure
+  /// is forwarded to [settingsErrorsProvider] so the UI can surface it.
+  Future<void> setAllowMarkAhead(bool value) async {
+    final result = await ref.read(setAllowMarkAheadProvider).call(value);
+    result.fold((failure) => _errors.add(failure), (_) {
+      state = state.copyWith(allowMarkAhead: value);
     });
   }
 }

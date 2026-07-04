@@ -52,6 +52,41 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t save your preference. Please try again.';
 
   @override
+  String get settingsIntakeHeader => 'Intake';
+
+  @override
+  String get settingsIntakeWindowLabel => 'Intake window';
+
+  @override
+  String get settingsIntakeWindowDescription =>
+      'How long after the scheduled time a dose can still be marked';
+
+  @override
+  String get settingsGracePeriodLabel => 'Grace period';
+
+  @override
+  String get settingsGracePeriodDescription =>
+      'How long you can undo a dose after marking it';
+
+  @override
+  String get settingsAllowMarkAheadLabel => 'Allow marking ahead';
+
+  @override
+  String get settingsAllowMarkAheadDescription =>
+      'Let doses be marked before their window opens';
+
+  @override
+  String settingsMinutesValue(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get settingsStepperIncreaseTooltip => 'Increase';
+
+  @override
+  String get settingsStepperDecreaseTooltip => 'Decrease';
+
+  @override
   String get medsAddFabTooltip => 'Add medication';
 
   @override

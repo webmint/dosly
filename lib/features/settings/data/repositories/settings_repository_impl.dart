@@ -8,6 +8,8 @@ import '../../domain/entities/app_language.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/app_theme_mode.dart';
 import '../../domain/repositories/settings_repository.dart';
+import '../../domain/value_objects/grace_period.dart';
+import '../../domain/value_objects/intake_window.dart';
 import '../datasources/settings_local_data_source.dart';
 
 /// Implementation of [SettingsRepository] that delegates persistence to
@@ -27,6 +29,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
           manualThemeMode: _dataSource.getThemeMode(),
           useSystemLanguage: _dataSource.getUseSystemLanguage(),
           manualLanguage: _dataSource.getManualLanguage(),
+          intakeWindow: _dataSource.getIntakeWindow(),
+          gracePeriod: _dataSource.getGracePeriod(),
+          allowMarkAhead: _dataSource.getAllowMarkAhead(),
         ),
       );
     } catch (e, st) {
@@ -68,6 +73,36 @@ class SettingsRepositoryImpl implements SettingsRepository {
   Future<Either<Failure, void>> saveManualLanguage(AppLanguage language) async {
     try {
       await _dataSource.setManualLanguage(language);
+      return const Right(null);
+    } catch (e, st) {
+      return Left(Failure.unknown(e, st));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> saveIntakeWindow(IntakeWindow window) async {
+    try {
+      await _dataSource.setIntakeWindow(window);
+      return const Right(null);
+    } catch (e, st) {
+      return Left(Failure.unknown(e, st));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> saveGracePeriod(GracePeriod grace) async {
+    try {
+      await _dataSource.setGracePeriod(grace);
+      return const Right(null);
+    } catch (e, st) {
+      return Left(Failure.unknown(e, st));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> saveAllowMarkAhead(bool value) async {
+    try {
+      await _dataSource.setAllowMarkAhead(value);
       return const Right(null);
     } catch (e, st) {
       return Left(Failure.unknown(e, st));

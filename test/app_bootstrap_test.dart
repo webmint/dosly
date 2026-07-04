@@ -19,6 +19,8 @@ import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_settings.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
 import 'package:dosly/features/settings/domain/repositories/settings_repository.dart';
+import 'package:dosly/features/settings/domain/value_objects/grace_period.dart';
+import 'package:dosly/features/settings/domain/value_objects/intake_window.dart';
 import 'package:dosly/features/settings/presentation/providers/settings_provider.dart';
 import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
@@ -56,6 +58,18 @@ class _FakeSettingsRepository implements SettingsRepository {
 
   @override
   Future<Either<Never, void>> saveManualLanguage(AppLanguage language) async =>
+      const Right(null);
+
+  @override
+  Future<Either<Never, void>> saveIntakeWindow(IntakeWindow window) async =>
+      const Right(null);
+
+  @override
+  Future<Either<Never, void>> saveGracePeriod(GracePeriod grace) async =>
+      const Right(null);
+
+  @override
+  Future<Either<Never, void>> saveAllowMarkAhead(bool value) async =>
       const Right(null);
 }
 

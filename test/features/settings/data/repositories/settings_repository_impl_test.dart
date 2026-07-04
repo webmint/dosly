@@ -5,6 +5,8 @@ import 'package:dosly/features/settings/data/datasources/settings_local_data_sou
 import 'package:dosly/features/settings/data/repositories/settings_repository_impl.dart';
 import 'package:dosly/features/settings/domain/entities/app_language.dart';
 import 'package:dosly/features/settings/domain/entities/app_theme_mode.dart';
+import 'package:dosly/features/settings/domain/value_objects/grace_period.dart';
+import 'package:dosly/features/settings/domain/value_objects/intake_window.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +25,9 @@ Future<SettingsRepositoryImpl> _buildRepository({
         'useSystemTheme',
         'useSystemLanguage',
         'manualLanguage',
+        'intakeWindowMinutes',
+        'gracePeriodMinutes',
+        'allowMarkAhead',
       },
     ),
   );
@@ -42,6 +47,9 @@ Future<SharedPreferencesWithCache> _buildPrefs() async {
         'useSystemTheme',
         'useSystemLanguage',
         'manualLanguage',
+        'intakeWindowMinutes',
+        'gracePeriodMinutes',
+        'allowMarkAhead',
       },
     ),
   );
@@ -53,10 +61,41 @@ Future<SharedPreferencesWithCache> _buildPrefs() async {
 /// Used to prove that [SettingsRepositoryImpl.load()] converts any throwable
 /// from the data source into a [Left(UnknownFailure)] (AC-3).
 class _ThrowingGetterDataSource extends SettingsLocalDataSource {
-  _ThrowingGetterDataSource(super.prefs);
+  _ThrowingGetterDataSource(
+    super.prefs, {
+    this.throwOnGetIntakeWindow = false,
+    this.throwOnGetGracePeriod = false,
+    this.throwOnGetAllowMarkAhead = false,
+  });
+
+  /// Additional getters that can be toggled to throw for the new-settings
+  /// Left(UnknownFailure) tests; each defaults to `false` so existing call
+  /// sites (`_ThrowingGetterDataSource(prefs)`) keep relying on the
+  /// unconditional [getUseSystemTheme] throw below.
+  final bool throwOnGetIntakeWindow;
+  final bool throwOnGetGracePeriod;
+  final bool throwOnGetAllowMarkAhead;
 
   @override
   bool getUseSystemTheme() => throw StateError('boom: getUseSystemTheme');
+
+  @override
+  IntakeWindow getIntakeWindow() {
+    if (throwOnGetIntakeWindow) throw StateError('boom: getIntakeWindow');
+    return super.getIntakeWindow();
+  }
+
+  @override
+  GracePeriod getGracePeriod() {
+    if (throwOnGetGracePeriod) throw StateError('boom: getGracePeriod');
+    return super.getGracePeriod();
+  }
+
+  @override
+  bool getAllowMarkAhead() {
+    if (throwOnGetAllowMarkAhead) throw StateError('boom: getAllowMarkAhead');
+    return super.getAllowMarkAhead();
+  }
 }
 
 /// Subclass of [SettingsLocalDataSource] that overrides individual setters to
@@ -72,6 +111,9 @@ class _ThrowingSetterDataSource extends SettingsLocalDataSource {
     this.throwOnSetUseSystemTheme = false,
     this.throwOnSetUseSystemLanguage = false,
     this.throwOnSetManualLanguage = false,
+    this.throwOnSetIntakeWindow = false,
+    this.throwOnSetGracePeriod = false,
+    this.throwOnSetAllowMarkAhead = false,
   });
 
   /// Which setter should throw; exactly one flag set to true per test instance.
@@ -79,6 +121,9 @@ class _ThrowingSetterDataSource extends SettingsLocalDataSource {
   final bool throwOnSetUseSystemTheme;
   final bool throwOnSetUseSystemLanguage;
   final bool throwOnSetManualLanguage;
+  final bool throwOnSetIntakeWindow;
+  final bool throwOnSetGracePeriod;
+  final bool throwOnSetAllowMarkAhead;
 
   @override
   Future<void> setThemeMode(AppThemeMode mode) async {
@@ -104,6 +149,24 @@ class _ThrowingSetterDataSource extends SettingsLocalDataSource {
   Future<void> setManualLanguage(AppLanguage language) async {
     if (throwOnSetManualLanguage) throw StateError('boom: setManualLanguage');
     return super.setManualLanguage(language);
+  }
+
+  @override
+  Future<void> setIntakeWindow(IntakeWindow value) async {
+    if (throwOnSetIntakeWindow) throw StateError('boom: setIntakeWindow');
+    return super.setIntakeWindow(value);
+  }
+
+  @override
+  Future<void> setGracePeriod(GracePeriod value) async {
+    if (throwOnSetGracePeriod) throw StateError('boom: setGracePeriod');
+    return super.setGracePeriod(value);
+  }
+
+  @override
+  Future<void> setAllowMarkAhead(bool value) async {
+    if (throwOnSetAllowMarkAhead) throw StateError('boom: setAllowMarkAhead');
+    return super.setAllowMarkAhead(value);
   }
 }
 
@@ -275,6 +338,45 @@ void main() {
       );
     });
 
+    group('load() — intake window / grace period / allow mark ahead', () {
+      test(
+        'returns AppSettings.defaultValue-equivalent intake=120, grace=5, '
+        'allowMarkAhead=false when keys are absent',
+        () async {
+          final repository = await _buildRepository();
+
+          final settings = repository.load().getOrElse(
+            (f) => fail('expected Right, got Left: $f'),
+          );
+
+          expect(settings.intakeWindow, IntakeWindow.defaultValue);
+          expect(settings.gracePeriod, GracePeriod.defaultValue);
+          expect(settings.allowMarkAhead, isFalse);
+        },
+      );
+
+      test(
+        'returns intake/grace/allowMarkAhead reflecting seeded non-default values',
+        () async {
+          final repository = await _buildRepository(
+            initialData: {
+              'intakeWindowMinutes': 90,
+              'gracePeriodMinutes': 10,
+              'allowMarkAhead': true,
+            },
+          );
+
+          final settings = repository.load().getOrElse(
+            (f) => fail('expected Right, got Left: $f'),
+          );
+
+          expect(settings.intakeWindow, IntakeWindow(90));
+          expect(settings.gracePeriod, GracePeriod(10));
+          expect(settings.allowMarkAhead, isTrue);
+        },
+      );
+    });
+
     group('saveThemeMode()', () {
       test('returns Right(null) on success', () async {
         final repository = await _buildRepository();
@@ -315,6 +417,102 @@ void main() {
       });
     });
 
+    group('saveIntakeWindow()', () {
+      test('returns Right(null) on success and persists the value', () async {
+        final repository = await _buildRepository();
+
+        final result = await repository.saveIntakeWindow(IntakeWindow(90));
+
+        expect(result, isA<Right<dynamic, void>>());
+        final settings = repository.load().getOrElse(
+          (f) => fail('expected Right, got Left: $f'),
+        );
+        expect(settings.intakeWindow, IntakeWindow(90));
+      });
+
+      test(
+        'returns Left(UnknownFailure) when setter throws StateError',
+        () async {
+          final prefs = await _buildPrefs();
+          final repository = SettingsRepositoryImpl(
+            _ThrowingSetterDataSource(prefs, throwOnSetIntakeWindow: true),
+          );
+
+          final result = await repository.saveIntakeWindow(IntakeWindow(90));
+
+          expect(result.isLeft(), isTrue);
+          result.fold((failure) {
+            expect(failure, isA<UnknownFailure>());
+            expect(failure, isNot(isA<CacheFailure>()));
+          }, (_) => fail('expected Left, got Right'));
+        },
+      );
+    });
+
+    group('saveGracePeriod()', () {
+      test('returns Right(null) on success and persists the value', () async {
+        final repository = await _buildRepository();
+
+        final result = await repository.saveGracePeriod(GracePeriod(10));
+
+        expect(result, isA<Right<dynamic, void>>());
+        final settings = repository.load().getOrElse(
+          (f) => fail('expected Right, got Left: $f'),
+        );
+        expect(settings.gracePeriod, GracePeriod(10));
+      });
+
+      test(
+        'returns Left(UnknownFailure) when setter throws StateError',
+        () async {
+          final prefs = await _buildPrefs();
+          final repository = SettingsRepositoryImpl(
+            _ThrowingSetterDataSource(prefs, throwOnSetGracePeriod: true),
+          );
+
+          final result = await repository.saveGracePeriod(GracePeriod(10));
+
+          expect(result.isLeft(), isTrue);
+          result.fold((failure) {
+            expect(failure, isA<UnknownFailure>());
+            expect(failure, isNot(isA<CacheFailure>()));
+          }, (_) => fail('expected Left, got Right'));
+        },
+      );
+    });
+
+    group('saveAllowMarkAhead()', () {
+      test('returns Right(null) on success and persists the value', () async {
+        final repository = await _buildRepository();
+
+        final result = await repository.saveAllowMarkAhead(true);
+
+        expect(result, isA<Right<dynamic, void>>());
+        final settings = repository.load().getOrElse(
+          (f) => fail('expected Right, got Left: $f'),
+        );
+        expect(settings.allowMarkAhead, isTrue);
+      });
+
+      test(
+        'returns Left(UnknownFailure) when setter throws StateError',
+        () async {
+          final prefs = await _buildPrefs();
+          final repository = SettingsRepositoryImpl(
+            _ThrowingSetterDataSource(prefs, throwOnSetAllowMarkAhead: true),
+          );
+
+          final result = await repository.saveAllowMarkAhead(true);
+
+          expect(result.isLeft(), isTrue);
+          result.fold((failure) {
+            expect(failure, isA<UnknownFailure>());
+            expect(failure, isNot(isA<CacheFailure>()));
+          }, (_) => fail('expected Left, got Right'));
+        },
+      );
+    });
+
     group('persistence round-trip', () {
       test('saved themeMode and useSystemTheme survive reconstruction '
           'from the same SharedPreferences instance', () async {
@@ -328,6 +526,9 @@ void main() {
               'useSystemTheme',
               'useSystemLanguage',
               'manualLanguage',
+              'intakeWindowMinutes',
+              'gracePeriodMinutes',
+              'allowMarkAhead',
             },
           ),
         );
@@ -363,6 +564,9 @@ void main() {
               'useSystemTheme',
               'useSystemLanguage',
               'manualLanguage',
+              'intakeWindowMinutes',
+              'gracePeriodMinutes',
+              'allowMarkAhead',
             },
           ),
         );
@@ -532,6 +736,73 @@ void main() {
 
             expect(result.isLeft(), isTrue);
             // Fold to extract the failure and assert its runtime type.
+            result.fold(
+              (failure) => expect(failure, isA<UnknownFailure>()),
+              (_) => fail('expected Left, got Right'),
+            );
+          },
+        );
+      },
+    );
+
+    // Same AC-3 containment boundary, exercised for each of the 3 new
+    // intake/grace/mark-ahead getters individually.
+    group(
+      'load() — new-setting getter throw → Left(UnknownFailure)',
+      () {
+        test(
+          'returns Left(UnknownFailure) when getIntakeWindow throws',
+          () async {
+            final prefs = await _buildPrefs();
+            final throwingSource = _ThrowingGetterDataSource(
+              prefs,
+              throwOnGetIntakeWindow: true,
+            );
+            final repository = SettingsRepositoryImpl(throwingSource);
+
+            final result = repository.load();
+
+            expect(result.isLeft(), isTrue);
+            result.fold(
+              (failure) => expect(failure, isA<UnknownFailure>()),
+              (_) => fail('expected Left, got Right'),
+            );
+          },
+        );
+
+        test(
+          'returns Left(UnknownFailure) when getGracePeriod throws',
+          () async {
+            final prefs = await _buildPrefs();
+            final throwingSource = _ThrowingGetterDataSource(
+              prefs,
+              throwOnGetGracePeriod: true,
+            );
+            final repository = SettingsRepositoryImpl(throwingSource);
+
+            final result = repository.load();
+
+            expect(result.isLeft(), isTrue);
+            result.fold(
+              (failure) => expect(failure, isA<UnknownFailure>()),
+              (_) => fail('expected Left, got Right'),
+            );
+          },
+        );
+
+        test(
+          'returns Left(UnknownFailure) when getAllowMarkAhead throws',
+          () async {
+            final prefs = await _buildPrefs();
+            final throwingSource = _ThrowingGetterDataSource(
+              prefs,
+              throwOnGetAllowMarkAhead: true,
+            );
+            final repository = SettingsRepositoryImpl(throwingSource);
+
+            final result = repository.load();
+
+            expect(result.isLeft(), isTrue);
             result.fold(
               (failure) => expect(failure, isA<UnknownFailure>()),
               (_) => fail('expected Left, got Right'),

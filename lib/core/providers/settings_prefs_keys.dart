@@ -20,6 +20,15 @@ const String useSystemLanguagePrefsKey = 'useSystemLanguage';
 /// SharedPreferences key for the user's manual language choice (IETF code).
 const String manualLanguagePrefsKey = 'manualLanguage';
 
+/// SharedPreferences key for the intake window length, stored in minutes.
+const String intakeWindowMinutesPrefsKey = 'intakeWindowMinutes';
+
+/// SharedPreferences key for the grace period length, stored in minutes.
+const String gracePeriodMinutesPrefsKey = 'gracePeriodMinutes';
+
+/// SharedPreferences key for the "allow marking intakes ahead of time" flag.
+const String allowMarkAheadPrefsKey = 'allowMarkAhead';
+
 /// The complete set of settings keys permitted in the prefs cache.
 ///
 /// The cache `allowList` MUST be a superset of every key the settings data
@@ -29,4 +38,7 @@ const Set<String> settingsPrefsKeys = <String>{
   useSystemThemePrefsKey,
   useSystemLanguagePrefsKey,
   manualLanguagePrefsKey,
+  intakeWindowMinutesPrefsKey,
+  gracePeriodMinutesPrefsKey,
+  allowMarkAheadPrefsKey,
 };
