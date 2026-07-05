@@ -10,18 +10,23 @@
 /// `data/` themselves.
 library;
 
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/database/database.dart';
 import '../../../../core/database/database_provider.dart';
 import '../../../../core/id/id_generator_provider.dart';
+import '../../../../core/logging/logger.dart';
+import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../data/datasources/intake_local_data_source.dart';
 import '../../data/repositories/intake_repository_impl.dart';
 import '../../domain/entities/intake.dart';
 import '../../domain/repositories/intake_repository.dart';
 import '../../domain/usecases/mark_intake_taken.dart';
+import '../../domain/usecases/reconcile_missed_intakes.dart';
 import '../../domain/usecases/skip_intake.dart';
 import '../../domain/usecases/undo_intake.dart';
+import 'medication_providers.dart';
 
 part 'intake_providers.g.dart';
 
@@ -87,3 +92,45 @@ Stream<List<Intake>> intakesList(Ref ref) => ref
     .map(
       (either) => either.fold((failure) => throw failure, (intakes) => intakes),
     );
+
+/// Provides the [ReconcileMissedIntakes] use case wired to the medication and
+/// intake repositories, the settings repository (for the intake window), and
+/// the application-wide [IdGenerator].
+///
+/// This is the write-side auto-miss operation: it derives every due occurrence
+/// whose intake window has closed with no recorded intake and persists a
+/// `missed` [Intake] for each. Consumers depend on the concrete use-case type
+/// exposed here. The [settingsRepositoryProvider] import is a documented
+/// cross-feature DI seam (constitution §2.1 amendment); screens/widgets stay
+/// settings-free.
+@riverpod
+ReconcileMissedIntakes reconcileMissedIntakes(Ref ref) =>
+    ReconcileMissedIntakes(
+      ref.watch(medicationRepositoryProvider),
+      ref.watch(intakeRepositoryProvider),
+      ref.watch(settingsRepositoryProvider),
+      ref.watch(idGeneratorProvider),
+    );
+
+/// Runs auto-miss reconciliation ONCE per app run, on first read.
+///
+/// Annotated `keepAlive: true` so the future is memoised for the app's
+/// lifetime: reading it again returns the same completed future rather than
+/// re-reconciling. Designed to be fire-and-forget from `AppBootstrap`
+/// (mirroring [devSeed]) — it folds the reconcile [Either] and **never
+/// throws**: a [Left] is logged via [loggerProvider] (a generic message plus
+/// the [Failure] object, which carries no PHI — never a medication name), and a
+/// [Right] is discarded. A reconciliation failure can therefore never crash
+/// startup. Overridable in tests via the generated `reconcileMissedOnOpenProvider`.
+@Riverpod(keepAlive: true)
+Future<void> reconcileMissedOnOpen(Ref ref) async {
+  final result = await ref
+      .read(reconcileMissedIntakesProvider)
+      .call(now: clock.now());
+  result.fold(
+    (failure) => ref
+        .read(loggerProvider)
+        .warning('Auto-miss reconciliation on open failed', failure),
+    (_) {},
+  );
+}

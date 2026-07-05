@@ -6,7 +6,7 @@ The **settings feature** owns the Settings screen — a push destination reached
 
 The feature exposes three groups of controls: **Appearance** (theme mode), **Language**, and **Intake**. The user can follow the device system theme or manually select Light or Dark, separately can follow the device language or pin the app to English, German, or Ukrainian, and can tune three intake-behaviour preferences (intake window, grace period, allow-mark-ahead).
 
-> **Foundation only (feature 039)**: the three Intake preferences are stored and surfaced on the Settings screen, but as of feature 039 nothing in the app *reads* them yet — no auto-miss transition and no Today-screen enforcement exist. They become load-bearing in a future spec (auto-miss / Today redesign).
+> **`intakeWindow` now consumed (feature 040)**: `intakeWindow` gained its first real consumer — the auto-miss engine (`ReconcileMissedIntakes`, `lib/features/meds/domain/usecases/reconcile_missed_intakes.dart`) reads it to decide when a pending dose's window has closed and should become `missed`. See [`meds.md`](meds.md#auto-miss-engine-feature-040). `gracePeriod` and `allowMarkAhead` remain **foundation only** as of feature 040 — nothing yet reads them (no Today-screen grace-period enforcement, no mark-ahead gating).
 
 ## How it works
 
@@ -20,7 +20,7 @@ The feature exposes three groups of controls: **Appearance** (theme mode), **Lan
 | `manualThemeMode` | `AppThemeMode.light` | Override used when `useSystemTheme` is `false` |
 | `useSystemLanguage` | `true` | Follow the device language when `true` |
 | `manualLanguage` | `AppLanguage.en` | Override used when `useSystemLanguage` is `false` |
-| `intakeWindow` | `IntakeWindow.defaultValue` (120 min) | How long an intake stays `pending` after its scheduled time before it would auto-transition to `missed`. Clamped 15–240 min. |
+| `intakeWindow` | `IntakeWindow.defaultValue` (120 min) | How long an intake stays `pending` after its scheduled time before the auto-miss engine (feature 040) transitions it to `missed`. Clamped 15–240 min. |
 | `gracePeriod` | `GracePeriod.defaultValue` (5 min) | How long after marking an intake `taken` the user may undo it back to `pending`. Clamped 0–30 min. |
 | `allowMarkAhead` | `false` | Whether the user may mark an intake `taken` before its scheduled time. |
 
@@ -298,4 +298,6 @@ The key string literals are defined once in `lib/core/providers/settings_prefs_k
 - [`../../specs/014-surface-settings-errors/spec.md`](../../specs/014-surface-settings-errors/spec.md) — the spec that added the error-stream and SnackBar feedback
 - [`../../specs/016-settings-usecases/spec.md`](../../specs/016-settings-usecases/spec.md) — the spec that introduced the use case layer, `CycleThemeMode`, and `AppLanguage.fromLanguageCodeOrDefault`
 - [`../../specs/022-settings-error-containment/spec.md`](../../specs/022-settings-error-containment/spec.md) — the spec that changed `load()` to return `Either<Failure, AppSettings>` and hardened all `save*` catch blocks to `catch (e, st)`
-- [`../../specs/039-intake-settings/spec.md`](../../specs/039-intake-settings/spec.md) — the spec that added `intakeWindow`, `gracePeriod`, `allowMarkAhead`, the `IntakeWindow`/`GracePeriod` value objects, and the Intake settings section (foundation only — not yet consumed by app behaviour)
+- [`../../specs/039-intake-settings/spec.md`](../../specs/039-intake-settings/spec.md) — the spec that added `intakeWindow`, `gracePeriod`, `allowMarkAhead`, the `IntakeWindow`/`GracePeriod` value objects, and the Intake settings section (foundation only at the time — `intakeWindow` is now consumed, see below)
+- [`../../specs/040-auto-miss-engine/spec.md`](../../specs/040-auto-miss-engine/spec.md) — the spec that made `intakeWindow` load-bearing: the auto-miss engine reads it to transition overdue `pending` doses to `missed`
+- [`meds.md`](meds.md#auto-miss-engine-feature-040) — the auto-miss engine that consumes `intakeWindow`

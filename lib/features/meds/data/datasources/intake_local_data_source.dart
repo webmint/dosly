@@ -67,6 +67,27 @@ class IntakeLocalDataSource {
         );
   }
 
+  /// Inserts a fresh `missed` intake row for an occurrence, but IGNORES the
+  /// write when that occurrence already has a row — the never-clobber contract
+  /// for the auto-miss engine.
+  ///
+  /// Unlike [upsertIntake], which resolves a conflict on the occurrence unique
+  /// key with `ON CONFLICT ... DO UPDATE` (and would overwrite an existing
+  /// `taken`/`skipped` row), this uses [InsertMode.insertOrIgnore] — SQLite's
+  /// `INSERT OR IGNORE`. A conflict on the occurrence unique index
+  /// `{medicationId, slotId, scheduledAt}` or on the primary key `id` is
+  /// silently skipped, so a user-confirmed occurrence is never downgraded to
+  /// `missed`. This is DB-level defense-in-depth on top of the use case's
+  /// eligibility filter.
+  ///
+  /// Throws on failure (e.g. `SqliteException`); callers in the repository layer
+  /// catch and convert these into `Left(Failure)`.
+  Future<void> insertMissedIntake(IntakesCompanion companion) async {
+    await _db
+        .into(_db.intakes)
+        .insert(companion, mode: InsertMode.insertOrIgnore);
+  }
+
   /// Deletes the intake with [id], if present.
   ///
   /// Issues a single `delete` on the `intakes` table filtered by [id]. Returns

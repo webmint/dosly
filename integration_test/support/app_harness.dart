@@ -22,6 +22,13 @@
 ///   that expect an exact row count after a single UI-driven add would see the
 ///   seeded rows too. The seeder is debug-only scaffolding, not behavior under
 ///   test, so disabling it does not mask any production wiring bug.
+/// - [reconcileMissedIntakesProvider] → [_NoOpReconcileMissedIntakes], so the
+///   on-open auto-miss trigger ([reconcileMissedOnOpenProvider], read
+///   fire-and-forget by `AppBootstrap` on every launch) does not write `missed`
+///   intake rows into the fresh golden-flow DB. This also neutralizes the
+///   Today-screen auto-miss trigger, since both read the same use-case
+///   provider. Like the devSeed override, this disables scaffolding around the
+///   flow under test, not the flow itself, so it does not mask a wiring bug.
 ///
 /// All other providers — including [settingsRepositoryProvider] and the entire
 /// [DoslyApp] router chain — are the real production implementations. This
@@ -34,6 +41,7 @@ import 'dart:io';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -41,8 +49,11 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:dosly/app_bootstrap.dart';
 import 'package:dosly/core/database/database.dart';
 import 'package:dosly/core/database/database_provider.dart';
+import 'package:dosly/core/error/failures.dart';
 import 'package:dosly/core/providers/shared_preferences_provider.dart';
 import 'package:dosly/core/providers/settings_prefs_keys.dart';
+import 'package:dosly/features/meds/domain/usecases/reconcile_missed_intakes.dart';
+import 'package:dosly/features/meds/presentation/providers/intake_providers.dart';
 import 'package:dosly/features/meds/presentation/providers/medication_providers.dart';
 
 /// Boots the real [AppBootstrap] on-device with a caller-supplied [db] and
@@ -54,6 +65,8 @@ import 'package:dosly/features/meds/presentation/providers/medication_providers.
 ///   is deterministic and never persists between test runs.
 /// - [devSeedProvider] → a no-op, so the `kDebugMode` debug seeder does not
 ///   pre-populate [db] with demo medications (integration tests run in debug).
+/// - [reconcileMissedIntakesProvider] → [_NoOpReconcileMissedIntakes], so the
+///   on-open auto-miss trigger does not write `missed` intake rows into [db].
 ///
 /// All other providers are real production code. The real settings provider
 /// chain ([DoslyApp] → [settingsNotifier] → [settingsRepository] →
@@ -83,7 +96,7 @@ Future<void> bootAppWithDb(WidgetTester tester, AppDatabase db) async {
     ),
   );
 
-  // 2. Pump the real app with only the two leaf seams overridden.
+  // 2. Pump the real app with only the leaf seams overridden.
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -93,6 +106,14 @@ Future<void> bootAppWithDb(WidgetTester tester, AppDatabase db) async {
         // golden-flow assertions expect an exact medication-row count after a
         // single UI-driven add. Seeding the fresh DB would break that.
         devSeedProvider.overrideWith((ref) async {}),
+        // Neutralize the auto-miss use case: AppBootstrap fires
+        // reconcileMissedOnOpenProvider on every launch (fire-and-forget), and
+        // the Today screen fires the same use-case provider too. Without this,
+        // either trigger could write `missed` intake rows into the fresh
+        // golden-flow DB and break exact-row-count assertions.
+        reconcileMissedIntakesProvider.overrideWith(
+          (ref) => _NoOpReconcileMissedIntakes(),
+        ),
       ],
       child: const AppBootstrap(),
     ),
@@ -147,4 +168,16 @@ Future<AppDatabase> bootAppWithTempDb(WidgetTester tester) async {
   await bootAppWithDb(tester, db);
 
   return db;
+}
+
+/// No-op [ReconcileMissedIntakes] fake used to neutralize the on-open
+/// (and Today-screen) auto-miss trigger in integration tests.
+///
+/// [ReconcileMissedIntakes]'s constructor fields are private, so `implements`
+/// only requires the public [call] method — this is the intended ergonomic
+/// override shape for a use case with no public interface to re-declare.
+class _NoOpReconcileMissedIntakes implements ReconcileMissedIntakes {
+  @override
+  Future<Either<Failure, int>> call({required DateTime now}) async =>
+      const Right(0);
 }

@@ -369,3 +369,149 @@ final class IntakesListProvider
 }
 
 String _$intakesListHash() => r'680c6ef056aa729044b6a5c097f64d4e6c2539c7';
+
+/// Provides the [ReconcileMissedIntakes] use case wired to the medication and
+/// intake repositories, the settings repository (for the intake window), and
+/// the application-wide [IdGenerator].
+///
+/// This is the write-side auto-miss operation: it derives every due occurrence
+/// whose intake window has closed with no recorded intake and persists a
+/// `missed` [Intake] for each. Consumers depend on the concrete use-case type
+/// exposed here. The [settingsRepositoryProvider] import is a documented
+/// cross-feature DI seam (constitution §2.1 amendment); screens/widgets stay
+/// settings-free.
+
+@ProviderFor(reconcileMissedIntakes)
+final reconcileMissedIntakesProvider = ReconcileMissedIntakesProvider._();
+
+/// Provides the [ReconcileMissedIntakes] use case wired to the medication and
+/// intake repositories, the settings repository (for the intake window), and
+/// the application-wide [IdGenerator].
+///
+/// This is the write-side auto-miss operation: it derives every due occurrence
+/// whose intake window has closed with no recorded intake and persists a
+/// `missed` [Intake] for each. Consumers depend on the concrete use-case type
+/// exposed here. The [settingsRepositoryProvider] import is a documented
+/// cross-feature DI seam (constitution §2.1 amendment); screens/widgets stay
+/// settings-free.
+
+final class ReconcileMissedIntakesProvider
+    extends
+        $FunctionalProvider<
+          ReconcileMissedIntakes,
+          ReconcileMissedIntakes,
+          ReconcileMissedIntakes
+        >
+    with $Provider<ReconcileMissedIntakes> {
+  /// Provides the [ReconcileMissedIntakes] use case wired to the medication and
+  /// intake repositories, the settings repository (for the intake window), and
+  /// the application-wide [IdGenerator].
+  ///
+  /// This is the write-side auto-miss operation: it derives every due occurrence
+  /// whose intake window has closed with no recorded intake and persists a
+  /// `missed` [Intake] for each. Consumers depend on the concrete use-case type
+  /// exposed here. The [settingsRepositoryProvider] import is a documented
+  /// cross-feature DI seam (constitution §2.1 amendment); screens/widgets stay
+  /// settings-free.
+  ReconcileMissedIntakesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'reconcileMissedIntakesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$reconcileMissedIntakesHash();
+
+  @$internal
+  @override
+  $ProviderElement<ReconcileMissedIntakes> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ReconcileMissedIntakes create(Ref ref) {
+    return reconcileMissedIntakes(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ReconcileMissedIntakes value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ReconcileMissedIntakes>(value),
+    );
+  }
+}
+
+String _$reconcileMissedIntakesHash() =>
+    r'cc1f01a69fc493db344bc55472eb34360b68d621';
+
+/// Runs auto-miss reconciliation ONCE per app run, on first read.
+///
+/// Annotated `keepAlive: true` so the future is memoised for the app's
+/// lifetime: reading it again returns the same completed future rather than
+/// re-reconciling. Designed to be fire-and-forget from `AppBootstrap`
+/// (mirroring [devSeed]) — it folds the reconcile [Either] and **never
+/// throws**: a [Left] is logged via [loggerProvider] (a generic message plus
+/// the [Failure] object, which carries no PHI — never a medication name), and a
+/// [Right] is discarded. A reconciliation failure can therefore never crash
+/// startup. Overridable in tests via the generated `reconcileMissedOnOpenProvider`.
+
+@ProviderFor(reconcileMissedOnOpen)
+final reconcileMissedOnOpenProvider = ReconcileMissedOnOpenProvider._();
+
+/// Runs auto-miss reconciliation ONCE per app run, on first read.
+///
+/// Annotated `keepAlive: true` so the future is memoised for the app's
+/// lifetime: reading it again returns the same completed future rather than
+/// re-reconciling. Designed to be fire-and-forget from `AppBootstrap`
+/// (mirroring [devSeed]) — it folds the reconcile [Either] and **never
+/// throws**: a [Left] is logged via [loggerProvider] (a generic message plus
+/// the [Failure] object, which carries no PHI — never a medication name), and a
+/// [Right] is discarded. A reconciliation failure can therefore never crash
+/// startup. Overridable in tests via the generated `reconcileMissedOnOpenProvider`.
+
+final class ReconcileMissedOnOpenProvider
+    extends $FunctionalProvider<AsyncValue<void>, void, FutureOr<void>>
+    with $FutureModifier<void>, $FutureProvider<void> {
+  /// Runs auto-miss reconciliation ONCE per app run, on first read.
+  ///
+  /// Annotated `keepAlive: true` so the future is memoised for the app's
+  /// lifetime: reading it again returns the same completed future rather than
+  /// re-reconciling. Designed to be fire-and-forget from `AppBootstrap`
+  /// (mirroring [devSeed]) — it folds the reconcile [Either] and **never
+  /// throws**: a [Left] is logged via [loggerProvider] (a generic message plus
+  /// the [Failure] object, which carries no PHI — never a medication name), and a
+  /// [Right] is discarded. A reconciliation failure can therefore never crash
+  /// startup. Overridable in tests via the generated `reconcileMissedOnOpenProvider`.
+  ReconcileMissedOnOpenProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'reconcileMissedOnOpenProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$reconcileMissedOnOpenHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<void> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<void> create(Ref ref) {
+    return reconcileMissedOnOpen(ref);
+  }
+}
+
+String _$reconcileMissedOnOpenHash() =>
+    r'dad822679490a5ae711b77746e32a985b07781bd';

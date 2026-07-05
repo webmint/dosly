@@ -126,6 +126,7 @@
   "todayUndo": "Rückgängig",
   "todayStatusTaken": "Eingenommen",
   "todayStatusSkipped": "Übersprungen",
+  "todayStatusMissed": "Verpasst",
   "todayEmptyTitle": "Heute nichts fällig",
   "todayEmptyBody": "Sie haben heute keine geplanten Einnahmen.",
   "todayLoadError": "Die heutigen Einnahmen konnten nicht geladen werden.",
