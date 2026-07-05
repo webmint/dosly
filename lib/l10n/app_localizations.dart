@@ -856,6 +856,12 @@ abstract class AppLocalizations {
   /// **'Skipped'**
   String get todayStatusSkipped;
 
+  /// Status label for a dose whose intake window elapsed without action (auto-missed).
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get todayStatusMissed;
+
   /// Title of the empty-state illustration shown on the Today screen when no doses are scheduled.
   ///
   /// In en, this message translates to:

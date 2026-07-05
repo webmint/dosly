@@ -59,6 +59,16 @@ class IntakeRepositoryImpl implements IntakeRepository {
   }
 
   @override
+  Future<Either<Failure, Intake>> markMissed(Intake intake) async {
+    try {
+      await _dataSource.insertMissedIntake(intakeToCompanion(intake));
+      return Right(intake);
+    } catch (e) {
+      return Left(Failure.cache('Failed to record missed intake: $e'));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> undo(IntakeId id) async {
     try {
       await _dataSource.deleteIntake(id.value);

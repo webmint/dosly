@@ -30,6 +30,7 @@ import 'core/providers/shared_preferences_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/prefs_load_error_screen.dart';
 import 'core/widgets/splash_screen.dart';
+import 'features/meds/presentation/providers/intake_providers.dart';
 import 'features/meds/presentation/providers/medication_providers.dart';
 import 'l10n/app_localizations.dart';
 
@@ -71,6 +72,13 @@ class AppBootstrap extends ConsumerWidget {
             if (kDebugMode) {
               ref.read(devSeedProvider);
             }
+            // Non-blocking on-open auto-miss (constitution §5.2 "on next app
+            // open"): fire-and-forget, runs in BOTH debug and release since
+            // auto-miss is production behavior (unlike the debug-only seeder
+            // above). The keepAlive provider folds the reconcile Either and
+            // logs internally, so a reconciliation failure is never surfaced
+            // as a startup error.
+            ref.read(reconcileMissedOnOpenProvider);
             return const DoslyApp();
           },
         );

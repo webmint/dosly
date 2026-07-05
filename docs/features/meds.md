@@ -580,11 +580,11 @@ Feature 038 turned the placeholder Today tab into the app's daily-driver screen:
 
 ### Lazy intake model
 
-An `Intake` row is written to the new `intakes` drift table **only** when the user marks a dose taken or skipped:
+An `Intake` row is written to the `intakes` drift table when the user marks a dose taken or skipped, or when the auto-miss engine (feature 040 — see [Auto-miss engine](#auto-miss-engine-feature-040) below) determines a dose's window closed unattended:
 
 - **`pending`** — the derived state of a dose with no stored `Intake` row. Never persisted.
-- **`taken` / `skipped`** — the only two `IntakeStatus` values this slice ever writes to storage.
-- **`missed`** — reserved for a later feature (an auto-miss window-expiry sweep). The enum value exists so no rename/migration is needed when that feature lands, but nothing produces it yet.
+- **`taken` / `skipped`** — written when the user acts on a dose (this feature, 038).
+- **`missed`** — written by the auto-miss reconcile engine (`ReconcileMissedIntakes`, feature 040) when a dose's intake window elapses with no stored intake row. Never written by direct user action.
 
 This is a deliberate MVP interpretation of the constitution §5.2 state machine, not the full literal model. See [`medication-persistence.md`](medication-persistence.md#intakes-table-feature-038) for the `intakes` table schema and the schemaVersion 1→2 migration.
 
@@ -626,7 +626,7 @@ Every due dose appears regardless of whether its scheduled time is past or futur
 - **Date header** — a muted `Text` below the AppBar showing today's date via `MaterialLocalizations.of(context).formatFullDate(now)`.
 - **Body** — combines `ref.watch(medicationsListProvider)` and `ref.watch(intakesListProvider)` (both `AsyncValue`): either loading → `CircularProgressIndicator`; either error → muted centered `todayLoadError` text; otherwise `buildTodayView(...)` shapes the data and the body renders `TodayEmptyState` (nothing due) or a `ListView.builder` of `TodayDoseTile`s in ascending schedule-time order, with 88px bottom padding.
 
-Each `TodayDoseTile` (`presentation/widgets/today_dose_tile.dart`) is a "dumb" `StatelessWidget` — a form-icon badge, the medication name, an `"HH:mm · dose"` subtitle (24-hour, via `MaterialLocalizations.formatTimeOfDay(..., alwaysUse24HourFormat: true)`), and a trailing actions area that switches on `TodayDose.status`: Skip/Take buttons while `pending`; a status label plus an Undo `TextButton` (shown only when `undoable`) once `taken`/`skipped`. It carries no provider access — the screen supplies all three callbacks.
+Each `TodayDoseTile` (`presentation/widgets/today_dose_tile.dart`) is a "dumb" `StatelessWidget` — a form-icon badge, the medication name, an `"HH:mm · dose"` subtitle (24-hour, via `MaterialLocalizations.formatTimeOfDay(..., alwaysUse24HourFormat: true)`), and a trailing actions area that switches on `TodayDose.status`: Skip/Take buttons while `pending`; a status label plus an Undo `TextButton` (shown only when `undoable`) once `taken`/`skipped`; and, once `missed` (feature 040), a locked, error-toned status label with no actions at all. It carries no provider access — the screen supplies all three callbacks.
 
 ### Mark / skip / undo
 
@@ -649,6 +649,29 @@ The Undo affordance must disappear on its own once the grace window elapses, eve
 
 This is the project's **first drift schema migration**. See [`medication-persistence.md`](medication-persistence.md#intakes-table-feature-038) for the full table definition, the add-only `onUpgrade`, and the `SchemaVerifier`/data-survival test convention.
 
+### Auto-miss engine (feature 040)
+
+Feature 040 closes the gap the lazy-intake model left open: a dose whose intake window closes without the user acting on it no longer stays `pending` forever — it becomes `missed`.
+
+**Pure derivation** — `findAutoMissDoses({meds, intakes, window, now})` (`domain/value_objects/missed_intake_reconciliation.dart`) returns the subset of `expandDueDoses(meds, now)` that is strictly past-window (`now > scheduledAt + window.minutes`, compared in UTC; the boundary instant itself is not yet missed) AND has no stored intake, matched by the same occurrence key `buildTodayView` uses: `(medicationId, slotId, localCalendarDate(scheduledAt))`.
+
+**Use case** — `ReconcileMissedIntakes.call({now})` (`domain/usecases/reconcile_missed_intakes.dart`) reads `intakeWindow` from the settings domain (`SettingsRepository.load()`, falling back to `IntakeWindow.defaultValue` on a `Left` so a settings failure never blocks reconciliation — a permitted meds→settings domain dependency, see [`../architecture.md`](../architecture.md)), takes a point-in-time snapshot of medications and intakes via `watchAll().first`, runs the derivation, and writes one `missed` `Intake` per eligible occurrence (fresh `IntakeId`, `confirmedAt: null`) via `IntakeRepository.markMissed`. It is idempotent — an already-written `missed` row makes its occurrence ineligible on the next run — and fail-fast: the first write error short-circuits the loop and returns `Left`.
+
+**Never-clobber, two layers deep**:
+1. The derivation excludes any occurrence with an existing row — `taken`, `skipped`, or already `missed`.
+2. Even under a snapshot→write race, `IntakeRepository.markMissed` → `IntakeLocalDataSource.insertMissedIntake` writes with drift's `InsertMode.insertOrIgnore` (not `upsertIntake`'s `DoUpdate`), so a confirmed row can never be downgraded to `missed`.
+
+No `schemaVersion` change was needed — `missed` already fit the `intakes` table and the `IntakeStatus` `textEnum` contract (`schemaVersion` stays 2).
+
+**Two triggers, no live timer**:
+- **On app open** — `AppBootstrap`'s `data:` branch reads `reconcileMissedOnOpenProvider` (`@Riverpod(keepAlive: true)`), fire-and-forget and non-blocking, mirroring the `devSeedProvider` idiom: it folds the result and logs a `Left` via `loggerProvider` rather than surfacing a startup error.
+- **On Today-screen load** — `TodayScreen.initState` reads `reconcileMissedIntakesProvider` once per mount (not on every rebuild); any newly-written `missed` rows reach the UI through the existing reactive `intakesListProvider` stream, with no manual refresh needed.
+- There is **no window-expiry `Timer`** — a dose whose window closes while the Today screen sits idle does not flip to `missed` until the next screen load or app open.
+
+**Missed tile** — `today_dose_tile.dart`'s `_Actions` `missed` arm renders a display-only, error-toned `context.l10n.todayStatusMissed` label with no Take/Skip/Undo; the `switch` over `IntakeStatus` stays exhaustive with no `default:`. Correcting a `missed` dose (`missed → taken`) is the separate, out-of-scope "Manual Correction" audit-logged flow.
+
+**Scope**: today-only (single local calendar day, reusing `expandDueDoses`); no OS-level background execution while the app is closed (a separate notifications-infra spec); no backfill for prior days. See [`../../specs/040-auto-miss-engine/spec.md`](../../specs/040-auto-miss-engine/spec.md).
+
 ### Localization keys (feature 038)
 
 | Key | English | Notes |
@@ -659,22 +682,23 @@ This is the project's **first drift schema migration**. See [`medication-persist
 | `todayUndo` | Undo | Reverts a taken/skipped dose to pending, within the grace window |
 | `todayStatusTaken` | Taken | Status label once a dose is marked taken |
 | `todayStatusSkipped` | Skipped | Status label once a dose is marked skipped |
+| `todayStatusMissed` | Missed | Status label for an auto-missed dose (feature 040); error-toned, no actions |
 | `todayEmptyTitle` | Nothing due today | Empty-state title |
 | `todayEmptyBody` | You have no doses scheduled for today. | Empty-state body |
 | `todayLoadError` | Couldn't load today's doses. | Shown when the reactive stream errors |
 | `todayActionError` | Something went wrong. Please try again. | SnackBar shown when mark/skip/undo fails |
 
-All keys exist in `app_en.arb`, `app_de.arb`, and `app_uk.arb` with `@`-description metadata, consumed exclusively via `context.l10n`.
+All keys exist in `app_en.arb`, `app_de.arb`, and `app_uk.arb` with `@`-description metadata, consumed exclusively via `context.l10n`. `todayStatusMissed` was added by feature 040 (auto-miss engine); note its Ukrainian translation ("Прострочено") is deliberately distinct from `todayStatusSkipped`'s ("Пропущено") since `missed` and `skipped` are distinct §5.2 states.
 
 ### Deferred / out of scope
 
-Explicitly deferred to future features (see `specs/038-today-intake-log/spec.md` §6):
+Explicitly deferred to future features (see `specs/038-today-intake-log/spec.md` §6 and `specs/040-auto-miss-engine/spec.md` §6):
 
 - **Adherence / History screen** — the History tab (destination index 2) is still a placeholder; no adherence ratio or `AdherenceRecord` aggregation exists yet.
 - **Reminders / local notifications** — `flutter_local_notifications`, `timezone`, and permission wiring are not part of this slice.
-- **Automatic `pending → missed`** — the intake window and any background/on-open sweep job that would produce `IntakeStatus.missed` do not exist; the enum value is reserved but unproduced.
-- **Settings for the grace period** — `kIntakeUndoGracePeriod` (5 minutes) is a hard-coded constant; a Settings UI to configure it (§5.2 range: 0–30 minutes) is deferred.
-- **Manual correction after grace expiry** — once the grace window elapses, a dose's taken/skipped state is locked; the audit-logged manual-correction edit flow is deferred.
+- ~~Automatic `pending → missed`~~ **Shipped in feature 040** — see [Auto-miss engine](#auto-miss-engine-feature-040) above. Still deferred: true OS-level background execution while the app is closed (a separate notifications-infra spec) and backfilling `missed` rows for prior days the user never opened the app for (reconciliation is today-only).
+- **Settings UI for grace period exists, but isn't consumed yet** — feature 039 added a Settings control for `gracePeriod` ([`settings.md`](settings.md)), but `kIntakeUndoGracePeriod` (5 minutes) is still the hard-coded constant the Today screen actually reads; rewiring Undo to the setting is deferred.
+- **Manual correction after grace expiry** — once the grace window elapses (or a dose is `missed`), its state is locked; the audit-logged manual-correction edit flow (`missed → taken`) is deferred.
 - **Pack-stock decrement** on taking a dose, and `notes` on intakes, are also out of scope.
 
 ## Evolution
@@ -693,9 +717,10 @@ The add-medication form is being built iteratively:
 - **Feature 036 (done)** — tap-to-edit. `AddMedicationModal` gained a `Medication? initial` parameter enabling add/edit dual mode. `_MedicationFormPicker` gained `initialFormKey` to pre-select the form in edit mode. `MedicationTile` wrapped in `InkWell(onTap:)`; `MedicationSection` threads `onTapItem`; `MedsScreen` supplies `_openEditMedicationModal`. Domain: new `EditMedication` use case (slot-ID reconciliation, same 4 validation rules). Data: `MedicationRepository.update` + `MedicationLocalDataSource.upsertMedication` (`insertOnConflictUpdate` to avoid cascade-delete of time slots). Provider: `editMedicationProvider`. New l10n keys: `medsEditTitle`, `medsEditSaveSuccess`. See [`medication-persistence.md`](medication-persistence.md) and [`../../specs/036-meds-edit/spec.md`](../../specs/036-meds-edit/spec.md).
 - **Feature 037 (done)** — delete medication, completing CRUD. Edit-mode-only error-tinted trash `IconButton` in the AppBar opens a Material `AlertDialog` confirmation (`showDialog<bool>`). Domain: new `DeleteMedication` use case (pure pass-through, no validation needed). Data: `MedicationRepository.delete` + `MedicationLocalDataSource.deleteMedication` (single drift `DELETE`; time slots removed by the existing `onDelete: cascade` FK). Provider: `deleteMedicationProvider`. Deleting an absent id is an idempotent success. New l10n keys: `medsDeleteButtonTooltip`, `medsDeleteDialogTitle`, `medsDeleteDialogBody`, `medsDeleteDialogConfirm`, `medsDeleteDialogCancel`, `medsDeleteSuccess`, `medsDeleteError`. See [`medication-persistence.md`](medication-persistence.md#delete-flow-end-to-end) and [`../../specs/037-meds-delete/spec.md`](../../specs/037-meds-delete/spec.md).
 - **Feature 038 (done)** — Today screen / intake logging, retiring the placeholder `HomeScreen`. New `TodayScreen` (mounted at `/`, living in `meds/presentation/` per constitution §2.1) renders a reactive, time-sorted checklist of today's due doses. Domain: `Intake`/`IntakeStatus` entities, `IntakeId` value object, pure `expandDueDoses` schedule expansion, `kIntakeUndoGracePeriod` (5 min), `IntakeRepository` contract, `MarkIntakeTaken`/`SkipIntake`/`UndoIntake` use cases. Core: new `intakes` drift table — the project's **first schema migration** (`schemaVersion` 1→2, add-only `onUpgrade`). Data: `IntakeLocalDataSource` (upsert on the occurrence unique key), `intake_mapper.dart`, `IntakeRepositoryImpl`. Presentation: `intake_providers.dart` composition seam, pure `buildTodayView` view model, `TodayDoseTile`/`TodayEmptyState` widgets, a one-shot grace-refresh `Timer`. New l10n keys: `todayTitle`, `todayMarkTaken`, `todaySkip`, `todayUndo`, `todayStatusTaken`, `todayStatusSkipped`, `todayEmptyTitle`, `todayEmptyBody`, `todayLoadError`, `todayActionError`. See the [Today Screen — Intake Logging](#today-screen--intake-logging-feature-038) section above, [`medication-persistence.md`](medication-persistence.md#intakes-table-feature-038), and [`../../specs/038-today-intake-log/spec.md`](../../specs/038-today-intake-log/spec.md).
+- **Feature 040 (done)** — auto-miss engine, making `IntakeStatus.missed` real. Domain: pure `findAutoMissDoses` derivation (`domain/value_objects/missed_intake_reconciliation.dart`) and the `ReconcileMissedIntakes` use case (`domain/usecases/reconcile_missed_intakes.dart`), reading `intakeWindow` via the settings domain (spec 039's foundation, now consumed). Data: `IntakeRepository.markMissed` + `IntakeLocalDataSource.insertMissedIntake` (`InsertMode.insertOrIgnore` — never-clobber). Presentation: `reconcileMissedIntakesProvider` + keepAlive `reconcileMissedOnOpenProvider`; triggers wired into `AppBootstrap` (on app open) and `TodayScreen.initState` (on Today load); the `IntakeStatus.missed` tile arm replaced `SizedBox.shrink()` with a display-only, error-toned "Missed" label. New l10n key: `todayStatusMissed`. No schema change (`schemaVersion` stays 2). See the [Auto-miss engine](#auto-miss-engine-feature-040) section above and [`../../specs/040-auto-miss-engine/spec.md`](../../specs/040-auto-miss-engine/spec.md).
 - **Pending** — schedule, reminder, and other form fields as future specs are defined.
 - **Pending** — archive state (explicit flag, not derived from course end date).
-- **Pending** — adherence/History screen, notifications, automatic `pending → missed`, and Settings-configurable grace period (see [Deferred / out of scope](#deferred--out-of-scope) above).
+- **Pending** — adherence/History screen, notifications, OS-level background auto-miss execution, Manual Correction, and Settings-configurable grace-period consumption (see [Deferred / out of scope](#deferred--out-of-scope) above).
 
 No changes to the `AppBar` structure, the `/meds` route path, or the modal-opening pattern are expected.
 
@@ -715,6 +740,7 @@ No changes to the `AppBar` structure, the `/meds` route path, or the modal-openi
 - [`../../specs/036-meds-edit/spec.md`](../../specs/036-meds-edit/spec.md) — the spec that added tap-to-edit, the modal dual mode, slot reconciliation, and the update persistence path (feature 036)
 - [`../../specs/037-meds-delete/spec.md`](../../specs/037-meds-delete/spec.md) — the spec that added the delete flow, completing medication CRUD (feature 037)
 - [`../../specs/038-today-intake-log/spec.md`](../../specs/038-today-intake-log/spec.md) — the spec that added the Today screen, the lazy intake model, and the first schema migration (feature 038)
+- [`../../specs/040-auto-miss-engine/spec.md`](../../specs/040-auto-miss-engine/spec.md) — the spec that added the auto-miss reconcile engine and the real `missed` tile, making `intakeWindow` (spec 039) load-bearing (feature 040)
 - [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen (and the retirement of the placeholder `HomeScreen` that `TodayScreen` replaced)
 - [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology, routing conventions, the `rootNavigator` context, the local database section, and the reactive read pattern
 - [`i18n.md`](i18n.md) — how ARB keys are added and translated

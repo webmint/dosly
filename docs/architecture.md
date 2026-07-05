@@ -18,6 +18,8 @@ Hard rules (from the [constitution](../constitution.md) §2.1):
 - **`presentation/` never imports `data/` directly.** Always go through a domain use case, exposed via a Riverpod provider.
 - **Feature A never imports from feature B.** Cross-feature shared code moves into `lib/core/`.
 
+> **Documented exception (spec 040)**: a feature's `domain/` may depend on another feature's *public domain API* — an abstract repository interface, never a concrete implementation — when the dependency is one-directional and stays pure Dart. `lib/features/meds/domain/usecases/reconcile_missed_intakes.dart` and `domain/value_objects/missed_intake_reconciliation.dart` read `SettingsRepository`/`IntakeWindow` (`lib/features/settings/domain/`) this way, to fetch the intake-window setting for the auto-miss engine. The cross-feature *provider* import (`settingsRepositoryProvider`) is confined to the meds composition seam (`intake_providers.dart`) — `meds/presentation` screens and widgets stay settings-free. See [`features/meds.md`](features/meds.md#auto-miss-engine-feature-040).
+
 Anything shared across features lives under `lib/core/` and must be **feature-agnostic** — it may not know about medications, schedules, or any domain concept.
 
 > The three-layer pattern was first exercised in full by `009-theme-settings`: `domain/entities/app_settings.dart` and `domain/repositories/settings_repository.dart` exist as pure Dart; `data/` holds the data source and repository implementation; `presentation/` holds the Riverpod providers and widgets.
@@ -183,7 +185,7 @@ void main() {
 
 - **loading** — renders `SplashScreen` inside a lightweight `MaterialApp` shell so the OS launch-screen hand-off is seamless.
 - **error** — renders `PrefsLoadErrorScreen` inside the same shell; its Retry button calls `ref.invalidate(sharedPreferencesInitProvider)` to re-trigger the async init. The typed logger (`lib/core/logging/`, feature 025) now exists; the router error path logs routing failures through it (sanitized, debug-only). This bootstrap error branch remains UI-only — its failure surfacing is tracked separately (bug 003).
-- **data** — mounts `const DoslyApp()` directly. By this point `sharedPreferencesInitProvider` has resolved, so the synchronous `sharedPreferencesProvider` (which calls `ref.watch(sharedPreferencesInitProvider).requireValue`) serves the settings provider tree without any nested scope or override.
+- **data** — mounts `const DoslyApp()` directly. By this point `sharedPreferencesInitProvider` has resolved, so the synchronous `sharedPreferencesProvider` (which calls `ref.watch(sharedPreferencesInitProvider).requireValue`) serves the settings provider tree without any nested scope or override. This branch also fires two other fire-and-forget, non-blocking reads before returning: the debug-only seeder (`devSeedProvider`, `kDebugMode` only) and, since feature 040, the auto-miss reconcile trigger (`reconcileMissedOnOpenProvider`) — neither is `await`ed, and both fold failures internally rather than surfacing a startup error. The auto-miss engine's second trigger point lives outside `AppBootstrap`: `TodayScreen.initState` reads `reconcileMissedIntakesProvider` once per screen mount. See [`features/meds.md`](features/meds.md#auto-miss-engine-feature-040) for the full two-trigger design.
 
 `sharedPreferencesProvider` (in `lib/core/providers/shared_preferences_provider.dart`) exposes the value resolved by `sharedPreferencesInitProvider` via `requireValue`, giving the settings tree a synchronous read. Because `AppBootstrap` only mounts `DoslyApp` in its `data` branch — after init has resolved — `requireValue` always succeeds on the real startup path. (Reading it before init resolves is a programmer error that surfaces immediately via `requireValue`'s throw.) Tests may still override this provider directly with a fake or in-memory instance.
 
@@ -211,6 +213,8 @@ void main() {
 | `markIntakeTakenProvider` / `skipIntakeProvider` | `@riverpod` function (autoDispose) | Wire `MarkIntakeTaken` / `SkipIntake` use cases to the intake repository and `idGeneratorProvider` (feature 038) |
 | `undoIntakeProvider` | `@riverpod` function (autoDispose) | Wires `UndoIntake` use case to the intake repository (feature 038) |
 | `intakesListProvider` | `@riverpod` stream (autoDispose) | Watches `IntakeRepository.watchAll()`, folds `Left`→throw; consumed as `AsyncValue<List<Intake>>` (feature 038) |
+| `reconcileMissedIntakesProvider` | `@riverpod` function (autoDispose) | Wires `ReconcileMissedIntakes` to the medication, intake, and settings repositories plus `idGeneratorProvider`; read directly by `TodayScreen.initState` (feature 040) |
+| `reconcileMissedOnOpenProvider` | `@Riverpod(keepAlive: true)` Future | Fire-and-forget auto-miss reconcile run once per app run, read from `AppBootstrap`'s `data:` branch; folds and logs a `Left`, never throws (feature 040) |
 
 ### Failure handling
 
@@ -386,3 +390,4 @@ The drift database (`appDatabaseProvider`) is a `keepAlive` provider lazy-opened
 - [specs/009-theme-settings/spec.md](../specs/009-theme-settings/spec.md) — the spec that introduced Riverpod, SharedPreferences, and the Failure hierarchy
 - [specs/032-med-persistence/plan.md](../specs/032-med-persistence/plan.md) — the plan that introduced drift, the domain model, and IdGenerator
 - [specs/038-today-intake-log/plan.md](../specs/038-today-intake-log/plan.md) — the plan that introduced the first schema migration and the Today screen
+- [specs/040-auto-miss-engine/plan.md](../specs/040-auto-miss-engine/plan.md) — the plan that introduced the permitted meds→settings domain dependency and the two app-startup/Today-load reconcile triggers

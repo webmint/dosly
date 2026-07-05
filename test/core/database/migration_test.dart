@@ -168,4 +168,15 @@ void main() {
 
     await db.close();
   });
+
+  test('schemaVersion is 2', () async {
+    // Feature 040 made no schema change: the schemaVersion literal must stay
+    // at 2. This guards against an accidental version bump slipping through
+    // unnoticed — if it fires, the v1→v2 migration tests above also need a
+    // new v2 snapshot/onUpgrade branch.
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    expect(db.schemaVersion, 2);
+  });
 }

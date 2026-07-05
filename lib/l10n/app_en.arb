@@ -518,6 +518,10 @@
   "@todayStatusSkipped": {
     "description": "Status label shown on a Today dose row once the dose has been marked as skipped."
   },
+  "todayStatusMissed": "Missed",
+  "@todayStatusMissed": {
+    "description": "Status label for a dose whose intake window elapsed without action (auto-missed)."
+  },
   "todayEmptyTitle": "Nothing due today",
   "@todayEmptyTitle": {
     "description": "Title of the empty-state illustration shown on the Today screen when no doses are scheduled."

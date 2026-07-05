@@ -126,6 +126,7 @@
   "todayUndo": "Скасувати",
   "todayStatusTaken": "Прийнято",
   "todayStatusSkipped": "Пропущено",
+  "todayStatusMissed": "Прострочено",
   "todayEmptyTitle": "На сьогодні нічого не заплановано",
   "todayEmptyBody": "У вас немає запланованих прийомів на сьогодні.",
   "todayLoadError": "Не вдалося завантажити сьогоднішні прийоми.",

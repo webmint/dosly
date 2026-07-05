@@ -417,6 +417,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get todayStatusSkipped => 'Пропущено';
 
   @override
+  String get todayStatusMissed => 'Прострочено';
+
+  @override
   String get todayEmptyTitle => 'На сьогодні нічого не заплановано';
 
   @override

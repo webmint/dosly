@@ -416,6 +416,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get todayStatusSkipped => 'Übersprungen';
 
   @override
+  String get todayStatusMissed => 'Verpasst';
+
+  @override
   String get todayEmptyTitle => 'Heute nichts fällig';
 
   @override

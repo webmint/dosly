@@ -72,6 +72,28 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   /// cleared, so at most one timer is ever pending.
   Timer? _graceTimer;
 
+  /// Fires the auto-miss reconciliation ([ReconcileMissedIntakes]) once, as
+  /// soon as the Today screen is opened.
+  ///
+  /// `initState` runs exactly ONCE per mount — never on a rebuild — so this
+  /// is "once per Today load", not "once per rebuild": there is NO
+  /// reconcile↔rebuild loop. Any `missed` rows the reconciliation writes are
+  /// picked up by the reactive [intakesListProvider] stream, which re-emits
+  /// and drives [build] directly; that rebuild never re-enters `initState`.
+  /// Scheduled via [Future.microtask] so it never blocks the first frame, and
+  /// fire-and-forget: [ReconcileMissedIntakes.call] returns a `Left` as a
+  /// VALUE on failure (it never throws), so there is no unhandled error to
+  /// guard against. The `mounted` guard only covers the case where the widget
+  /// is disposed before the scheduled microtask runs.
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (!mounted) return;
+      ref.read(reconcileMissedIntakesProvider).call(now: clock.now());
+    });
+  }
+
   @override
   void dispose() {
     _graceTimer?.cancel();

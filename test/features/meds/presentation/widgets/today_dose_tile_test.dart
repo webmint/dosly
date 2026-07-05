@@ -75,6 +75,14 @@ TodayDose _skippedDose({required bool undoable}) => TodayDose(
   intakeId: const IntakeId('today-tile-intake-002'),
 );
 
+TodayDose _missedDose() => TodayDose(
+  dose: _dueDose,
+  status: IntakeStatus.missed,
+  confirmedAt: null,
+  undoable: false,
+  intakeId: null,
+);
+
 // ---------------------------------------------------------------------------
 // Test harness
 // ---------------------------------------------------------------------------
@@ -261,6 +269,37 @@ void main() {
     });
   });
 
+  group('TodayDoseTile missed status', () {
+    testWidgets(
+      'should render the missed status label in the error color with no '
+      'Take/Skip/Undo affordances',
+      (tester) async {
+        await tester.pumpWidget(_harness(_missedDose()));
+        await tester.pumpAndSettle();
+
+        final BuildContext context = tester.element(
+          find.byType(TodayDoseTile),
+        );
+        final AppLocalizations l10n = AppLocalizations.of(context)!;
+        final ColorScheme cs = Theme.of(context).colorScheme;
+
+        expect(find.text(l10n.todayStatusMissed), findsOneWidget);
+        expect(find.byKey(const ValueKey<String>('todayTake')), findsNothing);
+        expect(find.byKey(const ValueKey<String>('todaySkip')), findsNothing);
+        expect(find.byKey(const ValueKey<String>('todayUndo')), findsNothing);
+
+        final Text textWidget = tester.widget<Text>(
+          find.text(l10n.todayStatusMissed),
+        );
+        expect(
+          textWidget.style?.color,
+          cs.error,
+          reason: 'A missed dose is an error-toned status, not a neutral one.',
+        );
+      },
+    );
+  });
+
   // ---------------------------------------------------------------------
   // DE/UK locale spot-check (recurring MEMORY lesson: assert a translated
   // string actually renders, not just that the widget builds under a given
@@ -292,6 +331,37 @@ void main() {
       expect(find.text('Прийняти'), findsOneWidget);
       expect(find.text('Пропустити'), findsOneWidget);
     });
+
+    testWidgets('renders the German missed status label under Locale("de")', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(_missedDose(), locale: const Locale('de')),
+      );
+      await tester.pumpAndSettle();
+
+      // German l10n key todayStatusMissed.
+      expect(find.text('Verpasst'), findsOneWidget);
+      expect(find.byKey(const ValueKey<String>('todayTake')), findsNothing);
+      expect(find.byKey(const ValueKey<String>('todaySkip')), findsNothing);
+      expect(find.byKey(const ValueKey<String>('todayUndo')), findsNothing);
+    });
+
+    testWidgets(
+      'renders the Ukrainian missed status label under Locale("uk")',
+      (tester) async {
+        await tester.pumpWidget(
+          _harness(_missedDose(), locale: const Locale('uk')),
+        );
+        await tester.pumpAndSettle();
+
+        // Ukrainian l10n key todayStatusMissed.
+        expect(find.text('Прострочено'), findsOneWidget);
+        expect(find.byKey(const ValueKey<String>('todayTake')), findsNothing);
+        expect(find.byKey(const ValueKey<String>('todaySkip')), findsNothing);
+        expect(find.byKey(const ValueKey<String>('todayUndo')), findsNothing);
+      },
+    );
   });
 
   // ---------------------------------------------------------------------

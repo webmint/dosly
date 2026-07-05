@@ -49,6 +49,19 @@ abstract interface class IntakeRepository {
   /// rather than duplicated. Failures surface as `Left(Failure)`, never thrown.
   Future<Either<Failure, Intake>> skip(Intake intake);
 
+  /// Persists an auto-generated MISSED [intake] via an insert that NEVER
+  /// overwrites an existing occurrence row, returning the stored event on
+  /// success or a [Failure] on error.
+  ///
+  /// Unlike [markTaken]/[skip] (which update the occurrence in place), this is
+  /// an insert-or-ignore keyed by `(medicationId, slotId, scheduledAt)`: if an
+  /// event already exists for that occurrence the write is ignored, so a
+  /// user-recorded taken/skipped dose is never clobbered by the engine.
+  /// Returns `Right(intake)` on success (including the ignore case) and
+  /// `Left(Failure)` on a storage error, never thrown. This operation is NOT
+  /// user-initiated — it is invoked solely by the auto-miss engine.
+  Future<Either<Failure, Intake>> markMissed(Intake intake);
+
   /// Removes the intake identified by [id], returning its dose to the pending
   /// state.
   ///

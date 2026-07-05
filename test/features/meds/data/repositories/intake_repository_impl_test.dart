@@ -21,17 +21,32 @@
 ///   - undo happy path: `Right(null)` on success.
 ///   - undo failure path: a thrown data-source exception maps to
 ///     `Left(CacheFailure)` — never rethrown.
+///   - markMissed, against a REAL in-memory drift database (constitution
+///     §3.4 — never a mock for the DB itself): happy path (a `missed` row
+///     round-trips as UTC / by enum name), never-clobber (an existing
+///     `taken`/`skipped` row for the same occurrence survives a `markMissed`
+///     call untouched — the airtight proof that the mock-based use-case test
+///     in reconcile_missed_intakes_test.dart cannot give, since a mock never
+///     exercises the real `INSERT OR IGNORE` conflict resolution), and the
+///     error path (a closed database maps to `Left(CacheFailure)`).
 library;
 
 import 'package:dosly/core/database/database.dart';
+import 'package:dosly/core/database/tables/medications_table.dart';
 import 'package:dosly/core/error/failures.dart';
 import 'package:dosly/features/meds/data/datasources/intake_local_data_source.dart';
 import 'package:dosly/features/meds/data/repositories/intake_repository_impl.dart';
 import 'package:dosly/features/meds/domain/entities/intake.dart';
 import 'package:dosly/features/meds/domain/entities/intake_status.dart';
+import 'package:dosly/features/meds/domain/entities/medication_form.dart';
+import 'package:dosly/features/meds/domain/entities/schedule_frequency.dart';
 import 'package:dosly/features/meds/domain/value_objects/intake_id.dart';
 import 'package:dosly/features/meds/domain/value_objects/medication_id.dart';
 import 'package:dosly/features/meds/domain/value_objects/time_slot_id.dart';
+// Hide drift's own `isNull` column-filter helper so it doesn't collide with
+// package:matcher's `isNull` matcher used in `expect(..., isNull)` below.
+import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mocktail/mocktail.dart';
@@ -64,6 +79,67 @@ final _row = IntakeRow(
   scheduledAt: DateTime.utc(2026, 6, 1, 8),
   confirmedAt: DateTime.utc(2026, 6, 1, 8, 5),
   status: IntakeStatus.taken,
+  notes: null,
+);
+
+// ---------------------------------------------------------------------------
+// Fixtures — markMissed real-DB group only (mirrors
+// intake_local_data_source_test.dart's fixture shapes).
+// ---------------------------------------------------------------------------
+
+/// The parent medication all real-DB markMissed fixtures reference (satisfies
+/// the `intakes.medicationId` foreign key, enforced via `pragma foreign_keys
+/// = ON`).
+const String _realMedId = 'missed-med-001';
+
+/// Slot + scheduled instant that together with [_realMedId] form the ONE
+/// occurrence exercised by the never-clobber tests.
+const String _realSlotId = 'missed-slot-001';
+final DateTime _realScheduledAt = DateTime.utc(2026, 6, 1, 8);
+
+/// A minimal parent medication row so the real-DB intake FKs resolve.
+final MedicationsCompanion _realMedCompanion = MedicationsCompanion.insert(
+  id: _realMedId,
+  name: 'MissedMed',
+  form: MedicationForm.tablet,
+  typeKind: MedicationTypeKind.continuous,
+  frequency: ScheduleFrequency.daily,
+  startDate: DateTime.utc(2026, 1, 1),
+  createdAt: DateTime.utc(2026, 1, 1),
+);
+
+/// Builds a `missed` [Intake] for the shared occurrence, with a distinct
+/// [id] per call so tests never collide on the intake primary key.
+Intake _missedIntake(String id) => Intake(
+  id: IntakeId(id),
+  medicationId: const MedicationId(_realMedId),
+  slotId: const TimeSlotId(_realSlotId),
+  scheduledAt: _realScheduledAt,
+  confirmedAt: null,
+  status: IntakeStatus.missed,
+  notes: null,
+);
+
+/// Builds a `taken` [Intake] for the shared occurrence, with a distinct [id].
+Intake _takenIntake(String id) => Intake(
+  id: IntakeId(id),
+  medicationId: const MedicationId(_realMedId),
+  slotId: const TimeSlotId(_realSlotId),
+  scheduledAt: _realScheduledAt,
+  confirmedAt: DateTime.utc(2026, 6, 1, 8, 5),
+  status: IntakeStatus.taken,
+  notes: null,
+);
+
+/// Builds a `skipped` [Intake] for the shared occurrence, with a distinct
+/// [id].
+Intake _skippedIntake(String id) => Intake(
+  id: IntakeId(id),
+  medicationId: const MedicationId(_realMedId),
+  slotId: const TimeSlotId(_realSlotId),
+  scheduledAt: _realScheduledAt,
+  confirmedAt: DateTime.utc(2026, 6, 1, 8, 10),
+  status: IntakeStatus.skipped,
   notes: null,
 );
 
@@ -303,6 +379,163 @@ void main() {
 
           final Either<Failure, void> result = await repository.undo(
             const IntakeId('repo-intake-001'),
+          );
+
+          result.fold(
+            (failure) => expect(failure, isA<CacheFailure>()),
+            (_) => fail('expected Left, got Right'),
+          );
+        },
+      );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // markMissed — proved against a REAL in-memory drift database, not the
+  // mocked `dataSource` used above.
+  //
+  // Every other group in this file mocks IntakeLocalDataSource because
+  // IntakeRepositoryImpl has no query-shaping logic of its own (see this
+  // file's library doc). markMissed is the one exception: its whole contract
+  // IS a piece of real SQL conflict resolution (`INSERT OR IGNORE` on the
+  // occurrence unique key — see IntakeLocalDataSource.insertMissedIntake), so
+  // a mock cannot prove the never-clobber guarantee — it would only prove
+  // "the mock was configured to return successfully". Only a real drift
+  // instance can show that a pre-existing `taken`/`skipped` row survives the
+  // conflict untouched (constitution §3.4).
+  // ---------------------------------------------------------------------------
+  group('IntakeRepositoryImpl.markMissed() — real in-memory DB', () {
+    late AppDatabase realDb;
+    late IntakeRepositoryImpl realRepository;
+
+    setUp(() async {
+      realDb = AppDatabase(
+        DatabaseConnection(
+          NativeDatabase.memory(),
+          closeStreamsSynchronously: true,
+        ),
+      );
+      realRepository = IntakeRepositoryImpl(IntakeLocalDataSource(realDb));
+      // Seed the parent medication so the intake FK resolves.
+      await realDb.into(realDb.medications).insert(_realMedCompanion);
+    });
+
+    tearDown(() async {
+      await realDb.close();
+    });
+
+    group('happy path', () {
+      test('should return Right and persist a missed row that round-trips '
+          '(status by name, scheduledAt UTC, confirmedAt null)', () async {
+        final intake = _missedIntake('missed-intake-001');
+
+        final result = await realRepository.markMissed(intake);
+
+        result.fold(
+          (f) => fail('expected Right, got Left: $f'),
+          (returned) => expect(returned, intake),
+        );
+
+        final rows = await realDb.select(realDb.intakes).get();
+        expect(rows.length, 1);
+        final row = rows.single;
+        expect(row.status, IntakeStatus.missed);
+        expect(row.confirmedAt, isNull);
+        // Drift round-trips the UTC instant but reads it back with a
+        // local-flagged DateTime holding the same moment, so compare via
+        // isAtSameMomentAs — never the isUtc flag (see MEMORY.md /
+        // intake_mapper.dart's TIMESTAMP CONTRACT).
+        expect(row.scheduledAt.isAtSameMomentAs(_realScheduledAt), isTrue);
+      });
+    });
+
+    group('never-clobber', () {
+      test(
+        'should preserve an existing taken row — not downgrade it to missed — '
+        'when markMissed targets the same occurrence',
+        () async {
+          final taken = _takenIntake('taken-intake-001');
+          final takenResult = await realRepository.markTaken(taken);
+          expect(takenResult.isRight(), isTrue);
+
+          // Same occurrence (medicationId + slotId + scheduledAt), fresh id.
+          final missed = _missedIntake('missed-intake-002');
+          final result = await realRepository.markMissed(missed);
+
+          expect(result.isRight(), isTrue);
+
+          final rows = await realDb.select(realDb.intakes).get();
+          expect(
+            rows.length,
+            1,
+            reason:
+                'insertOrIgnore must not add a second row for the '
+                'same occurrence',
+          );
+          final row = rows.single;
+          expect(
+            row.id,
+            'taken-intake-001',
+            reason:
+                'the original taken row must survive untouched — its id '
+                "must not be replaced by the missed intake's id",
+          );
+          expect(row.status, IntakeStatus.taken);
+          expect(
+            row.confirmedAt?.isAtSameMomentAs(DateTime.utc(2026, 6, 1, 8, 5)),
+            isTrue,
+          );
+        },
+      );
+
+      test(
+        'should preserve an existing skipped row — not downgrade it to missed '
+        '— when markMissed targets the same occurrence',
+        () async {
+          final skipped = _skippedIntake('skipped-intake-001');
+          final skipResult = await realRepository.skip(skipped);
+          expect(skipResult.isRight(), isTrue);
+
+          // Same occurrence (medicationId + slotId + scheduledAt), fresh id.
+          final missed = _missedIntake('missed-intake-003');
+          final result = await realRepository.markMissed(missed);
+
+          expect(result.isRight(), isTrue);
+
+          final rows = await realDb.select(realDb.intakes).get();
+          expect(
+            rows.length,
+            1,
+            reason:
+                'insertOrIgnore must not add a second row for the '
+                'same occurrence',
+          );
+          final row = rows.single;
+          expect(
+            row.id,
+            'skipped-intake-001',
+            reason:
+                'the original skipped row must survive untouched — its '
+                "id must not be replaced by the missed intake's id",
+          );
+          expect(row.status, IntakeStatus.skipped);
+          expect(
+            row.confirmedAt?.isAtSameMomentAs(DateTime.utc(2026, 6, 1, 8, 10)),
+            isTrue,
+          );
+        },
+      );
+    });
+
+    group('failure path', () {
+      test(
+        'should return Left(CacheFailure) — not throw — when the database is '
+        'closed',
+        () async {
+          await realDb.close();
+
+          final result = await realRepository.markMissed(
+            _missedIntake('missed-intake-closed-db'),
           );
 
           result.fold(

@@ -36,9 +36,12 @@ import '../../../../l10n/l10n_extensions.dart';
 ///   (`context.l10n.todayStatusTaken` / `todayStatusSkipped`), plus an Undo
 ///   affordance (`context.l10n.todayUndo`, keyed `todayUndo`) shown ONLY when
 ///   [TodayDose.undoable] is `true`.
-/// * [IntakeStatus.missed] — reserved for a later feature (see
-///   `IntakeStatus`'s dartdoc); not produced by `buildTodayView` in the
-///   current slice, so it renders an empty trailing area.
+/// * [IntakeStatus.missed] — a localized, error-toned status label
+///   (`context.l10n.todayStatusMissed`) with NO Take/Skip/Undo affordance.
+///   This status is written by the auto-miss reconcile engine (spec 040,
+///   `ReconcileMissedIntakes`) once a dose's intake window elapses without
+///   action; it is locked in this slice — correcting a missed dose is the
+///   out-of-scope Manual-Correction flow.
 ///
 /// This widget is pure display: it has no provider access and never imports
 /// `data/`. All callbacks are supplied by the caller.
@@ -181,6 +184,8 @@ class _Actions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final TextTheme tt = Theme.of(context).textTheme;
     final AppLocalizations l10n = context.l10n;
 
     return switch (dose.status) {
@@ -210,10 +215,16 @@ class _Actions extends StatelessWidget {
         undoable: dose.undoable,
         onUndo: onUndo,
       ),
-      // Reserved for a later feature (window-expiry auto-transition); never
-      // produced by `buildTodayView` in the current slice. Render nothing
-      // rather than inventing an unlocalized label for an unreachable state.
-      IntakeStatus.missed => const SizedBox.shrink(),
+      // Written by the auto-miss reconcile engine (spec 040,
+      // `ReconcileMissedIntakes`) once a dose's intake window elapses
+      // without action. Intentionally action-free: a missed dose is locked
+      // in this slice — no Take/Skip/Undo — correction is the separate,
+      // out-of-scope Manual-Correction flow. Rendered in the error color to
+      // distinguish it from the neutral taken/skipped labels.
+      IntakeStatus.missed => Text(
+        l10n.todayStatusMissed,
+        style: tt.labelMedium?.copyWith(color: cs.error),
+      ),
     };
   }
 }
