@@ -1,11 +1,12 @@
 /// Meds feature — collapsible per-hour group section for the Today screen.
 ///
 /// This library exports [TodayGroupSection], a widget that renders one
-/// [TodayHourGroup] as a collapsible section: a tappable header (hour label,
-/// a [TodayGroupState] badge, a dose-count sub-label, and a rotating chevron)
-/// over a body of [TodayDoseTile]s plus an optional Mark-all button. The
-/// widget is named `TodayGroupSection` — not `TodayHourGroupSection` — to
-/// avoid colliding with the view-model class [TodayHourGroup] it renders.
+/// [TodayHourGroup] as a collapsible card: a filled, tappable header (hour
+/// label, a [TodayGroupState] badge, a dose-count sub-label, and a rotating
+/// chevron) over a tinted body of [TodayDoseTile]s plus an optional Mark-all
+/// button. The widget is named `TodayGroupSection` — not
+/// `TodayHourGroupSection` — to avoid colliding with the view-model class
+/// [TodayHourGroup] it renders.
 ///
 /// Collapse state is ephemeral [State] seeded from [TodayGroupSection.initiallyExpanded]
 /// on first build; it is NOT persisted or hoisted to a provider. This widget
@@ -22,19 +23,21 @@ import 'today_dose_tile.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../l10n/l10n_extensions.dart';
 
-/// Renders one [TodayHourGroup] as a collapsible Today-screen section.
+/// Renders one [TodayHourGroup] as a collapsible Today-screen card.
 ///
 /// Layout:
-/// * A tappable header showing the wall-clock hour as `HH:00`, a state badge
-///   switching on [TodayHourGroup.state] ([TodayGroupState.now] → primary
-///   "Now" pill + a left-border accent on the whole section;
-///   [TodayGroupState.future] → neutral "Future" pill;
+/// * A rounded, clipped card with a 3px primary stripe down the left edge
+///   when [TodayHourGroup.state] is [TodayGroupState.now].
+/// * A filled, tappable header showing the wall-clock hour as `HH:00`, a
+///   state badge switching on [TodayHourGroup.state] ([TodayGroupState.now]
+///   → primary "Now" pill; [TodayGroupState.future] → neutral "Future" pill;
 ///   [TodayGroupState.past] → neutral "✓ taken/total" pill), a muted
-///   dose-count sub-label, and a chevron that rotates 180° when the section
+///   dose-count sub-label, and a chevron that rotates -90° when the section
 ///   is collapsed.
-/// * A body — rendered only while expanded — of one [TodayDoseTile] per
-///   [TodayHourGroup.doses], followed by a Mark-all [FilledButton.tonalIcon]
-///   shown ONLY when [TodayHourGroup.hasActionablePending] is `true`.
+/// * A tinted body — rendered only while expanded — of one [TodayDoseTile]
+///   per [TodayHourGroup.doses], followed by a Mark-all
+///   [FilledButton.tonalIcon] shown ONLY when
+///   [TodayHourGroup.hasActionablePending] is `true`.
 ///
 /// Collapse state lives in local [State], seeded once from
 /// [initiallyExpanded]; tapping the header toggles it. This widget is pure
@@ -97,26 +100,41 @@ class _TodayGroupSectionState extends State<TodayGroupSection> {
 
     return Container(
       key: ValueKey<String>('todayGroupSection-${group.hour}'),
-      decoration: BoxDecoration(
-        border: isNow
-            ? Border(left: BorderSide(color: cs.primary, width: 3))
-            : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          _Header(group: group, expanded: _expanded, onTap: _toggleExpanded),
-          if (_expanded)
-            _Body(
-              group: group,
-              now: widget.now,
-              onTaken: widget.onTaken,
-              onSkip: widget.onSkip,
-              onUndo: widget.onUndo,
-              onMarkAll: widget.onMarkAll,
-            ),
-        ],
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              if (isNow) Container(width: 3, color: cs.primary),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    _Header(
+                      group: group,
+                      expanded: _expanded,
+                      isNow: isNow,
+                      onTap: _toggleExpanded,
+                    ),
+                    if (_expanded)
+                      _Body(
+                        group: group,
+                        now: widget.now,
+                        isNow: isNow,
+                        onTaken: widget.onTaken,
+                        onSkip: widget.onSkip,
+                        onUndo: widget.onUndo,
+                        onMarkAll: widget.onMarkAll,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -125,10 +143,16 @@ class _TodayGroupSectionState extends State<TodayGroupSection> {
 /// Renders the tappable section header: hour label, state badge, dose-count
 /// sub-label, and rotating chevron.
 class _Header extends StatelessWidget {
-  const _Header({required this.group, required this.expanded, required this.onTap});
+  const _Header({
+    required this.group,
+    required this.expanded,
+    required this.isNow,
+    required this.onTap,
+  });
 
   final TodayHourGroup group;
   final bool expanded;
+  final bool isNow;
   final VoidCallback onTap;
 
   @override
@@ -142,32 +166,37 @@ class _Header extends StatelessWidget {
       alwaysUse24HourFormat: true,
     );
 
-    return InkWell(
-      key: ValueKey<String>('todayGroupHeader-${group.hour}'),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            Text(hourLabel, style: tt.titleSmall),
-            const SizedBox(width: 8),
-            _GroupBadge(group: group),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                l10n.todayGroupDoseCount(group.total),
-                textAlign: TextAlign.end,
-                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+    final Color headerBg = isNow ? cs.surfaceContainer : cs.surfaceContainerLow;
+
+    return Material(
+      color: headerBg,
+      child: InkWell(
+        key: ValueKey<String>('todayGroupHeader-${group.hour}'),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Text(hourLabel, style: tt.titleSmall),
+              const SizedBox(width: 8),
+              _GroupBadge(group: group),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.todayGroupDoseCount(group.total),
+                  textAlign: TextAlign.end,
+                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            AnimatedRotation(
-              turns: expanded ? 0 : 0.5,
-              duration: const Duration(milliseconds: 200),
-              child: Icon(LucideIcons.chevronDown, color: cs.onSurfaceVariant),
-            ),
-          ],
+              const SizedBox(width: 8),
+              AnimatedRotation(
+                turns: expanded ? 0 : -0.25,
+                duration: const Duration(milliseconds: 200),
+                child: Icon(LucideIcons.chevronDown, color: cs.onSurfaceVariant),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -265,6 +294,7 @@ class _Body extends StatelessWidget {
   const _Body({
     required this.group,
     required this.now,
+    required this.isNow,
     required this.onTaken,
     required this.onSkip,
     required this.onUndo,
@@ -273,6 +303,7 @@ class _Body extends StatelessWidget {
 
   final TodayHourGroup group;
   final DateTime now;
+  final bool isNow;
   final void Function(TodayDose dose) onTaken;
   final void Function(TodayDose dose) onSkip;
   final void Function(TodayDose dose) onUndo;
@@ -280,37 +311,44 @@ class _Body extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
     final AppLocalizations l10n = context.l10n;
+    final Color bodyBg =
+        Color.lerp(cs.surface, cs.surfaceContainer, isNow ? 0.40 : 0.15) ??
+        cs.surfaceContainer;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        for (final TodayDose d in group.doses)
-          TodayDoseTile(
-            key: ValueKey<String>(
-              'todayTile-${d.dose.medication.id.value}-${d.dose.slot.id.value}',
+    return Container(
+      color: bodyBg,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (final TodayDose d in group.doses)
+            TodayDoseTile(
+              key: ValueKey<String>(
+                'todayTile-${d.dose.medication.id.value}-${d.dose.slot.id.value}',
+              ),
+              dose: d,
+              now: now,
+              onTaken: () => onTaken(d),
+              onSkip: () => onSkip(d),
+              onUndo: () => onUndo(d),
             ),
-            dose: d,
-            now: now,
-            onTaken: () => onTaken(d),
-            onSkip: () => onSkip(d),
-            onUndo: () => onUndo(d),
-          ),
-        if (group.hasActionablePending)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.tonalIcon(
-                key: const ValueKey<String>('todayMarkAll'),
-                onPressed: onMarkAll,
-                icon: const Icon(LucideIcons.check, size: 18),
-                label: Text(l10n.todayMarkAllInGroup),
+          if (group.hasActionablePending)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.tonalIcon(
+                  key: const ValueKey<String>('todayMarkAll'),
+                  onPressed: onMarkAll,
+                  icon: const Icon(LucideIcons.check, size: 18),
+                  label: Text(l10n.todayMarkAllInGroup),
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
