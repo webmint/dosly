@@ -430,4 +430,47 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get todayActionError => 'Щось пішло не так. Спробуйте ще раз.';
+
+  @override
+  String get todayNextIntakeLabel => 'Наступний прийом';
+
+  @override
+  String todayNextIntakeIn(int hours, int minutes) {
+    return 'через $hours год $minutes хв';
+  }
+
+  @override
+  String todayNextIntakeInMinutes(int minutes) {
+    return 'через $minutes хв';
+  }
+
+  @override
+  String get todayAllDone => 'На сьогодні все';
+
+  @override
+  String get todayGroupBadgeNow => 'Зараз';
+
+  @override
+  String get todayGroupBadgeFuture => 'Майбутнє';
+
+  @override
+  String todayGroupTakenCount(int taken, int total) {
+    return '$taken/$total';
+  }
+
+  @override
+  String todayGroupDoseCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count прийому',
+      many: '$count прийомів',
+      few: '$count прийоми',
+      one: '$count прийом',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get todayMarkAllInGroup => 'Відмітити всі';
 }

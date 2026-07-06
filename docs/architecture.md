@@ -19,6 +19,8 @@ Hard rules (from the [constitution](../constitution.md) §2.1):
 - **Feature A never imports from feature B.** Cross-feature shared code moves into `lib/core/`.
 
 > **Documented exception (spec 040)**: a feature's `domain/` may depend on another feature's *public domain API* — an abstract repository interface, never a concrete implementation — when the dependency is one-directional and stays pure Dart. `lib/features/meds/domain/usecases/reconcile_missed_intakes.dart` and `domain/value_objects/missed_intake_reconciliation.dart` read `SettingsRepository`/`IntakeWindow` (`lib/features/settings/domain/`) this way, to fetch the intake-window setting for the auto-miss engine. The cross-feature *provider* import (`settingsRepositoryProvider`) is confined to the meds composition seam (`intake_providers.dart`) — `meds/presentation` screens and widgets stay settings-free. See [`features/meds.md`](features/meds.md#auto-miss-engine-feature-040).
+>
+> **Extended in spec 041**: the same seam (`intake_providers.dart`) now also imports `settings/presentation`'s `settingsNotifierProvider` directly (not just the domain-level `settingsRepositoryProvider`), projecting `intakeWindow`/`gracePeriod`/`allowMarkAhead` into the reactive `todayIntakeSettingsProvider` record. Watching the *notifier* (rather than one-shot-reading the repository) means a Settings change re-derives the Today screen live. `meds/presentation` screens and widgets still never import `settings/presentation` — they watch `todayIntakeSettingsProvider`, the meds-side projection. See [`features/meds.md`](features/meds.md#settings-seam--todayintakesettings-feature-041).
 
 Anything shared across features lives under `lib/core/` and must be **feature-agnostic** — it may not know about medications, schedules, or any domain concept.
 
@@ -215,6 +217,7 @@ void main() {
 | `intakesListProvider` | `@riverpod` stream (autoDispose) | Watches `IntakeRepository.watchAll()`, folds `Left`→throw; consumed as `AsyncValue<List<Intake>>` (feature 038) |
 | `reconcileMissedIntakesProvider` | `@riverpod` function (autoDispose) | Wires `ReconcileMissedIntakes` to the medication, intake, and settings repositories plus `idGeneratorProvider`; read directly by `TodayScreen.initState` (feature 040) |
 | `reconcileMissedOnOpenProvider` | `@Riverpod(keepAlive: true)` Future | Fire-and-forget auto-miss reconcile run once per app run, read from `AppBootstrap`'s `data:` branch; folds and logs a `Left`, never throws (feature 040) |
+| `todayIntakeSettingsProvider` | `@riverpod` function (autoDispose) | Projects `intakeWindow`/`gracePeriod`/`allowMarkAhead` out of `settingsNotifierProvider` into a plain record; the settings→meds composition-seam pattern the Today screen watches instead of importing `settings/presentation` itself (feature 041) |
 
 ### Failure handling
 

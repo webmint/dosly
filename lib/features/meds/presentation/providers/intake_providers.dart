@@ -17,6 +17,8 @@ import '../../../../core/database/database.dart';
 import '../../../../core/database/database_provider.dart';
 import '../../../../core/id/id_generator_provider.dart';
 import '../../../../core/logging/logger.dart';
+import '../../../settings/domain/value_objects/grace_period.dart';
+import '../../../settings/domain/value_objects/intake_window.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../data/datasources/intake_local_data_source.dart';
 import '../../data/repositories/intake_repository_impl.dart';
@@ -132,5 +134,24 @@ Future<void> reconcileMissedOnOpen(Ref ref) async {
         .read(loggerProvider)
         .warning('Auto-miss reconciliation on open failed', failure),
     (_) {},
+  );
+}
+
+/// Projects the three intake-behavior settings that the Today screen consumes
+/// (intake window, grace period, mark-ahead) out of [settingsNotifierProvider].
+///
+/// This is the constitution §2.1-compliant seam: only this composition-seam file
+/// imports `settings/presentation`; the Today screen/widgets watch THIS provider
+/// and stay settings-free. It `watch`es the reactive notifier (not a one-shot
+/// `settingsRepositoryProvider.load()`), so changing a setting in Settings
+/// re-emits here and the Today screen updates live.
+@riverpod
+({IntakeWindow intakeWindow, GracePeriod gracePeriod, bool allowMarkAhead})
+todayIntakeSettings(Ref ref) {
+  final settings = ref.watch(settingsNotifierProvider);
+  return (
+    intakeWindow: settings.intakeWindow,
+    gracePeriod: settings.gracePeriod,
+    allowMarkAhead: settings.allowMarkAhead,
   );
 }

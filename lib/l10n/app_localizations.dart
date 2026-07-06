@@ -885,6 +885,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something went wrong. Please try again.'**
   String get todayActionError;
+
+  /// Label on the Today countdown card introducing the next upcoming dose.
+  ///
+  /// In en, this message translates to:
+  /// **'Next intake'**
+  String get todayNextIntakeLabel;
+
+  /// Countdown value on the Today card: time remaining until the next dose (hours and minutes).
+  ///
+  /// In en, this message translates to:
+  /// **'in {hours}h {minutes}m'**
+  String todayNextIntakeIn(int hours, int minutes);
+
+  /// Countdown value on the Today card when the next dose is under an hour away (minutes only).
+  ///
+  /// In en, this message translates to:
+  /// **'in {minutes}m'**
+  String todayNextIntakeInMinutes(int minutes);
+
+  /// Message on the Today countdown card when no upcoming doses remain today.
+  ///
+  /// In en, this message translates to:
+  /// **'All done for today'**
+  String get todayAllDone;
+
+  /// State badge on a Today hour-group header when a dose in that hour is currently within its intake window.
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get todayGroupBadgeNow;
+
+  /// State badge on a Today hour-group header when all doses in that hour are still upcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Future'**
+  String get todayGroupBadgeFuture;
+
+  /// Taken-count badge on a past Today hour-group header, e.g. 2/3. A check icon is prepended by the widget.
+  ///
+  /// In en, this message translates to:
+  /// **'{taken}/{total}'**
+  String todayGroupTakenCount(int taken, int total);
+
+  /// Sub-label on a Today hour-group header showing how many doses are in that hour.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dose} other{{count} doses}}'**
+  String todayGroupDoseCount(int count);
+
+  /// Button in a Today hour-group that marks every actionable pending dose in the group as taken.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all'**
+  String get todayMarkAllInGroup;
 }
 
 class _AppLocalizationsDelegate

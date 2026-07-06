@@ -576,7 +576,9 @@ Failed inserts are silently discarded so a seeding error never crashes startup. 
 
 ## Today Screen — Intake Logging (feature 038)
 
-Feature 038 turned the placeholder Today tab into the app's daily-driver screen: `TodayScreen` (`lib/features/meds/presentation/screens/today_screen.dart`), a reactive, time-sorted checklist of every dose due today. This is the **intake** pillar of the product vision (*medication → schedule → intake → adherence*) — the sibling of medication CRUD documented above. It retired the placeholder `HomeScreen` (see [`home.md`](home.md)); the router now builds `const TodayScreen()` directly at `/`.
+Feature 038 turned the placeholder Today tab into the app's daily-driver screen: `TodayScreen` (`lib/features/meds/presentation/screens/today_screen.dart`), a reactive checklist of every dose due today. This is the **intake** pillar of the product vision (*medication → schedule → intake → adherence*) — the sibling of medication CRUD documented above. It retired the placeholder `HomeScreen` (see [`home.md`](home.md)); the router now builds `const TodayScreen()` directly at `/`.
+
+> **Redesigned in feature 041**: the original flat, time-sorted `ListView` of Take/Skip/Undo tiles was replaced by **collapsible per-hour groups**, a **"next intake" countdown card**, and a **checkbox + secondary-skip** interaction model; the undo grace window now reads the `gracePeriod` setting (spec 039, via a meds-side projection provider) instead of the retired `kIntakeUndoGracePeriod` constant. This section (and the rest of the doc) describes the **current**, post-041 behavior throughout — see [Screen layout](#screen-layout--countdown-card--collapsible-hour-groups-feature-041) below for the full walkthrough.
 
 ### Lazy intake model
 
@@ -601,11 +603,13 @@ This is a deliberate MVP interpretation of the constitution §5.2 state machine,
 
 ### View model — `buildTodayView`
 
-`buildTodayView({meds, intakes, now})` (pure, in `presentation/view_models/today_view_model.dart`) shapes the day's `DueDose`s plus the stored `Intake`s into a `TodayView` of `TodayDose`s, mirroring `buildMedsListView`'s pure-function pattern:
+`buildTodayView({meds, intakes, now, intakeWindow, gracePeriod, allowMarkAhead})` (pure, in `presentation/view_models/today_view_model.dart`) shapes the day's `DueDose`s plus the stored `Intake`s into a `TodayView`, mirroring `buildMedsListView`'s pure-function pattern:
 
 1. Expand `meds` via `expandDueDoses`.
 2. For each `DueDose`, find the matching `Intake` — same `medicationId` and `slotId`, AND `scheduledAt` on the same **local calendar date** (via `localCalendarDate`), not raw instant equality. Matching by local date (rather than exact instant) avoids an instant-equality trap and is what makes the unique `(medicationId, slotId, scheduledAt)` index safe to rely on.
-3. Derive `TodayDose.status` from the match (`pending` if none), carry its `confirmedAt`, and compute `TodayDose.undoable`: `true` only when the status is non-pending, `confirmedAt` is non-null, and `now − confirmedAt` is within `kIntakeUndoGracePeriod` (inclusive boundary; a future `confirmedAt` is never undoable).
+3. Derive `TodayDose.status` from the match (`pending` if none), carry its `confirmedAt`, and compute a time-only `DoseWindowState` (`future` / `open` / `pastWindow`) from `intakeWindow`, `TodayDose.actionable` from `windowState` + `allowMarkAhead`, and `TodayDose.undoable` from the supplied `gracePeriod` (inclusive boundary; a future `confirmedAt` is never undoable).
+4. Bucket the shaped doses by `slot.minuteOfDay ~/ 60` into ascending `TodayHourGroup`s, each deriving an aggregate `TodayGroupState` (`future` / `now` / `past`) and a `takenCount`.
+5. Resolve `TodayView.nextIntake` — the earliest dose with `windowState == future` and `status == pending` (the countdown target), or `null`.
 
 ```dart
 // lib/features/meds/presentation/view_models/today_view_model.dart
@@ -613,37 +617,87 @@ TodayView buildTodayView({
   required List<Medication> meds,
   required List<Intake> intakes,
   required DateTime now,
+  required IntakeWindow intakeWindow,
+  required Duration gracePeriod,
+  required bool allowMarkAhead,
 });
 ```
 
-Every due dose appears regardless of whether its scheduled time is past or future relative to `now` — **early marking is allowed**, and there is deliberately **no overdue styling**: a past-scheduled pending dose renders identically to an upcoming one.
+Every due dose appears regardless of whether its scheduled time is past or future relative to `now` — **early marking is allowed** when `allowMarkAhead` is on, and there is deliberately **no overdue styling** for a past-scheduled pending dose. `DoseWindowState.open` is inclusive of both `scheduledAt` and the window close (`scheduledAt + intakeWindow.minutes`), dovetailing with the auto-miss engine's strict `now > windowClose` rule below so there is no gap or overlap between "open" and "missed".
 
-### Screen layout
+### Screen layout — countdown card + collapsible hour groups (feature 041)
 
 `TodayScreen` is a `ConsumerStatefulWidget` rendering a `Scaffold` with:
 
 - **AppBar** — localized title `context.l10n.todayTitle` ("Today"), the same settings-gear `IconButton` (`context.push('/settings')`) and 1-px bottom `Divider` `HomeScreen` used to have.
 - **Date header** — a muted `Text` below the AppBar showing today's date via `MaterialLocalizations.of(context).formatFullDate(now)`.
-- **Body** — combines `ref.watch(medicationsListProvider)` and `ref.watch(intakesListProvider)` (both `AsyncValue`): either loading → `CircularProgressIndicator`; either error → muted centered `todayLoadError` text; otherwise `buildTodayView(...)` shapes the data and the body renders `TodayEmptyState` (nothing due) or a `ListView.builder` of `TodayDoseTile`s in ascending schedule-time order, with 88px bottom padding.
+- **Body** — watches `medicationsListProvider`, `intakesListProvider` (both `AsyncValue`), and `todayIntakeSettingsProvider` (see [Settings seam](#settings-seam--todayintakesettings-feature-041) below): either loading → `CircularProgressIndicator`; either error → muted centered `todayLoadError` text; otherwise `buildTodayView(...)` shapes the data and the body renders `TodayEmptyState` (nothing due) or a `ListView.builder` whose first item is a `TodayCountdownCard` followed by one `TodayGroupSection` per `TodayView.groups`.
 
-Each `TodayDoseTile` (`presentation/widgets/today_dose_tile.dart`) is a "dumb" `StatelessWidget` — a form-icon badge, the medication name, an `"HH:mm · dose"` subtitle (24-hour, via `MaterialLocalizations.formatTimeOfDay(..., alwaysUse24HourFormat: true)`), and a trailing actions area that switches on `TodayDose.status`: Skip/Take buttons while `pending`; a status label plus an Undo `TextButton` (shown only when `undoable`) once `taken`/`skipped`; and, once `missed` (feature 040), a locked, error-toned status label with no actions at all. It carries no provider access — the screen supplies all three callbacks.
+The group whose `TodayHourGroup.state` is `TodayGroupState.now` starts expanded; when no group is currently "now" the soonest `TodayGroupState.future` group starts expanded instead; every other group starts collapsed. Collapse state is local, ephemeral `State` seeded once per section — it is never persisted and resets on the next screen load.
 
-### Mark / skip / undo
+#### Hourly grouping & group state — `TodayGroupSection`
 
-Tapping **Take** or **Skip** calls `ref.read(markIntakeTakenProvider)` / `ref.read(skipIntakeProvider)` with the dose's `medicationId`, `slotId`, `scheduledAt`, and `clock.now()`. Both use cases upsert an `Intake` row keyed by the occurrence's unique `(medicationId, slotId, scheduledAt)` index — re-marking the same occurrence **updates** the existing row (e.g. taken → skipped) instead of inserting a duplicate. Because the list is reactive (`medicationsListProvider` + `intakesListProvider`), the row reflects the new state without a manual refresh.
+Doses are bucketed by wall-clock hour (`slot.minuteOfDay ~/ 60`), so a 14:00 and a 14:30 dose share one hour-14 group; each dose's exact `HH:mm` still shows in its own tile subtitle. `TodayGroupSection` (`presentation/widgets/today_group_section.dart`) renders one `TodayHourGroup` as a collapsible section:
 
-Tapping **Undo** calls `ref.read(undoIntakeProvider)` with the matched `intakeId`, `confirmedAt`, and `clock.now()`. `UndoIntake` (domain use case) owns the grace-window rule: if `now − confirmedAt` exceeds `kIntakeUndoGracePeriod` it returns a `ValidationFailure` **without touching the repository**; otherwise it deletes the stored `Intake` row, returning the dose to `pending`. The UI mirrors this rule (`TodayDose.undoable` gates whether the Undo button even renders) as defense-in-depth, but the domain is the source of truth.
+- A tappable header: the hour as `HH:00` (via `MaterialLocalizations`), a state badge (`TodayGroupState.now` → primary "Now" pill + a 3px left-border accent on the whole section; `.future` → neutral "Future" pill; `.past` → neutral "✓ taken/total" pill), a muted pluralized dose-count sub-label, and a chevron that rotates 180° when collapsed.
+- A body (rendered only while expanded) of one `TodayDoseTile` per dose, followed by a Mark-all `FilledButton.tonalIcon` shown ONLY when `TodayHourGroup.hasActionablePending` is `true`.
+
+A group's state is the aggregate of its doses' `DoseWindowState`, not a comparison against the current wall-clock hour — a 14:00 dose with a 120-minute window is still "open"/actionable at 15:30, so its group stays "now" past the top of its hour.
+
+#### "Next intake" countdown card — `TodayCountdownCard`
+
+`TodayCountdownCard` (`presentation/widgets/today_countdown_card.dart`) is a dumb, primary-container card rendered above the groups. Its target is `TodayView.nextIntake` — the soonest strictly-future pending dose:
+
+- **Target present** — `context.l10n.todayNextIntakeLabel` ("Next intake") above the countdown value: `todayNextIntakeInMinutes` ("in {m}m") when under an hour remains, otherwise `todayNextIntakeIn` ("in {h}h {m}m"), followed by the target's local `HH:mm` (e.g. "in 2h 15m · 14:30").
+- **No target** (everything today is taken/skipped/missed, or only currently-open/past doses remain) — the same card shows `context.l10n.todayAllDone` ("All done for today") instead of disappearing. The card is present whenever ≥1 dose is due today; it is absent only in the whole-day `TodayEmptyState`.
+
+#### Checkbox + skip interaction model — `TodayDoseTile`
+
+`TodayDoseTile` (`presentation/widgets/today_dose_tile.dart`) is a "dumb" `StatelessWidget` — a form-icon badge, the medication name, an `"HH:mm · dose"` subtitle, a chip row (`MedTypeChip` + optional inline low-stock warning), and a trailing checkbox-based actions area dispatched on `TodayDose.status`:
+
+- **`pending`** — a secondary skip `IconButton` (Lucide `skipForward`, tooltip `todaySkip`), shown ONLY while `TodayDose.actionable`, plus a `Checkbox` that confirms the dose (`markIntakeTakenProvider`) when checked. The checkbox is disabled while the dose is not yet actionable (e.g. a future slot with mark-ahead off) — the whole tile then renders at 0.55 opacity. There is deliberately no dimming for a past-window pending dose (no "overdue" styling, unchanged since feature 038).
+- **`taken`** — a checked `Checkbox` that reverts to pending via Undo (`undoIntakeProvider`) when unchecked, enabled only while `TodayDose.undoable`; once the grace window elapses the box locks (disabled, stays checked) and the medication name renders line-through/muted.
+- **`skipped`** — a disabled, unchecked `Checkbox` plus the localized `todayStatusSkipped` label, with an Undo `TextButton` shown ONLY while `undoable` — `skipped` and `missed` stay visually and semantically distinct (constitution §5.2).
+- **`missed`** (feature 040) — a locked, error-toned `todayStatusMissed` label with no checkbox or actions at all.
+
+`TodayDose.actionable` encodes the per-dose enable matrix: `DoseWindowState.open` ⇒ always actionable; `.future` ⇒ actionable only when `allowMarkAhead` is on; `.pastWindow` ⇒ never actionable. Toggling `allowMarkAhead` (or `intakeWindow`) in Settings updates this live, because the screen `watch`es (not `read`s) the settings projection.
+
+Status chips reuse `MedTypeChip` (`presentation/widgets/med_type_chip.dart`) — extracted from the meds-list tile's `_TypeChip` so the continuous/"Day N/M" color+label logic lives in exactly one place, consumed by both `MedicationTile` and `TodayDoseTile`. The inline low-stock segment reuses the existing `isLowStock`/`formatStock` helpers from `medication_display.dart`, rendered bold `cs.error`, and is shown only when the medication is actually low on stock.
+
+Tapping the Mark-all button (`TodayGroupSection`'s body) confirms every `pending && actionable` dose in that group sequentially, one `markIntakeTakenProvider` call at a time (never in parallel, so writes apply in a stable order); already-`taken`/`skipped`/`missed` doses and disabled-pending doses are left untouched. All actions (check, skip, undo, mark-all) follow the same async-safety idiom as the add/edit/delete modal (capture `ScaffoldMessenger`/l10n before the `await`, guard with `mounted` — per-iteration for Mark-all — after): a failure shows the generic localized `todayActionError` SnackBar; success shows nothing, since the reactive streams update the checklist automatically.
+
+#### Grace rewire — `UndoIntake` now takes a `Duration`
+
+`UndoIntake.call` (`domain/usecases/undo_intake.dart`) takes a `required Duration gracePeriod` parameter instead of reading a hardcoded constant — the caller (the Today screen, via the settings projection below) supplies the window, keeping the use case settings-agnostic:
 
 ```dart
-// lib/features/meds/domain/value_objects/intake_grace.dart
-const Duration kIntakeUndoGracePeriod = Duration(minutes: 5);
+// lib/features/meds/domain/usecases/undo_intake.dart
+Future<Either<Failure, void>> call({
+  required IntakeId id,
+  required DateTime confirmedAt,
+  required DateTime now,
+  required Duration gracePeriod,
+});
 ```
 
-All three actions follow the same async-safety idiom as the add/edit/delete modal (capture `ScaffoldMessenger`/l10n before the `await`, guard with `mounted` after): a failed call shows the generic localized `todayActionError` SnackBar; a successful call shows nothing, since the reactive streams update the checklist automatically.
+If `now − confirmedAt` exceeds `gracePeriod` it returns a `ValidationFailure` **without touching the repository** (boundary inclusive — exactly `gracePeriod` is still undoable); otherwise it deletes the stored `Intake` row, returning the dose to `pending`. `lib/features/meds/domain/value_objects/intake_grace.dart` (the old `const kIntakeUndoGracePeriod = Duration(minutes: 5)`) was **deleted** — no live code path uses a hardcoded grace window anymore; `GracePeriod.defaultValue` (settings domain) is the sole default.
 
-### Grace-window refresh: a one-shot `Timer`, not a periodic one
+#### Settings seam — `todayIntakeSettings` (feature 041)
 
-The Undo affordance must disappear on its own once the grace window elapses, even if the user never interacts again. `TodayScreen` schedules a single **one-shot** `Timer` (not `Timer.periodic`, which breaks `pumpAndSettle` in widget tests) computed to fire exactly when the *soonest* currently-undoable dose's grace window elapses, triggering a `setState` rebuild. The timer is recomputed on every successful build (cancelling any prior one first) and cancelled in `dispose()`, so at most one timer is ever pending. If no dose is currently undoable, no timer is scheduled at all.
+`todayIntakeSettings` (`presentation/providers/intake_providers.dart`) projects the three intake-behavior settings out of `settingsNotifierProvider` into a plain record the Today layer consumes:
+
+```dart
+// lib/features/meds/presentation/providers/intake_providers.dart
+@riverpod
+({IntakeWindow intakeWindow, GracePeriod gracePeriod, bool allowMarkAhead})
+todayIntakeSettings(Ref ref) { ... }
+```
+
+`intake_providers.dart` is the meds **composition seam** already permitted to import `data/` and, since feature 040, `settings/presentation` for DI (constitution §2.1 amendment) — so this provider is the *only* place that imports `settingsNotifierProvider`; `TodayScreen` and every Today widget stay settings-free, watching `todayIntakeSettingsProvider` instead. Because it `watch`es the reactive notifier (not a one-shot `load()`), changing intake window / grace period / mark-ahead in Settings re-derives the Today checklist live. See [`settings.md`](settings.md) for the settings themselves.
+
+#### Boundary timer: a self-rescheduling one-shot `Timer`
+
+The countdown, group badges, per-dose enablement, and the Undo affordance must all re-derive live as time passes, even if the user never interacts again. `TodayScreen` schedules a single **one-shot** `Timer` (never `Timer.periodic`, which breaks `pumpAndSettle` in widget tests) at the **minimum future instant** among, across every rendered dose: a future dose's `scheduledAt` (window opens), an open dose's window close (`scheduledAt + intakeWindow.minutes`), and a still-undoable confirmed dose's grace expiry (`confirmedAt + gracePeriod`). Only candidates strictly after `now` are considered, so the timer can never schedule a zero/negative duration and loop. Firing the timer only `setState`s to re-derive the already-loaded `TodayView` on the next build — it performs **no database writes** and triggers **no reconciliation**. It is recomputed on every successful build (cancelling any prior one first) and cancelled in `dispose()`, so at most one timer is ever pending; if no future boundary exists, no timer is scheduled at all.
 
 ### New `intakes` table (schemaVersion 1 → 2)
 
@@ -666,39 +720,50 @@ No `schemaVersion` change was needed — `missed` already fit the `intakes` tabl
 **Two triggers, no live timer**:
 - **On app open** — `AppBootstrap`'s `data:` branch reads `reconcileMissedOnOpenProvider` (`@Riverpod(keepAlive: true)`), fire-and-forget and non-blocking, mirroring the `devSeedProvider` idiom: it folds the result and logs a `Left` via `loggerProvider` rather than surfacing a startup error.
 - **On Today-screen load** — `TodayScreen.initState` reads `reconcileMissedIntakesProvider` once per mount (not on every rebuild); any newly-written `missed` rows reach the UI through the existing reactive `intakesListProvider` stream, with no manual refresh needed.
-- There is **no window-expiry `Timer`** — a dose whose window closes while the Today screen sits idle does not flip to `missed` until the next screen load or app open.
+- There is **no window-expiry `Timer`** that *writes* `missed` rows — a dose whose window closes while the Today screen sits idle does not persist as `missed` until the next screen load or app open. (Feature 041's [boundary timer](#boundary-timer-a-self-rescheduling-one-shot-timer) re-derives the on-screen view live at that same instant — badges/enablement update immediately — but it performs no database write and never triggers reconciliation itself.)
 
 **Missed tile** — `today_dose_tile.dart`'s `_Actions` `missed` arm renders a display-only, error-toned `context.l10n.todayStatusMissed` label with no Take/Skip/Undo; the `switch` over `IntakeStatus` stays exhaustive with no `default:`. Correcting a `missed` dose (`missed → taken`) is the separate, out-of-scope "Manual Correction" audit-logged flow.
 
 **Scope**: today-only (single local calendar day, reusing `expandDueDoses`); no OS-level background execution while the app is closed (a separate notifications-infra spec); no backfill for prior days. See [`../../specs/040-auto-miss-engine/spec.md`](../../specs/040-auto-miss-engine/spec.md).
 
-### Localization keys (feature 038)
+### Localization keys
 
 | Key | English | Notes |
 |---|---|---|
 | `todayTitle` | Today | AppBar title |
-| `todayMarkTaken` | Take | Action button on a pending dose row |
-| `todaySkip` | Skip | Action button on a pending dose row |
-| `todayUndo` | Undo | Reverts a taken/skipped dose to pending, within the grace window |
-| `todayStatusTaken` | Taken | Status label once a dose is marked taken |
-| `todayStatusSkipped` | Skipped | Status label once a dose is marked skipped |
+| `todayMarkTaken` | Take | Unreferenced in code since feature 041 replaced the Take button with the checkbox (kept in the ARB files; not currently read via `context.l10n`) |
+| `todaySkip` | Skip | Tooltip on the secondary skip `IconButton` (feature 041; previously a button label) |
+| `todayUndo` | Undo | Reverts a `taken`/`skipped` dose to pending, within the grace window; also the `TextButton` label for a `skipped` dose |
+| `todayStatusTaken` | Taken | Unreferenced in code since feature 041 folded "taken" into the checked checkbox with no separate status text (kept in the ARB files) |
+| `todayStatusSkipped` | Skipped | Status label beside a `skipped` dose's disabled checkbox |
 | `todayStatusMissed` | Missed | Status label for an auto-missed dose (feature 040); error-toned, no actions |
 | `todayEmptyTitle` | Nothing due today | Empty-state title |
 | `todayEmptyBody` | You have no doses scheduled for today. | Empty-state body |
 | `todayLoadError` | Couldn't load today's doses. | Shown when the reactive stream errors |
-| `todayActionError` | Something went wrong. Please try again. | SnackBar shown when mark/skip/undo fails |
+| `todayActionError` | Something went wrong. Please try again. | SnackBar shown when mark/skip/undo/mark-all fails |
+| `todayNextIntakeLabel` | Next intake | Countdown card label (feature 041) |
+| `todayNextIntakeIn` | in {hours}h {minutes}m | Countdown value, ≥1 hour remaining (feature 041) |
+| `todayNextIntakeInMinutes` | in {minutes}m | Countdown value, <1 hour remaining (feature 041) |
+| `todayAllDone` | All done for today | Countdown card's no-target state (feature 041) |
+| `todayGroupBadgeNow` | Now | Hour-group badge, `TodayGroupState.now` (feature 041) |
+| `todayGroupBadgeFuture` | Future | Hour-group badge, `TodayGroupState.future` (feature 041) |
+| `todayGroupTakenCount` | {taken}/{total} | Hour-group badge, `TodayGroupState.past` (rendered with a leading ✓ icon, feature 041) |
+| `todayGroupDoseCount` | `{count, plural, =1{1 dose} other{{count} doses}}` | Hour-group header sub-label (feature 041) |
+| `todayMarkAllInGroup` | Mark all | Hour-group Mark-all button label (feature 041) |
 
-All keys exist in `app_en.arb`, `app_de.arb`, and `app_uk.arb` with `@`-description metadata, consumed exclusively via `context.l10n`. `todayStatusMissed` was added by feature 040 (auto-miss engine); note its Ukrainian translation ("Прострочено") is deliberately distinct from `todayStatusSkipped`'s ("Пропущено") since `missed` and `skipped` are distinct §5.2 states.
+All keys exist in `app_en.arb`, `app_de.arb`, and `app_uk.arb` with `@`-description metadata, consumed exclusively via `context.l10n`. `todayStatusMissed` was added by feature 040; its Ukrainian translation ("Прострочено") is deliberately distinct from `todayStatusSkipped`'s ("Пропущено") since `missed` and `skipped` are distinct §5.2 states.
 
 ### Deferred / out of scope
 
-Explicitly deferred to future features (see `specs/038-today-intake-log/spec.md` §6 and `specs/040-auto-miss-engine/spec.md` §6):
+Explicitly deferred to future features (see `specs/038-today-intake-log/spec.md` §6, `specs/040-auto-miss-engine/spec.md` §6, and `specs/041-today-redesign/spec.md` §6):
 
 - **Adherence / History screen** — the History tab (destination index 2) is still a placeholder; no adherence ratio or `AdherenceRecord` aggregation exists yet.
 - **Reminders / local notifications** — `flutter_local_notifications`, `timezone`, and permission wiring are not part of this slice.
 - ~~Automatic `pending → missed`~~ **Shipped in feature 040** — see [Auto-miss engine](#auto-miss-engine-feature-040) above. Still deferred: true OS-level background execution while the app is closed (a separate notifications-infra spec) and backfilling `missed` rows for prior days the user never opened the app for (reconciliation is today-only).
-- **Settings UI for grace period exists, but isn't consumed yet** — feature 039 added a Settings control for `gracePeriod` ([`settings.md`](settings.md)), but `kIntakeUndoGracePeriod` (5 minutes) is still the hard-coded constant the Today screen actually reads; rewiring Undo to the setting is deferred.
+- ~~Settings UI for grace period exists, but isn't consumed~~ **Shipped in feature 041** — `gracePeriod` now drives `UndoIntake`'s live grace window end-to-end (see [Grace rewire](#grace-rewire--undointake-now-takes-a-duration) above).
 - **Manual correction after grace expiry** — once the grace window elapses (or a dose is `missed`), its state is locked; the audit-logged manual-correction edit flow (`missed → taken`) is deferred.
+- **Batched Mark-all** — Mark-all loops the existing single-dose `markIntakeTaken` use case (N sequential writes) rather than a new batch repository operation; accepted as an MVP trade-off (feature 041).
+- **Persisting group collapse state**, per-group settings, and drag/reorder are not part of this slice.
 - **Pack-stock decrement** on taking a dose, and `notes` on intakes, are also out of scope.
 
 ## Evolution
@@ -718,9 +783,10 @@ The add-medication form is being built iteratively:
 - **Feature 037 (done)** — delete medication, completing CRUD. Edit-mode-only error-tinted trash `IconButton` in the AppBar opens a Material `AlertDialog` confirmation (`showDialog<bool>`). Domain: new `DeleteMedication` use case (pure pass-through, no validation needed). Data: `MedicationRepository.delete` + `MedicationLocalDataSource.deleteMedication` (single drift `DELETE`; time slots removed by the existing `onDelete: cascade` FK). Provider: `deleteMedicationProvider`. Deleting an absent id is an idempotent success. New l10n keys: `medsDeleteButtonTooltip`, `medsDeleteDialogTitle`, `medsDeleteDialogBody`, `medsDeleteDialogConfirm`, `medsDeleteDialogCancel`, `medsDeleteSuccess`, `medsDeleteError`. See [`medication-persistence.md`](medication-persistence.md#delete-flow-end-to-end) and [`../../specs/037-meds-delete/spec.md`](../../specs/037-meds-delete/spec.md).
 - **Feature 038 (done)** — Today screen / intake logging, retiring the placeholder `HomeScreen`. New `TodayScreen` (mounted at `/`, living in `meds/presentation/` per constitution §2.1) renders a reactive, time-sorted checklist of today's due doses. Domain: `Intake`/`IntakeStatus` entities, `IntakeId` value object, pure `expandDueDoses` schedule expansion, `kIntakeUndoGracePeriod` (5 min), `IntakeRepository` contract, `MarkIntakeTaken`/`SkipIntake`/`UndoIntake` use cases. Core: new `intakes` drift table — the project's **first schema migration** (`schemaVersion` 1→2, add-only `onUpgrade`). Data: `IntakeLocalDataSource` (upsert on the occurrence unique key), `intake_mapper.dart`, `IntakeRepositoryImpl`. Presentation: `intake_providers.dart` composition seam, pure `buildTodayView` view model, `TodayDoseTile`/`TodayEmptyState` widgets, a one-shot grace-refresh `Timer`. New l10n keys: `todayTitle`, `todayMarkTaken`, `todaySkip`, `todayUndo`, `todayStatusTaken`, `todayStatusSkipped`, `todayEmptyTitle`, `todayEmptyBody`, `todayLoadError`, `todayActionError`. See the [Today Screen — Intake Logging](#today-screen--intake-logging-feature-038) section above, [`medication-persistence.md`](medication-persistence.md#intakes-table-feature-038), and [`../../specs/038-today-intake-log/spec.md`](../../specs/038-today-intake-log/spec.md).
 - **Feature 040 (done)** — auto-miss engine, making `IntakeStatus.missed` real. Domain: pure `findAutoMissDoses` derivation (`domain/value_objects/missed_intake_reconciliation.dart`) and the `ReconcileMissedIntakes` use case (`domain/usecases/reconcile_missed_intakes.dart`), reading `intakeWindow` via the settings domain (spec 039's foundation, now consumed). Data: `IntakeRepository.markMissed` + `IntakeLocalDataSource.insertMissedIntake` (`InsertMode.insertOrIgnore` — never-clobber). Presentation: `reconcileMissedIntakesProvider` + keepAlive `reconcileMissedOnOpenProvider`; triggers wired into `AppBootstrap` (on app open) and `TodayScreen.initState` (on Today load); the `IntakeStatus.missed` tile arm replaced `SizedBox.shrink()` with a display-only, error-toned "Missed" label. New l10n key: `todayStatusMissed`. No schema change (`schemaVersion` stays 2). See the [Auto-miss engine](#auto-miss-engine-feature-040) section above and [`../../specs/040-auto-miss-engine/spec.md`](../../specs/040-auto-miss-engine/spec.md).
+- **Feature 041 (done)** — Today screen redesign, the final link of the 039→040→041 settings/auto-miss/UI chain. View model: `buildTodayView` gained `intakeWindow`/`gracePeriod`/`allowMarkAhead` params and now returns hour-bucketed `TodayHourGroup`s (`TodayGroupState`), per-dose `DoseWindowState`/`actionable`, and a `nextIntake` countdown target. Presentation: `TodayCountdownCard` and `TodayGroupSection` (new widgets); `TodayDoseTile` restyled to a checkbox + secondary skip `IconButton` model with status chips (`MedTypeChip`, extracted from `medication_tile.dart` for reuse) and inline low-stock; the grace-refresh `Timer` generalized into a self-rescheduling boundary timer covering window-open/window-close/grace-expiry. Domain: `UndoIntake.call` takes a `required Duration gracePeriod`; `intake_grace.dart` (`kIntakeUndoGracePeriod`) **deleted**. Providers: `todayIntakeSettingsProvider` — the settings→meds projection seam in `intake_providers.dart`. New l10n keys: `todayNextIntakeLabel`, `todayNextIntakeIn`, `todayNextIntakeInMinutes`, `todayAllDone`, `todayGroupBadgeNow`, `todayGroupBadgeFuture`, `todayGroupTakenCount`, `todayGroupDoseCount`, `todayMarkAllInGroup`. See the [Today Screen — Intake Logging](#today-screen--intake-logging-feature-038) section above (rewritten in place to describe current behavior) and [`../../specs/041-today-redesign/spec.md`](../../specs/041-today-redesign/spec.md).
 - **Pending** — schedule, reminder, and other form fields as future specs are defined.
 - **Pending** — archive state (explicit flag, not derived from course end date).
-- **Pending** — adherence/History screen, notifications, OS-level background auto-miss execution, Manual Correction, and Settings-configurable grace-period consumption (see [Deferred / out of scope](#deferred--out-of-scope) above).
+- **Pending** — adherence/History screen, notifications, OS-level background auto-miss execution, and Manual Correction (see [Deferred / out of scope](#deferred--out-of-scope) above).
 
 No changes to the `AppBar` structure, the `/meds` route path, or the modal-opening pattern are expected.
 
@@ -741,6 +807,8 @@ No changes to the `AppBar` structure, the `/meds` route path, or the modal-openi
 - [`../../specs/037-meds-delete/spec.md`](../../specs/037-meds-delete/spec.md) — the spec that added the delete flow, completing medication CRUD (feature 037)
 - [`../../specs/038-today-intake-log/spec.md`](../../specs/038-today-intake-log/spec.md) — the spec that added the Today screen, the lazy intake model, and the first schema migration (feature 038)
 - [`../../specs/040-auto-miss-engine/spec.md`](../../specs/040-auto-miss-engine/spec.md) — the spec that added the auto-miss reconcile engine and the real `missed` tile, making `intakeWindow` (spec 039) load-bearing (feature 040)
+- [`../../specs/041-today-redesign/spec.md`](../../specs/041-today-redesign/spec.md) — the spec that redesigned the Today screen into hourly groups + a countdown card + the checkbox/skip model, and made `gracePeriod`/`allowMarkAhead` (spec 039) load-bearing (feature 041)
+- [`settings.md`](settings.md) — the intake-window / grace-period / mark-ahead settings the Today screen now consumes live via `todayIntakeSettingsProvider`
 - [`home.md`](home.md) — `AppBottomNav` and `AppShell`, which host this screen (and the retirement of the placeholder `HomeScreen` that `TodayScreen` replaced)
 - [`../architecture.md`](../architecture.md) — `StatefulShellRoute` topology, routing conventions, the `rootNavigator` context, the local database section, and the reactive read pattern
 - [`i18n.md`](i18n.md) — how ARB keys are added and translated

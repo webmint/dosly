@@ -1,23 +1,28 @@
 /// Widget tests for [TodayScreen] — covers the reactive Today checklist:
-/// empty/loading states, seeded doses rendering time-sorted, Take/Skip
-/// actions persisting through the real repository chain, early marking of a
-/// future-scheduled dose, and the Undo grace window (within vs. expired).
+/// empty/loading/error states, the countdown card + collapsible hour groups
+/// (AC-1..AC-5), checkbox-based take/undo and the skip icon (AC-6/AC-7),
+/// Mark-all (AC-10), and the boundary-refresh Timer's live re-derivation plus
+/// its `pumpAndSettle` safety (AC-15).
 ///
 /// Provider-override strategy:
 ///   • Empty/seeded/action tests use a REAL in-memory [AppDatabase] with only
 ///     [appDatabaseProvider] overridden, so [medicationsListProvider] and
 ///     [intakesListProvider] run through the actual repository chain — this
-///     is what proves persistence (AC-9) and reactivity end to end.
+///     is what proves persistence and reactivity end to end.
 ///   • The loading-state test overrides [medicationRepositoryProvider] and
 ///     [intakeRepositoryProvider] directly with fakes whose streams never
 ///     emit, so the `AsyncValue` stays `loading` deterministically.
+///   • [todayIntakeSettingsProvider] is pinned to the default intake settings
+///     in [_harness] (120-minute window, 5-minute grace, mark-ahead off) so
+///     every dose's derived `windowState`/`actionable`/`undoable` is
+///     deterministic without seeding `sharedPreferences`.
 ///
-/// The Undo-grace test drives a mutable [Clock] (not [Clock.fixed]) so the
-/// screen's one-shot grace-refresh [Timer] — captured by flutter_test's
-/// `FakeAsync` zone — can be advanced via `tester.pump(Duration(...))`
-/// without a real wall-clock wait, and the subsequent rebuild observes an
-/// ADVANCED `clock.now()` reading (mutated just before the pump) rather than
-/// a value frozen at zone-creation time.
+/// The undo-grace and boundary-timer tests drive a mutable [Clock] (not
+/// [Clock.fixed]) so the screen's one-shot boundary-refresh [Timer] —
+/// captured by flutter_test's `FakeAsync` zone — can be advanced via
+/// `tester.pump(Duration(...))` without a real wall-clock wait, and the
+/// subsequent rebuild observes an ADVANCED `clock.now()` reading (mutated
+/// just before the pump) rather than a value frozen at zone-creation time.
 library;
 
 import 'dart:async';
@@ -50,6 +55,8 @@ import 'package:dosly/features/meds/presentation/providers/medication_providers.
 import 'package:dosly/features/meds/presentation/screens/today_screen.dart';
 import 'package:dosly/features/meds/presentation/widgets/today_dose_tile.dart';
 import 'package:dosly/features/meds/presentation/widgets/today_empty_state.dart';
+import 'package:dosly/features/settings/domain/value_objects/grace_period.dart';
+import 'package:dosly/features/settings/domain/value_objects/intake_window.dart';
 import 'package:dosly/l10n/app_localizations.dart';
 import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
@@ -63,9 +70,11 @@ import 'package:fpdart/fpdart.dart';
 // Fixtures
 // ---------------------------------------------------------------------------
 
-/// Fixed "now": 2026-06-15 08:30 local. The morning slot (08:00) is in the
-/// past relative to this instant, the evening slot (20:00) in the future —
-/// exercising AC-8 ordering and AC-10 "early marking" in the same fixture.
+/// Fixed "now": 2026-06-15 08:30 local. The morning slot (08:00) is open
+/// (its default 120-minute window is 08:00–10:00) relative to this instant —
+/// its hour group is [TodayGroupState.now] and starts expanded — while the
+/// evening slot (20:00) is still [DoseWindowState.future] — its hour group is
+/// [TodayGroupState.future] and starts collapsed.
 final DateTime _fixedNow = DateTime(2026, 6, 15, 8, 30);
 final Clock _fixedClock = Clock.fixed(_fixedNow);
 
@@ -87,21 +96,66 @@ final Medication _aspirin = Medication(
   createdAt: DateTime(2026, 1, 1),
 );
 
-/// Key of the rendered [TodayDoseTile] for the morning (08:00) dose — matches
-/// the `'todayTile-<medicationId>-<slotId>'` scheme `today_screen.dart` keys
-/// each tile with.
+/// Two continuous medications sharing the SAME 08:00 slot hour, used by the
+/// Mark-all test: both doses land in the single `todayGroupSection-8`, both
+/// open (actionable) at [_fixedNow], so the group's Mark-all button is
+/// visible without any interaction.
+final Medication _medMarkAllA = Medication(
+  id: const MedicationId('med-markall-a'),
+  name: 'MarkAll A',
+  form: MedicationForm.tablet,
+  type: MedicationType.continuous(startDate: DateTime(2026, 1, 1)),
+  schedule: const Schedule(
+    slots: [TimeSlot(id: TimeSlotId('slot-markall-a'), minuteOfDay: 480)],
+  ),
+  dosePerIntake: const Dosage(amount: 10, unit: DoseUnit.mg),
+  createdAt: DateTime(2026, 1, 1),
+);
+
+final Medication _medMarkAllB = Medication(
+  id: const MedicationId('med-markall-b'),
+  name: 'MarkAll B',
+  form: MedicationForm.tablet,
+  type: MedicationType.continuous(startDate: DateTime(2026, 1, 1)),
+  schedule: const Schedule(
+    slots: [TimeSlot(id: TimeSlotId('slot-markall-b'), minuteOfDay: 480)],
+  ),
+  dosePerIntake: const Dosage(amount: 20, unit: DoseUnit.mg),
+  createdAt: DateTime(2026, 1, 1),
+);
+
+/// Key of the rendered dose tile for the morning (08:00) dose — matches the
+/// `'todayTile-<medicationId>-<slotId>'` scheme `today_screen.dart` keys each
+/// tile with (now nested inside a `TodayGroupSection`).
 const ValueKey<String> _morningTileKey = ValueKey<String>(
   'todayTile-med-today-001-slot-morning',
 );
 
-/// Key of the rendered [TodayDoseTile] for the evening (20:00) dose.
+/// Key of the rendered dose tile for the evening (20:00) dose.
 const ValueKey<String> _eveningTileKey = ValueKey<String>(
   'todayTile-med-today-001-slot-evening',
 );
 
-const ValueKey<String> _takeKey = ValueKey<String>('todayTake');
-const ValueKey<String> _skipKey = ValueKey<String>('todaySkip');
+const ValueKey<String> _markAllTileKeyA = ValueKey<String>(
+  'todayTile-med-markall-a-slot-markall-a',
+);
+const ValueKey<String> _markAllTileKeyB = ValueKey<String>(
+  'todayTile-med-markall-b-slot-markall-b',
+);
+
+const ValueKey<String> _checkboxKey = ValueKey<String>('todayCheckbox');
+const ValueKey<String> _skipIconKey = ValueKey<String>('todaySkipIcon');
 const ValueKey<String> _undoKey = ValueKey<String>('todayUndo');
+const ValueKey<String> _markAllKey = ValueKey<String>('todayMarkAll');
+const ValueKey<String> _countdownCardKey = ValueKey<String>(
+  'todayCountdownCard',
+);
+
+/// Key of a [TodayGroupSection]'s tappable header for wall-clock [hour].
+Key _groupHeaderKey(int hour) => ValueKey<String>('todayGroupHeader-$hour');
+
+/// Key of a [TodayGroupSection]'s outer container for wall-clock [hour].
+Key _groupSectionKey(int hour) => ValueKey<String>('todayGroupSection-$hour');
 
 // ---------------------------------------------------------------------------
 // Fakes for the loading-state test
@@ -176,7 +230,7 @@ class _ErrorIntakeRepository implements IntakeRepository {
 }
 
 // ---------------------------------------------------------------------------
-// Fakes for the on-open auto-miss trigger (Task 009)
+// Fakes for the on-open auto-miss trigger
 // ---------------------------------------------------------------------------
 
 /// No-op [ReconcileMissedIntakes] fake used as the DEFAULT override in
@@ -217,7 +271,7 @@ class _RecordingReconcileMissedIntakes implements ReconcileMissedIntakes {
 /// fake-async zone (the screen's `initState` reconcile call runs as a
 /// [Future.microtask]), which hangs the test forever. Instead, this fake
 /// writes the pre-computed [_missed] row DIRECTLY into the SAME shared
-/// [_db] via a real [IntakeRepositoryImpl] — mirroring exactly how the AC-9
+/// [_db] via a real [IntakeRepositoryImpl] — mirroring exactly how the
 /// take/skip tests prove reactivity: a write lands in the shared db, the real
 /// [intakesListProvider] (drift `.watch()`) re-emits, and the tile updates,
 /// all with plain `pump()`/`pumpAndSettle()` — no `runAsync`, no polling.
@@ -240,7 +294,8 @@ class _WritesMissedReconcile implements ReconcileMissedIntakes {
 
 /// Wraps [TodayScreen] in [ProviderScope] + [MaterialApp] with localization
 /// pinned to English. [overrides] are appended after the base
-/// [appDatabaseProvider] and [reconcileMissedIntakesProvider] overrides.
+/// [appDatabaseProvider], [reconcileMissedIntakesProvider], and
+/// [todayIntakeSettingsProvider] overrides.
 ///
 /// [reconcile] builds the [ReconcileMissedIntakes] the screen's `initState`
 /// reads; it defaults to [_NoOpReconcile] because [TodayScreen] now fires
@@ -251,16 +306,39 @@ class _WritesMissedReconcile implements ReconcileMissedIntakes {
 /// pass their own [reconcile] builder instead of layering a second override
 /// for the same provider into [overrides] — Riverpod asserts when the same
 /// provider is overridden twice within one container.
+///
+/// [todayIntakeSettingsProvider] is pinned to [settings] — which defaults to
+/// (120-minute window, 5-minute grace, mark-ahead off) — so [TodayScreen]'s
+/// build-time `ref.watch` resolves deterministically without seeding
+/// `sharedPreferences`. Every dose's derived `windowState`/`actionable`
+/// (which gate the checkbox/skip-icon enablement) and `undoable` (which gates
+/// the Undo affordance and a taken dose's checkbox reverting it) are computed
+/// against these pinned values. Tests that need a specific value (e.g.
+/// mark-ahead enabled) pass their own [settings] record instead of layering a
+/// second override for the same provider into [overrides] — Riverpod asserts
+/// when the same provider is overridden twice within one container (mirrors
+/// why [reconcile] is its own parameter rather than an [overrides] entry).
 Widget _harness({
   required AppDatabase db,
   List<Override> overrides = const [],
   ReconcileMissedIntakes Function(Ref ref)? reconcile,
+  ({IntakeWindow intakeWindow, GracePeriod gracePeriod, bool allowMarkAhead})?
+  settings,
 }) {
   return ProviderScope(
     overrides: [
       appDatabaseProvider.overrideWithValue(db),
       reconcileMissedIntakesProvider.overrideWith(
         reconcile ?? (ref) => _NoOpReconcile(),
+      ),
+      todayIntakeSettingsProvider.overrideWith(
+        (ref) =>
+            settings ??
+            (
+              intakeWindow: IntakeWindow.defaultValue,
+              gracePeriod: GracePeriod.defaultValue,
+              allowMarkAhead: false,
+            ),
       ),
       ...overrides,
     ],
@@ -274,8 +352,8 @@ Widget _harness({
 }
 
 /// Finds a keyed action button scoped to a specific tile, so identically-keyed
-/// actions (`todayTake`/`todaySkip`/`todayUndo`) in different tiles never
-/// collide.
+/// actions (`todayCheckbox`/`todaySkipIcon`/`todayUndo`) in different tiles
+/// never collide.
 Finder _actionIn(Key tileKey, Key actionKey) =>
     find.descendant(of: find.byKey(tileKey), matching: find.byKey(actionKey));
 
@@ -312,6 +390,7 @@ void main() {
 
       expect(find.byType(TodayEmptyState), findsOneWidget);
       expect(find.byType(TodayDoseTile), findsNothing);
+      expect(find.byKey(_countdownCardKey), findsNothing);
     });
   });
 
@@ -361,7 +440,7 @@ void main() {
             ],
           ),
         );
-        // No grace Timer is ever scheduled on the error branch (it is
+        // No boundary Timer is ever scheduled on the error branch (it is
         // cancelled before the error text is returned), so pumpAndSettle
         // is safe here — unlike the seeded/action tests it does not race a
         // pending one-shot Timer.
@@ -379,11 +458,13 @@ void main() {
   });
 
   // ---------------------------------------------------------------------
-  // AC-8 — seeded doses render time-sorted
+  // AC-1..AC-5 — countdown card + collapsible hour groups
   // ---------------------------------------------------------------------
-  group('TodayScreen AC-8 seeded doses', () {
+  group('TodayScreen countdown card and hour groups', () {
     testWidgets(
-      'renders a TodayDoseTile per due dose, morning before evening',
+      'renders the countdown card above the hour groups (ascending hour), '
+      'with the "now" group expanded and the future group collapsed by '
+      'default',
       (tester) async {
         await withClock(_fixedClock, () async {
           final repo = MedicationRepositoryImpl(MedicationLocalDataSource(db));
@@ -393,30 +474,61 @@ void main() {
           await tester.pumpAndSettle();
         });
 
-        expect(find.byKey(_morningTileKey), findsOneWidget);
-        expect(find.byKey(_eveningTileKey), findsOneWidget);
-
-        final double morningY = tester
-            .getTopLeft(find.byKey(_morningTileKey))
+        final double cardY = tester
+            .getTopLeft(find.byKey(_countdownCardKey))
             .dy;
-        final double eveningY = tester
-            .getTopLeft(find.byKey(_eveningTileKey))
+        final double group8Y = tester
+            .getTopLeft(find.byKey(_groupSectionKey(8)))
+            .dy;
+        final double group20Y = tester
+            .getTopLeft(find.byKey(_groupSectionKey(20)))
             .dy;
         expect(
-          morningY,
-          lessThan(eveningY),
-          reason: 'The 08:00 dose must render above the 20:00 dose',
+          cardY,
+          lessThan(group8Y),
+          reason: 'The countdown card must render above the hour groups',
         );
+        expect(
+          group8Y,
+          lessThan(group20Y),
+          reason: 'The 08:00 group must render above the 20:00 group',
+        );
+
+        // The countdown card shows the next (evening) intake, not "all done".
+        final AppLocalizations l10n = AppLocalizations.of(
+          tester.element(find.byType(TodayScreen)),
+        )!;
+        expect(
+          find.descendant(
+            of: find.byKey(_countdownCardKey),
+            matching: find.text(l10n.todayAllDone),
+          ),
+          findsNothing,
+        );
+
+        // AC-3: the 08:00 group is "now" (its dose's window is open) and
+        // starts expanded — its tile renders with no interaction.
+        expect(find.byKey(_morningTileKey), findsOneWidget);
+
+        // The 20:00 group is "future" and starts collapsed — its tile does
+        // not render until the header is tapped.
+        expect(find.byKey(_eveningTileKey), findsNothing);
+
+        await tester.tap(find.byKey(_groupHeaderKey(20)));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(_eveningTileKey), findsOneWidget);
       },
     );
   });
 
   // ---------------------------------------------------------------------
-  // AC-9 — Take persists and transitions the tile
+  // AC-6 — checkbox marks a pending dose taken
   // ---------------------------------------------------------------------
-  group('TodayScreen AC-9 take', () {
+  group('TodayScreen checkbox — mark taken', () {
     testWidgets(
-      'tapping Take transitions the tile to Taken and persists the intake',
+      "checking a pending dose's todayCheckbox marks it taken and persists "
+      'the intake',
       (tester) async {
         await withClock(_fixedClock, () async {
           final repo = MedicationRepositoryImpl(MedicationLocalDataSource(db));
@@ -425,22 +537,19 @@ void main() {
           await tester.pumpWidget(_harness(db: db));
           await tester.pumpAndSettle();
 
-          await tester.tap(_actionIn(_morningTileKey, _takeKey));
+          await tester.tap(_actionIn(_morningTileKey, _checkboxKey));
           // Drain the microtask/stream re-emit, then rebuild.
           await tester.pump();
           await tester.pump();
         });
 
         expect(
-          find.descendant(
-            of: find.byKey(_morningTileKey),
-            matching: find.text('Taken'),
-          ),
-          findsOneWidget,
+          tester
+              .widget<Checkbox>(_actionIn(_morningTileKey, _checkboxKey))
+              .value,
+          isTrue,
         );
-        expect(_actionIn(_morningTileKey, _undoKey), findsOneWidget);
 
-        // Read back proves persistence, independent of the UI.
         final rows = await db.select(db.intakes).get();
         expect(rows, hasLength(1));
         expect(rows.single.status, IntakeStatus.taken);
@@ -448,88 +557,175 @@ void main() {
         expect(rows.single.slotId, 'slot-morning');
       },
     );
-  });
 
-  // ---------------------------------------------------------------------
-  // AC-9 — Skip persists and transitions the tile
-  // ---------------------------------------------------------------------
-  group('TodayScreen AC-9 skip', () {
     testWidgets(
-      'tapping Skip transitions the tile to Skipped and persists the intake',
+      'a mark-ahead-enabled dose scheduled later today can still be marked '
+      'taken once its collapsed group is expanded (early marking)',
       (tester) async {
         await withClock(_fixedClock, () async {
           final repo = MedicationRepositoryImpl(MedicationLocalDataSource(db));
           await repo.add(_aspirin);
 
-          await tester.pumpWidget(_harness(db: db));
+          // The evening (20:00) dose is DoseWindowState.future relative to
+          // _fixedNow (08:30) — only actionable ahead of its window when
+          // mark-ahead is enabled, so this test overrides it explicitly
+          // (the harness default pins allowMarkAhead to false).
+          await tester.pumpWidget(
+            _harness(
+              db: db,
+              settings: (
+                intakeWindow: IntakeWindow.defaultValue,
+                gracePeriod: GracePeriod.defaultValue,
+                allowMarkAhead: true,
+              ),
+            ),
+          );
           await tester.pumpAndSettle();
 
-          await tester.tap(_actionIn(_morningTileKey, _skipKey));
+          await tester.tap(find.byKey(_groupHeaderKey(20)));
+          await tester.pumpAndSettle();
+
+          await tester.tap(_actionIn(_eveningTileKey, _checkboxKey));
           await tester.pump();
           await tester.pump();
         });
-
-        expect(
-          find.descendant(
-            of: find.byKey(_morningTileKey),
-            matching: find.text('Skipped'),
-          ),
-          findsOneWidget,
-        );
-
-        final rows = await db.select(db.intakes).get();
-        expect(rows, hasLength(1));
-        expect(rows.single.status, IntakeStatus.skipped);
-      },
-    );
-  });
-
-  // ---------------------------------------------------------------------
-  // AC-10 — early marking of a future-scheduled dose
-  // ---------------------------------------------------------------------
-  group('TodayScreen AC-10 early marking', () {
-    testWidgets(
-      'a dose scheduled later today is still tappable and transitions',
-      (tester) async {
-        await withClock(_fixedClock, () async {
-          final repo = MedicationRepositoryImpl(MedicationLocalDataSource(db));
-          await repo.add(_aspirin);
-
-          await tester.pumpWidget(_harness(db: db));
-          await tester.pumpAndSettle();
-
-          // The evening (20:00) dose is in the future relative to
-          // _fixedNow (08:30) — tapping Take must still succeed.
-          await tester.tap(_actionIn(_eveningTileKey, _takeKey));
-          await tester.pump();
-          await tester.pump();
-        });
-
-        expect(
-          find.descendant(
-            of: find.byKey(_eveningTileKey),
-            matching: find.text('Taken'),
-          ),
-          findsOneWidget,
-        );
 
         final rows = await db.select(db.intakes).get();
         expect(rows, hasLength(1));
         expect(rows.single.slotId, 'slot-evening');
+        expect(rows.single.status, IntakeStatus.taken);
       },
     );
   });
 
   // ---------------------------------------------------------------------
-  // AC-12 / AC-13 — Undo within grace vs. expired grace
+  // AC-6 — unchecking a just-taken dose undoes it within grace
   // ---------------------------------------------------------------------
-  group('TodayScreen AC-12/AC-13 undo grace window', () {
+  group('TodayScreen checkbox — undo within grace', () {
     testWidgets(
-      'undo within grace reverts to pending; the affordance disappears once '
-      'the grace window elapses',
+      'unchecking a just-taken dose within its grace window reverts it to '
+      'pending',
       (tester) async {
-        // A mutable clock (not Clock.fixed): the grace-refresh Timer runs in
-        // this zone, so mutating `mutableNow` just before advancing the
+        await withClock(_fixedClock, () async {
+          final repo = MedicationRepositoryImpl(MedicationLocalDataSource(db));
+          await repo.add(_aspirin);
+
+          await tester.pumpWidget(_harness(db: db));
+          await tester.pumpAndSettle();
+
+          await tester.tap(_actionIn(_morningTileKey, _checkboxKey));
+          await tester.pump();
+          await tester.pump();
+          expect(
+            tester
+                .widget<Checkbox>(_actionIn(_morningTileKey, _checkboxKey))
+                .value,
+            isTrue,
+            reason: 'The checkbox must render checked once taken',
+          );
+
+          // Unchecking the checked checkbox invokes onUndo (AC-6).
+          await tester.tap(_actionIn(_morningTileKey, _checkboxKey));
+          await tester.pump();
+          await tester.pump();
+        });
+
+        expect(
+          tester
+              .widget<Checkbox>(_actionIn(_morningTileKey, _checkboxKey))
+              .value,
+          isFalse,
+          reason: 'Undo must revert the dose back to pending',
+        );
+        final rows = await db.select(db.intakes).get();
+        expect(rows, isEmpty);
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------
+  // AC-7 — skip icon marks a pending dose skipped
+  // ---------------------------------------------------------------------
+  group('TodayScreen skip icon', () {
+    testWidgets(
+      'tapping todaySkipIcon marks a pending dose skipped and persists the '
+      'intake',
+      (tester) async {
+        await withClock(_fixedClock, () async {
+          final repo = MedicationRepositoryImpl(MedicationLocalDataSource(db));
+          await repo.add(_aspirin);
+
+          await tester.pumpWidget(_harness(db: db));
+          await tester.pumpAndSettle();
+
+          await tester.tap(_actionIn(_morningTileKey, _skipIconKey));
+          await tester.pump();
+          await tester.pump();
+        });
+
+        final rows = await db.select(db.intakes).get();
+        expect(rows, hasLength(1));
+        expect(rows.single.status, IntakeStatus.skipped);
+
+        // A skipped dose within grace still offers Undo (distinct from the
+        // checkbox-based undo used for a taken dose).
+        expect(_actionIn(_morningTileKey, _undoKey), findsOneWidget);
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------
+  // AC-10 — Mark-all confirms every actionable pending dose in a group
+  // ---------------------------------------------------------------------
+  group('TodayScreen Mark-all', () {
+    testWidgets(
+      'tapping todayMarkAll marks every actionable pending dose in the '
+      'group taken',
+      (tester) async {
+        await withClock(_fixedClock, () async {
+          final repo = MedicationRepositoryImpl(MedicationLocalDataSource(db));
+          await repo.add(_medMarkAllA);
+          await repo.add(_medMarkAllB);
+
+          await tester.pumpWidget(_harness(db: db));
+          await tester.pumpAndSettle();
+
+          expect(find.byKey(_markAllKey), findsOneWidget);
+
+          await tester.tap(find.byKey(_markAllKey));
+          await tester.pumpAndSettle();
+        });
+
+        final rows = await db.select(db.intakes).get();
+        expect(rows, hasLength(2));
+        expect(rows.every((r) => r.status == IntakeStatus.taken), isTrue);
+
+        expect(
+          tester
+              .widget<Checkbox>(_actionIn(_markAllTileKeyA, _checkboxKey))
+              .value,
+          isTrue,
+        );
+        expect(
+          tester
+              .widget<Checkbox>(_actionIn(_markAllTileKeyB, _checkboxKey))
+              .value,
+          isTrue,
+        );
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------
+  // AC-15 — boundary Timer re-derives live and never busy-loops
+  // ---------------------------------------------------------------------
+  group('TodayScreen boundary timer', () {
+    testWidgets(
+      'advancing the clock past the grace window locks the checkbox; '
+      'pumpAndSettle settles without hanging (one-shot Timer, no busy-loop)',
+      (tester) async {
+        // A mutable clock (not Clock.fixed): the boundary-refresh Timer runs
+        // in this zone, so mutating `mutableNow` just before advancing the
         // FakeAsync clock via tester.pump(duration) lets the Timer-triggered
         // rebuild observe the ADVANCED time.
         DateTime mutableNow = _fixedNow;
@@ -542,50 +738,52 @@ void main() {
           await tester.pumpWidget(_harness(db: db));
           await tester.pumpAndSettle();
 
-          // 1) Mark taken; Undo is offered within the grace window.
-          await tester.tap(_actionIn(_morningTileKey, _takeKey));
-          await tester.pump();
-          await tester.pump();
-          expect(_actionIn(_morningTileKey, _undoKey), findsOneWidget);
-
-          // 2) Undo within grace reverts the dose to pending (AC-12).
-          await tester.tap(_actionIn(_morningTileKey, _undoKey));
+          // 1) Check the box; the dose is undoable within its grace window.
+          await tester.tap(_actionIn(_morningTileKey, _checkboxKey));
           await tester.pump();
           await tester.pump();
           expect(
-            _actionIn(_morningTileKey, _takeKey),
-            findsOneWidget,
-            reason: 'Undo must revert the dose back to pending',
+            tester
+                .widget<Checkbox>(_actionIn(_morningTileKey, _checkboxKey))
+                .onChanged,
+            isNotNull,
+            reason: 'Just-taken dose must be undoable within grace',
           );
-          final List<dynamic> afterUndo = await db.select(db.intakes).get();
-          expect(afterUndo, isEmpty);
 
-          // 3) Re-confirm as taken to exercise grace EXPIRY this time.
-          await tester.tap(_actionIn(_morningTileKey, _takeKey));
-          await tester.pump();
-          await tester.pump();
-          expect(_actionIn(_morningTileKey, _undoKey), findsOneWidget);
-
-          // 4) Advance past the 5-minute grace window. The scheduled
-          // one-shot Timer fires during the FakeAsync elapse, calls
-          // setState, and the rebuild reads the now-advanced clock.
+          // 2) Advance past the 5-minute default grace window. The boundary
+          // Timer scheduled for the grace expiry fires during the FakeAsync
+          // elapse, calls setState, and the rebuild reads the now-advanced
+          // clock.
           mutableNow = _fixedNow.add(const Duration(minutes: 6));
           await tester.pump(const Duration(minutes: 6));
 
-          expect(
-            _actionIn(_morningTileKey, _undoKey),
-            findsNothing,
-            reason:
-                'The Undo affordance must disappear once the grace window '
-                'has elapsed (AC-13)',
-          );
+          // 3) The one-shot Timer must not busy-loop: settling here must not
+          // hang or time out.
+          await tester.pumpAndSettle();
         });
+
+        expect(
+          tester
+              .widget<Checkbox>(_actionIn(_morningTileKey, _checkboxKey))
+              .value,
+          isTrue,
+          reason: 'The dose stays taken once the grace window has elapsed',
+        );
+        expect(
+          tester
+              .widget<Checkbox>(_actionIn(_morningTileKey, _checkboxKey))
+              .onChanged,
+          isNull,
+          reason:
+              'The checkbox must lock (no more Undo) once the grace window '
+              'has elapsed',
+        );
       },
     );
   });
 
   // ---------------------------------------------------------------------
-  // Task 009 — on-open auto-miss trigger: fires once per mount, never on a
+  // Spec 040 — on-open auto-miss trigger: fires once per mount, never on a
   // rebuild (no reconcile↔rebuild loop)
   // ---------------------------------------------------------------------
   group('TodayScreen on-open auto-miss trigger', () {
@@ -612,10 +810,10 @@ void main() {
                 'Today screen must fire reconcile exactly once',
           );
 
-          // Tapping Take persists an intake through the real repository
+          // Checking the box persists an intake through the real repository
           // chain, so intakesListProvider re-emits — the resulting rebuild
           // flows through ref.watch in build(), never through initState.
-          await tester.tap(_actionIn(_morningTileKey, _takeKey));
+          await tester.tap(_actionIn(_morningTileKey, _checkboxKey));
           await tester.pump();
           await tester.pump();
 
@@ -632,16 +830,20 @@ void main() {
   });
 
   // ---------------------------------------------------------------------
-  // Task 009 / spec 040 AC-12 — reactive auto-miss on load
+  // Spec 040 AC-12 — reactive auto-miss on load
   // ---------------------------------------------------------------------
   group('TodayScreen spec 040 AC-12 reactive auto-miss on load', () {
     testWidgets(
       'a past-window pending dose renders Missed after mount with no manual '
-      'refresh; a dose whose window has not yet closed stays pending',
+      "refresh, once its (collapsed-by-default) group is expanded; a dose "
+      "whose window has not yet closed stays pending in its expanded-by-"
+      'default group',
       (tester) async {
         // 09:00 local: the 05:00 slot's default 120-minute window closed at
-        // 07:00 (strictly past) — eligible for auto-miss. The 10:00 slot's
-        // window closes at 12:00 (not yet elapsed) — must stay pending.
+        // 07:00 (strictly past) — eligible for auto-miss, so its hour group
+        // is "past" and starts COLLAPSED. The 10:00 slot's window closes at
+        // 12:00 (not yet elapsed) — its hour group is the soonest "future"
+        // group and starts EXPANDED (no "now" group exists).
         final DateTime fixedNow = DateTime(2026, 6, 15, 9);
         final Clock testClock = Clock.fixed(fixedNow);
 
@@ -674,7 +876,7 @@ void main() {
         // directly into the shared [db] instead of re-deriving it via its own
         // `watchAll().first` reads, so the test proves the REACTIVE pickup —
         // real db write → real `intakesListProvider` stream → tile rebuild —
-        // the same real-DB-through-drift-watch path the AC-9 take/skip tests
+        // the same real-DB-through-drift-watch path the take/skip tests
         // already exercise, with plain `pump()`/`pumpAndSettle()`.
         final Intake missedIntake = Intake(
           id: const IntakeId('intake-automiss-early-001'),
@@ -696,6 +898,11 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
+
+          // The early dose's group is "past" and starts collapsed — expand
+          // it to reveal the reconciled Missed row.
+          await tester.tap(find.byKey(_groupHeaderKey(5)));
+          await tester.pumpAndSettle();
         });
 
         // The early dose's window closed before `now` — reconciled to
@@ -707,13 +914,21 @@ void main() {
           ),
           findsOneWidget,
         );
-        expect(_actionIn(earlyTileKey, _takeKey), findsNothing);
-        expect(_actionIn(earlyTileKey, _skipKey), findsNothing);
+        expect(_actionIn(earlyTileKey, _checkboxKey), findsNothing);
+        expect(_actionIn(earlyTileKey, _skipIconKey), findsNothing);
 
-        // The late dose's window has not yet closed — stays pending; no live
-        // flip beyond what reconcile-on-load already produced.
-        expect(_actionIn(lateTileKey, _takeKey), findsOneWidget);
-        expect(_actionIn(lateTileKey, _skipKey), findsOneWidget);
+        // The late dose's group is the soonest "future" group and starts
+        // expanded; its window has not yet closed — stays pending. The
+        // checkbox renders (disabled: mark-ahead is off) but the skip icon
+        // is hidden (only shown while actionable).
+        expect(_actionIn(lateTileKey, _checkboxKey), findsOneWidget);
+        expect(
+          tester
+              .widget<Checkbox>(_actionIn(lateTileKey, _checkboxKey))
+              .onChanged,
+          isNull,
+        );
+        expect(_actionIn(lateTileKey, _skipIconKey), findsNothing);
 
         final rows = await db.select(db.intakes).get();
         expect(rows, hasLength(1));
@@ -724,24 +939,23 @@ void main() {
   });
 
   // ---------------------------------------------------------------------
-  // Spec 040 AC-12 (second half) — idle-open: no live flip while mounted
+  // Spec 040 AC-12 (second half) — idle-open: no live flip to missed
   // ---------------------------------------------------------------------
   group('TodayScreen spec 040 AC-12 idle-open no live flip', () {
     testWidgets(
       'a pending dose whose window closes while the screen sits idle-open '
-      'does NOT live-flip to missed — it only flips on the next load',
+      'does NOT live-flip to missed — enablement re-derives live via the '
+      'boundary timer, but status only ever changes on the next '
+      'reconcile-on-load',
       (tester) async {
-        // A mutable clock (not Clock.fixed), mirroring the Undo-grace test
-        // above: mutating `mutableNow` just before advancing the FakeAsync
-        // clock via tester.pump(duration) lets any rebuild triggered by that
-        // pump observe the ADVANCED time. There is no live-flip Timer for
-        // missed doses (only the one-shot grace Timer, which never gets
-        // scheduled here because the dose is never taken/skipped), so
-        // pump(duration) is a bounded, hang-safe fake-time advance.
+        // A mutable clock (not Clock.fixed), mirroring the boundary-timer
+        // test above: mutating `mutableNow` just before advancing the
+        // FakeAsync clock via tester.pump(duration) lets any rebuild
+        // triggered by that pump observe the ADVANCED time.
         //
         // 11:00 local: the 10:00 slot's default 120-minute window closes at
-        // 12:00 — still OPEN at mount, so the dose renders pending
-        // (Take/Skip shown).
+        // 12:00 — still OPEN at mount, so the dose renders pending and
+        // actionable (checkbox enabled, skip icon shown).
         DateTime mutableNow = DateTime(2026, 6, 15, 11);
         final Clock testClock = Clock(() => mutableNow);
 
@@ -774,9 +988,15 @@ void main() {
           await tester.pumpAndSettle();
 
           // Window still open at mount (10:00 + 120 min = 12:00 > 11:00):
-          // pending, Take/Skip shown, no Missed label.
-          expect(_actionIn(idleTileKey, _takeKey), findsOneWidget);
-          expect(_actionIn(idleTileKey, _skipKey), findsOneWidget);
+          // pending, checkbox enabled, skip icon shown, no Missed label.
+          expect(_actionIn(idleTileKey, _checkboxKey), findsOneWidget);
+          expect(
+            tester
+                .widget<Checkbox>(_actionIn(idleTileKey, _checkboxKey))
+                .onChanged,
+            isNotNull,
+          );
+          expect(_actionIn(idleTileKey, _skipIconKey), findsOneWidget);
           expect(
             find.descendant(
               of: find.byKey(idleTileKey),
@@ -785,24 +1005,36 @@ void main() {
             findsNothing,
           );
 
-          // Advance the mutable clock PAST the window close (11:00 -> ~14:00)
-          // while the screen stays mounted, with NO fresh reconcile run. No
-          // grace Timer is ever scheduled (the dose was never taken/skipped),
-          // so this pump cannot hang.
+          // Advance the mutable clock PAST the window close (11:00 -> 14:00)
+          // while the screen stays mounted, with NO fresh reconcile run. A
+          // boundary Timer WAS scheduled for the window-close instant
+          // (12:00): it fires during this elapse and calls setState, but it
+          // performs NO database write and triggers NO reconciliation — only
+          // the derived enablement re-renders.
           mutableNow = mutableNow.add(const Duration(hours: 3));
           await tester.pump(const Duration(hours: 3));
+          await tester.pumpAndSettle();
 
-          // Still pending: time alone must not flip a pending dose to
-          // missed — only the next reconcile-on-load can do that.
+          // Still pending: the window has closed, so the checkbox locks
+          // (disabled) and the skip icon disappears, but the STATUS must not
+          // flip to missed from time passing alone — only the next
+          // reconcile-on-load can do that.
           expect(
-            _actionIn(idleTileKey, _takeKey),
+            _actionIn(idleTileKey, _checkboxKey),
             findsOneWidget,
             reason:
                 'Time passing alone while the screen sits idle-open must '
-                'not flip a pending dose to missed — there is no live-flip '
-                'Timer (AC-12)',
+                'not remove the checkbox, and must never flip a pending '
+                'dose to missed — there is no live-flip to missed (AC-12)',
           );
-          expect(_actionIn(idleTileKey, _skipKey), findsOneWidget);
+          expect(
+            tester
+                .widget<Checkbox>(_actionIn(idleTileKey, _checkboxKey))
+                .onChanged,
+            isNull,
+            reason: 'The checkbox must lock once the window has closed',
+          );
+          expect(_actionIn(idleTileKey, _skipIconKey), findsNothing);
           expect(
             find.descendant(
               of: find.byKey(idleTileKey),
