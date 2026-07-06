@@ -15,7 +15,9 @@ The Today tab (route `/`, branch 0 of the shell) used to render a placeholder `H
 GoRoute(path: '/', builder: (context, state) => const TodayScreen()),
 ```
 
-`TodayScreen` keeps the same AppBar chrome `HomeScreen` had — the settings-gear `IconButton` (`context.push('/settings')`) and the 1-px bottom `Divider` — but the title is now the localized `"Today"` (`todayTitle`) instead of the hard-coded brand name, and the body is a live checklist instead of a placeholder. See [`meds.md`](meds.md#today-screen--intake-logging-feature-038) for the full walkthrough: schedule expansion, the lazy intake model, mark/skip/undo, and the grace window.
+`TodayScreen` keeps the same AppBar chrome `HomeScreen` had — the settings-gear `IconButton` (`context.push('/settings')`) and the 1-px bottom `Divider` — but the title is now the localized `"Today"` (`todayTitle`) instead of the hard-coded brand name, and the body is a live checklist instead of a placeholder.
+
+As of feature 041, that checklist is no longer a flat list: doses are bucketed into **collapsible per-hour groups** (each with a past/now/future state badge and a Mark-all button), a **"next intake" countdown card** sits above them, and each dose row uses a **checkbox** (check = taken, uncheck within grace = undo) plus a secondary **skip** icon — keeping `skipped` visually distinct from the auto-missed `missed` state (feature 040). Per-dose interactivity (whether the checkbox is enabled, and how long Undo stays available) is driven live by the user's intake-window / grace-period / mark-ahead settings (feature 039), reached through a settings-projection provider so the screen itself stays settings-free (constitution §2.1). See [`meds.md`](meds.md#today-screen--intake-logging-feature-038) for the full walkthrough: schedule expansion, the lazy intake model, grouping, the countdown card, checkbox/skip/undo, and the settings-driven enablement.
 
 Everything below this point — `AppBottomNav`, `AppShell`, their tests and rules — lives in `lib/core/routing/`, is feature-agnostic, and is unaffected by the `home` feature's removal.
 

@@ -515,3 +515,108 @@ final class ReconcileMissedOnOpenProvider
 
 String _$reconcileMissedOnOpenHash() =>
     r'dad822679490a5ae711b77746e32a985b07781bd';
+
+/// Projects the three intake-behavior settings that the Today screen consumes
+/// (intake window, grace period, mark-ahead) out of [settingsNotifierProvider].
+///
+/// This is the constitution §2.1-compliant seam: only this composition-seam file
+/// imports `settings/presentation`; the Today screen/widgets watch THIS provider
+/// and stay settings-free. It `watch`es the reactive notifier (not a one-shot
+/// `settingsRepositoryProvider.load()`), so changing a setting in Settings
+/// re-emits here and the Today screen updates live.
+
+@ProviderFor(todayIntakeSettings)
+final todayIntakeSettingsProvider = TodayIntakeSettingsProvider._();
+
+/// Projects the three intake-behavior settings that the Today screen consumes
+/// (intake window, grace period, mark-ahead) out of [settingsNotifierProvider].
+///
+/// This is the constitution §2.1-compliant seam: only this composition-seam file
+/// imports `settings/presentation`; the Today screen/widgets watch THIS provider
+/// and stay settings-free. It `watch`es the reactive notifier (not a one-shot
+/// `settingsRepositoryProvider.load()`), so changing a setting in Settings
+/// re-emits here and the Today screen updates live.
+
+final class TodayIntakeSettingsProvider
+    extends
+        $FunctionalProvider<
+          ({
+            bool allowMarkAhead,
+            GracePeriod gracePeriod,
+            IntakeWindow intakeWindow,
+          }),
+          ({
+            bool allowMarkAhead,
+            GracePeriod gracePeriod,
+            IntakeWindow intakeWindow,
+          }),
+          ({
+            bool allowMarkAhead,
+            GracePeriod gracePeriod,
+            IntakeWindow intakeWindow,
+          })
+        >
+    with
+        $Provider<
+          ({
+            bool allowMarkAhead,
+            GracePeriod gracePeriod,
+            IntakeWindow intakeWindow,
+          })
+        > {
+  /// Projects the three intake-behavior settings that the Today screen consumes
+  /// (intake window, grace period, mark-ahead) out of [settingsNotifierProvider].
+  ///
+  /// This is the constitution §2.1-compliant seam: only this composition-seam file
+  /// imports `settings/presentation`; the Today screen/widgets watch THIS provider
+  /// and stay settings-free. It `watch`es the reactive notifier (not a one-shot
+  /// `settingsRepositoryProvider.load()`), so changing a setting in Settings
+  /// re-emits here and the Today screen updates live.
+  TodayIntakeSettingsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'todayIntakeSettingsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$todayIntakeSettingsHash();
+
+  @$internal
+  @override
+  $ProviderElement<
+    ({bool allowMarkAhead, GracePeriod gracePeriod, IntakeWindow intakeWindow})
+  >
+  $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+
+  @override
+  ({bool allowMarkAhead, GracePeriod gracePeriod, IntakeWindow intakeWindow})
+  create(Ref ref) {
+    return todayIntakeSettings(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(
+    ({bool allowMarkAhead, GracePeriod gracePeriod, IntakeWindow intakeWindow})
+    value,
+  ) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride:
+          $SyncValueProvider<
+            ({
+              bool allowMarkAhead,
+              GracePeriod gracePeriod,
+              IntakeWindow intakeWindow,
+            })
+          >(value),
+    );
+  }
+}
+
+String _$todayIntakeSettingsHash() =>
+    r'0e1c7c486b01f01cabca8691033e2d8bb2924ea6';

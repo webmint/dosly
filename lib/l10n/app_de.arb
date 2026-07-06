@@ -130,5 +130,14 @@
   "todayEmptyTitle": "Heute nichts fällig",
   "todayEmptyBody": "Sie haben heute keine geplanten Einnahmen.",
   "todayLoadError": "Die heutigen Einnahmen konnten nicht geladen werden.",
-  "todayActionError": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."
+  "todayActionError": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+  "todayNextIntakeLabel": "Nächste Einnahme",
+  "todayNextIntakeIn": "in {hours} Std. {minutes} Min.",
+  "todayNextIntakeInMinutes": "in {minutes} Min.",
+  "todayAllDone": "Für heute alles erledigt",
+  "todayGroupBadgeNow": "Jetzt",
+  "todayGroupBadgeFuture": "Später",
+  "todayGroupTakenCount": "{taken}/{total}",
+  "todayGroupDoseCount": "{count, plural, =1{1 Dosis} other{{count} Dosen}}",
+  "todayMarkAllInGroup": "Alle markieren"
 }

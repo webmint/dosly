@@ -12,12 +12,11 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:dosly/l10n/app_localizations.dart';
 
-import '../../domain/entities/course_phase.dart';
 import '../../domain/entities/medication_activity_status.dart';
 import '../../domain/entities/medication_type.dart';
-import '../../domain/value_objects/course_progress.dart';
 import '../view_models/meds_list_view_model.dart';
 import '../../../../l10n/l10n_extensions.dart';
+import 'med_type_chip.dart';
 import 'medication_display.dart';
 import 'medication_form_icon.dart';
 
@@ -142,12 +141,12 @@ class _TileBody extends StatelessWidget {
           runSpacing: 4,
           children: switch (item.medication.type) {
             CourseType() => <Widget>[
-                _TypeChip(item: item),
+                MedTypeChip(medication: item.medication, progress: item.progress),
                 _StatusChip(activity: item.activity),
               ],
             ContinuousType() => <Widget>[
                 _StatusChip(activity: item.activity),
-                _TypeChip(item: item),
+                MedTypeChip(medication: item.medication, progress: item.progress),
               ],
           },
         ),
@@ -249,93 +248,7 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-/// Renders the continuous/course type chip.
-///
-/// Color mapping:
-/// - continuous → neutral: [ColorScheme.surfaceContainerHigh] /
-///   [ColorScheme.onSurfaceVariant]
-/// - course activeWindow (Day X/Y) → teal: [ColorScheme.tertiaryContainer] /
-///   [ColorScheme.onTertiaryContainer]
-/// - course paused → neutral: [ColorScheme.surfaceContainerHigh] /
-///   [ColorScheme.onSurfaceVariant]
-///
-/// For course medications, derives the label from [MedListItem.progress] — the
-/// [CourseProgress] is non-null for all [CourseType] items (see
-/// [buildMedsListView]). The [progress] field is checked with an explicit
-/// `if (progress != null)` guard before deriving the label, so no `!` is used.
-class _TypeChip extends StatelessWidget {
-  const _TypeChip({required this.item});
-
-  final MedListItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final AppLocalizations l10n = context.l10n;
-
-    final _ChipSpec? spec = _resolveTypeSpec(item, l10n, cs);
-    if (spec == null) return const SizedBox.shrink();
-
-    return _Pill(
-      label: spec.label,
-      background: spec.background,
-      foreground: spec.foreground,
-    );
-  }
-
-  /// Resolves the type-chip [_ChipSpec] from [item].
-  ///
-  /// Returns `null` when a course item has no progress yet (which should not
-  /// occur in practice but is handled defensively to avoid `!`).
-  static _ChipSpec? _resolveTypeSpec(
-    MedListItem item,
-    AppLocalizations l10n,
-    ColorScheme cs,
-  ) {
-    if (item.medication.type is ContinuousType) {
-      return _ChipSpec(
-        label: l10n.medsListTypeContinuous,
-        background: cs.surfaceContainerHigh,
-        foreground: cs.onSurfaceVariant,
-      );
-    }
-
-    // CourseType: derive label and colors from progress phase.
-    final CourseProgress? progress = item.progress;
-    if (progress == null) return null;
-
-    return switch (progress.phase) {
-      CoursePhase.activeWindow => _ChipSpec(
-          label: l10n.medsListTypeCourseDay(
-            progress.currentDay,
-            progress.totalDays,
-          ),
-          background: cs.tertiaryContainer,
-          foreground: cs.onTertiaryContainer,
-        ),
-      CoursePhase.paused => _ChipSpec(
-          label: l10n.medsListTypeCoursePaused,
-          background: cs.surfaceContainerHigh,
-          foreground: cs.onSurfaceVariant,
-        ),
-    };
-  }
-}
-
-/// Immutable value holder for a chip's label and colors.
-class _ChipSpec {
-  const _ChipSpec({
-    required this.label,
-    required this.background,
-    required this.foreground,
-  });
-
-  final String label;
-  final Color background;
-  final Color foreground;
-}
-
-/// A small pill-shaped (stadium) label container used for status and type chips.
+/// A small pill-shaped (stadium) label container used for the status chip.
 ///
 /// Styled as a fully rounded stadium pill (`borderRadius: 100`), matching the
 /// `.s-chip` design spec. Intentionally non-interactive — no [InkWell] or

@@ -130,5 +130,14 @@
   "todayEmptyTitle": "На сьогодні нічого не заплановано",
   "todayEmptyBody": "У вас немає запланованих прийомів на сьогодні.",
   "todayLoadError": "Не вдалося завантажити сьогоднішні прийоми.",
-  "todayActionError": "Щось пішло не так. Спробуйте ще раз."
+  "todayActionError": "Щось пішло не так. Спробуйте ще раз.",
+  "todayNextIntakeLabel": "Наступний прийом",
+  "todayNextIntakeIn": "через {hours} год {minutes} хв",
+  "todayNextIntakeInMinutes": "через {minutes} хв",
+  "todayAllDone": "На сьогодні все",
+  "todayGroupBadgeNow": "Зараз",
+  "todayGroupBadgeFuture": "Майбутнє",
+  "todayGroupTakenCount": "{taken}/{total}",
+  "todayGroupDoseCount": "{count, plural, one{{count} прийом} few{{count} прийоми} many{{count} прийомів} other{{count} прийому}}",
+  "todayMarkAllInGroup": "Відмітити всі"
 }

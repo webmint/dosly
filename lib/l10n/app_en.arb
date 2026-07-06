@@ -537,5 +537,55 @@
   "todayActionError": "Something went wrong. Please try again.",
   "@todayActionError": {
     "description": "SnackBar shown when marking a dose taken/skipped or undoing it fails."
+  },
+  "todayNextIntakeLabel": "Next intake",
+  "@todayNextIntakeLabel": {
+    "description": "Label on the Today countdown card introducing the next upcoming dose."
+  },
+  "todayNextIntakeIn": "in {hours}h {minutes}m",
+  "@todayNextIntakeIn": {
+    "description": "Countdown value on the Today card: time remaining until the next dose (hours and minutes).",
+    "placeholders": {
+      "hours": { "type": "int" },
+      "minutes": { "type": "int" }
+    }
+  },
+  "todayNextIntakeInMinutes": "in {minutes}m",
+  "@todayNextIntakeInMinutes": {
+    "description": "Countdown value on the Today card when the next dose is under an hour away (minutes only).",
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "todayAllDone": "All done for today",
+  "@todayAllDone": {
+    "description": "Message on the Today countdown card when no upcoming doses remain today."
+  },
+  "todayGroupBadgeNow": "Now",
+  "@todayGroupBadgeNow": {
+    "description": "State badge on a Today hour-group header when a dose in that hour is currently within its intake window."
+  },
+  "todayGroupBadgeFuture": "Future",
+  "@todayGroupBadgeFuture": {
+    "description": "State badge on a Today hour-group header when all doses in that hour are still upcoming."
+  },
+  "todayGroupTakenCount": "{taken}/{total}",
+  "@todayGroupTakenCount": {
+    "description": "Taken-count badge on a past Today hour-group header, e.g. 2/3. A check icon is prepended by the widget.",
+    "placeholders": {
+      "taken": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "todayGroupDoseCount": "{count, plural, =1{1 dose} other{{count} doses}}",
+  "@todayGroupDoseCount": {
+    "description": "Sub-label on a Today hour-group header showing how many doses are in that hour.",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "todayMarkAllInGroup": "Mark all",
+  "@todayMarkAllInGroup": {
+    "description": "Button in a Today hour-group that marks every actionable pending dose in the group as taken."
   }
 }

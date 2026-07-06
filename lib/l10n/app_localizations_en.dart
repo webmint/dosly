@@ -426,4 +426,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get todayActionError => 'Something went wrong. Please try again.';
+
+  @override
+  String get todayNextIntakeLabel => 'Next intake';
+
+  @override
+  String todayNextIntakeIn(int hours, int minutes) {
+    return 'in ${hours}h ${minutes}m';
+  }
+
+  @override
+  String todayNextIntakeInMinutes(int minutes) {
+    return 'in ${minutes}m';
+  }
+
+  @override
+  String get todayAllDone => 'All done for today';
+
+  @override
+  String get todayGroupBadgeNow => 'Now';
+
+  @override
+  String get todayGroupBadgeFuture => 'Future';
+
+  @override
+  String todayGroupTakenCount(int taken, int total) {
+    return '$taken/$total';
+  }
+
+  @override
+  String todayGroupDoseCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count doses',
+      one: '1 dose',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get todayMarkAllInGroup => 'Mark all';
 }

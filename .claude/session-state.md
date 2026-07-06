@@ -2,21 +2,21 @@
 # Session State
 
 ## Current Feature
-040-auto-miss-engine — auto-miss engine for intakes (Spec B). **spec Status: Complete. /verify APPROVED.**
+041-today-redesign — Today screen redesign (hourly groups, countdown, checkbox model). **All 10 tasks Complete.**
 
 ## Progress
-9/9 tasks Complete → /review (PASS/PASS, tests GAPS→ALL CLOSED) → re-/review (ADEQUATE) → **/verify APPROVED**.
-- 15/15 ACs PASS (code-reading mode — AC_VERIFICATION off for this project).
-- Project-wide `dart analyze` clean; full suite **798/798**; no leftover artifacts; scope clean; cross-task consistency PASS.
-- Next: `/summarize` → `/finalize`.
+10/10 tasks Complete. Full `flutter test` **836/836** green; `dart analyze` clean project-wide.
+- ✅ 001 l10n · 002 settings projection · 003 MedTypeChip · 004 UndoIntake Duration grace · 005 view_model rewrite · 006 dose tile checkbox · 007 countdown card · 008 group section · 009 screen redesign (boundary timer, intake_grace deleted) · 010 regression sweep.
+- Review checkpoints (005/006/009): all APPROVE(+warnings); 009 crash-risk warning (mark-all `ref.read`-after-`await`) repaired.
+- Next: `/review` → `/verify` → `/summarize` → `/finalize`.
 
-## Deferred follow-ups (non-blocking, from /review — NOT part of 040)
-- SEC Info: `MedicationRepositoryImpl.watchAll` returns `Failure.unknown` → debug-only SqliteException detail in logs (no PHI; other feature's file). Today-trigger doesn't log its `Left` (cosmetic).
-- PERF Medium: `watchAll().first` snapshot (OQ-1 trade-off), un-batched N writes → N rebuilds, cold-start double-fire (both triggers). All opportunistic.
+## Verified at close
+- Audits empty: surfaceVariant(meds pres) 0; kIntakeUndoGracePeriod/intake_grace(lib) 0; Timer.periodic = dartdoc-only; retired todayTake keys 0. ARB 9 keys × en/de/uk.
+- integration_test/today_intake_flow_test.dart updated to checkbox model (compiles; needs device to run).
 
-## MEMORY updated
-- Pitfalls: AC-12 widget test driving a real use case's `watchAll().first` HANGS under fake-async; prove fire-and-forget triggers via `container.exists(specificProvider)` + worktree-falsify.
-- What Worked: two-layer never-clobber (derivation exclusion + insert-or-ignore); `watchAll().first` snapshot vs getAll() blast radius.
+## Deferred follow-ups (non-blocking)
+- Transitional `TodayView.doses` getter + `TodayDose.windowState/actionable` defaults retained (documented; retire when convenient).
+- Design-auditor: skip-icon↔checkbox spacing; `0.55` dim literal → named const if reused.
 
 ## Recently Modified Files
-- specs/040-auto-miss-engine/spec.md (Status Complete, ACs [x]), tasks/README.md, review.md
+- meds/presentation: screens/today_screen.dart, view_models/today_view_model.dart, widgets/{today_dose_tile,med_type_chip,today_countdown_card,today_group_section}.dart, providers/intake_providers.dart; domain/usecases/undo_intake.dart; deleted value_objects/intake_grace.dart; l10n/app_{en,de,uk}.arb

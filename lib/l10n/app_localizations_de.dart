@@ -431,4 +431,45 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get todayActionError =>
       'Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.';
+
+  @override
+  String get todayNextIntakeLabel => 'Nächste Einnahme';
+
+  @override
+  String todayNextIntakeIn(int hours, int minutes) {
+    return 'in $hours Std. $minutes Min.';
+  }
+
+  @override
+  String todayNextIntakeInMinutes(int minutes) {
+    return 'in $minutes Min.';
+  }
+
+  @override
+  String get todayAllDone => 'Für heute alles erledigt';
+
+  @override
+  String get todayGroupBadgeNow => 'Jetzt';
+
+  @override
+  String get todayGroupBadgeFuture => 'Später';
+
+  @override
+  String todayGroupTakenCount(int taken, int total) {
+    return '$taken/$total';
+  }
+
+  @override
+  String todayGroupDoseCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Dosen',
+      one: '1 Dosis',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get todayMarkAllInGroup => 'Alle markieren';
 }
