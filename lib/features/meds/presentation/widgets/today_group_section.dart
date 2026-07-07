@@ -26,8 +26,10 @@ import '../../../../l10n/l10n_extensions.dart';
 /// Renders one [TodayHourGroup] as a collapsible Today-screen card.
 ///
 /// Layout:
-/// * A rounded, clipped card with a 3px primary stripe down the left edge
-///   when [TodayHourGroup.state] is [TodayGroupState.now].
+/// * A rounded, clipped card. Every group shares the same chrome — a
+///   uniform `surfaceContainerLow` header and a uniformly tinted body — the
+///   [TodayHourGroup.state] is surfaced ONLY via the header's state badge,
+///   never via distinct card chrome.
 /// * A filled, tappable header showing the wall-clock hour as `HH:00`, a
 ///   state badge switching on [TodayHourGroup.state] ([TodayGroupState.now]
 ///   → primary "Now" pill; [TodayGroupState.future] → neutral "Future" pill;
@@ -94,46 +96,28 @@ class _TodayGroupSectionState extends State<TodayGroupSection> {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
     final TodayHourGroup group = widget.group;
-    final bool isNow = group.state == TodayGroupState.now;
 
     return Container(
       key: ValueKey<String>('todayGroupSection-${group.hour}'),
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              if (isNow) Container(width: 3, color: cs.primary),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    _Header(
-                      group: group,
-                      expanded: _expanded,
-                      isNow: isNow,
-                      onTap: _toggleExpanded,
-                    ),
-                    if (_expanded)
-                      _Body(
-                        group: group,
-                        now: widget.now,
-                        isNow: isNow,
-                        onTaken: widget.onTaken,
-                        onSkip: widget.onSkip,
-                        onUndo: widget.onUndo,
-                        onMarkAll: widget.onMarkAll,
-                      ),
-                  ],
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            _Header(group: group, expanded: _expanded, onTap: _toggleExpanded),
+            if (_expanded)
+              _Body(
+                group: group,
+                now: widget.now,
+                onTaken: widget.onTaken,
+                onSkip: widget.onSkip,
+                onUndo: widget.onUndo,
+                onMarkAll: widget.onMarkAll,
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -146,13 +130,11 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.group,
     required this.expanded,
-    required this.isNow,
     required this.onTap,
   });
 
   final TodayHourGroup group;
   final bool expanded;
-  final bool isNow;
   final VoidCallback onTap;
 
   @override
@@ -166,10 +148,8 @@ class _Header extends StatelessWidget {
       alwaysUse24HourFormat: true,
     );
 
-    final Color headerBg = isNow ? cs.surfaceContainer : cs.surfaceContainerLow;
-
     return Material(
-      color: headerBg,
+      color: cs.surfaceContainerLow,
       child: InkWell(
         key: ValueKey<String>('todayGroupHeader-${group.hour}'),
         onTap: onTap,
@@ -294,7 +274,6 @@ class _Body extends StatelessWidget {
   const _Body({
     required this.group,
     required this.now,
-    required this.isNow,
     required this.onTaken,
     required this.onSkip,
     required this.onUndo,
@@ -303,7 +282,6 @@ class _Body extends StatelessWidget {
 
   final TodayHourGroup group;
   final DateTime now;
-  final bool isNow;
   final void Function(TodayDose dose) onTaken;
   final void Function(TodayDose dose) onSkip;
   final void Function(TodayDose dose) onUndo;
@@ -314,8 +292,7 @@ class _Body extends StatelessWidget {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final AppLocalizations l10n = context.l10n;
     final Color bodyBg =
-        Color.lerp(cs.surface, cs.surfaceContainer, isNow ? 0.40 : 0.15) ??
-        cs.surfaceContainer;
+        Color.lerp(cs.surface, cs.surfaceContainer, 0.15) ?? cs.surfaceContainer;
 
     return Container(
       color: bodyBg,

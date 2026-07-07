@@ -1,9 +1,9 @@
 /// Widget tests for [TodayGroupSection] — the collapsible per-hour group
-/// header (state badge per [TodayGroupState], the "now"-only 3px primary
-/// stripe accent, the rounded/clipped card shape, the rotating chevron), the
-/// collapse/expand toggle seeded from `initiallyExpanded`, and the Mark-all
-/// button's gate on [TodayHourGroup.hasActionablePending] (both branches, per
-/// task 005's review note that this getter was previously untested).
+/// header (state badge per [TodayGroupState], the rounded/clipped card
+/// shape, the rotating chevron), the collapse/expand toggle seeded from
+/// `initiallyExpanded`, and the Mark-all button's gate on
+/// [TodayHourGroup.hasActionablePending] (both branches, per task 005's
+/// review note that this getter was previously untested).
 ///
 /// Each test pumps a single [TodayGroupSection] inside a minimal localized
 /// [MaterialApp]. No providers or `ProviderScope` are involved —
@@ -208,55 +208,34 @@ void main() {
     });
   });
 
-  group('TodayGroupSection now-stripe accent', () {
-    // The 3px primary stripe renders as a `Container(width: 3, color:
-    // cs.primary)`. `Container.build()` folds a bare `width:` into a tight
-    // `BoxConstraints` (`BoxConstraints.tightFor(width: 3)`) rather than a
-    // decoration, so the widget itself — still present as a `Container` node
-    // in the tree — is found by matching on `constraints` and `color`
-    // directly, with no need to reach into its `decoration`.
-    Finder stripeFinder(TodayHourGroup group, {Color? color}) =>
-        find.descendant(
-          of: find.byKey(_sectionKey(group)),
-          matching: find.byWidgetPredicate(
-            (Widget w) =>
-                w is Container &&
-                w.constraints == const BoxConstraints.tightFor(width: 3) &&
-                (color == null || w.color == color),
-          ),
-        );
+  group('TodayGroupSection header chrome', () {
+    testWidgets(
+      'header background is surfaceContainerLow regardless of state',
+      (tester) async {
+        for (final TodayHourGroup group in <TodayHourGroup>[
+          _nowGroupActionable(),
+          _futureGroup(),
+          _pastGroupResolved(),
+        ]) {
+          await tester.pumpWidget(_harness(group));
+          await tester.pumpAndSettle();
 
-    testWidgets('present for a "now" group', (tester) async {
-      final TodayHourGroup group = _nowGroupActionable();
-      await tester.pumpWidget(_harness(group));
-      await tester.pumpAndSettle();
+          final ColorScheme cs = Theme.of(
+            tester.element(find.byType(TodayGroupSection)),
+          ).colorScheme;
 
-      final ColorScheme cs = Theme.of(
-        tester.element(find.byType(TodayGroupSection)),
-      ).colorScheme;
-
-      expect(
-        stripeFinder(group, color: cs.primary),
-        findsOneWidget,
-        reason: 'A "now" group must render the 3px primary stripe.',
-      );
-    });
-
-    testWidgets('absent for a "future" group', (tester) async {
-      final TodayHourGroup group = _futureGroup();
-      await tester.pumpWidget(_harness(group));
-      await tester.pumpAndSettle();
-
-      expect(stripeFinder(group), findsNothing);
-    });
-
-    testWidgets('absent for a "past" group', (tester) async {
-      final TodayHourGroup group = _pastGroupResolved();
-      await tester.pumpWidget(_harness(group));
-      await tester.pumpAndSettle();
-
-      expect(stripeFinder(group), findsNothing);
-    });
+          final Material header = tester.widget<Material>(
+            find
+                .ancestor(
+                  of: find.byKey(_headerKey(group)),
+                  matching: find.byType(Material),
+                )
+                .first,
+          );
+          expect(header.color, cs.surfaceContainerLow);
+        }
+      },
+    );
   });
 
   group('TodayGroupSection card shape', () {
