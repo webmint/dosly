@@ -637,9 +637,9 @@ The group whose `TodayHourGroup.state` is `TodayGroupState.now` starts expanded;
 
 #### Hourly grouping & group state — `TodayGroupSection`
 
-Doses are bucketed by wall-clock hour (`slot.minuteOfDay ~/ 60`), so a 14:00 and a 14:30 dose share one hour-14 group; each dose's exact `HH:mm` still shows in its own tile subtitle. `TodayGroupSection` (`presentation/widgets/today_group_section.dart`) renders one `TodayHourGroup` as a rounded, clipped **card** (16px radius, `surfaceContainerLow` filled header bar, subtly tinted body panel) — matching the M3 template `.slot-group`:
+Doses are bucketed by wall-clock hour (`slot.minuteOfDay ~/ 60`), so a 14:00 and a 14:30 dose share one hour-14 group; each dose's exact `HH:mm` still shows in its own tile subtitle. `TodayGroupSection` (`presentation/widgets/today_group_section.dart`) renders one `TodayHourGroup` as a rounded, clipped **card** (16px radius, `surfaceContainerLow` filled header bar, subtly tinted body panel) — matching the M3 template `.slot-group`. Every group shares this same chrome; state is differentiated ONLY by the header badge:
 
-- A tappable header: the hour as `HH:00` (via `MaterialLocalizations`), a state badge (`TodayGroupState.now` → primary "Now" pill + a 3px primary **left stripe** down the card and a `surfaceContainer`-shaded header; `.future` → neutral "Future" pill; `.past` → neutral "✓ taken/total" pill), a muted pluralized dose-count sub-label, and a chevron that rotates −90° when collapsed.
+- A tappable header: the hour as `HH:00` (via `MaterialLocalizations`), a state badge (`TodayGroupState.now` → primary "Now" pill; `.future` → neutral "Future" pill; `.past` → neutral "✓ taken/total" pill), a muted pluralized dose-count sub-label, and a chevron that rotates −90° when collapsed.
 - A body (rendered only while expanded) of one `TodayDoseTile` per dose, followed by a Mark-all `FilledButton.tonalIcon` shown ONLY when `TodayHourGroup.hasActionablePending` is `true`.
 
 A group's state is the aggregate of its doses' `DoseWindowState`, not a comparison against the current wall-clock hour — a 14:00 dose with a 120-minute window is still "open"/actionable at 15:30, so its group stays "now" past the top of its hour.
